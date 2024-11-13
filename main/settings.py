@@ -19,7 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
     DJANGO_SECRET_KEY=str,
-    DJANGO_DEBUG=(bool, True),
+    DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOST=(list, ["*"]),
     # Database
     DB_NAME=str,
@@ -60,7 +60,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "etl_montandon.urls"
+ROOT_URLCONF = "main.urls"
 
 TEMPLATES = [
     {
@@ -78,7 +78,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "etl_montandon.wsgi.application"
+WSGI_APPLICATION = "main.wsgi.application"
 
 
 # Database
@@ -86,7 +86,7 @@ WSGI_APPLICATION = "etl_montandon.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
         "HOST": env("DB_HOST"),
         "PORT": env("DB_PORT"),
         "NAME": env("DB_NAME"),

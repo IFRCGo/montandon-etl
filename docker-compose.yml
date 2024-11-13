@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:15-alpine
+    image: postgis/postgis:15-3.5-alpine
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
@@ -16,7 +16,7 @@ services:
       context: ./
     tty: true
     environment:
-      DEBUG: ${DEBUG:-True}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?err}
       DB_NAME: ${DB_NAME:-postgres}
       DB_USER: ${DB_USER:-postgres}
