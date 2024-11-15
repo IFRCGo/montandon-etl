@@ -21,7 +21,7 @@ RUN apt-get update -y \
     && poetry config virtualenvs.create false \
     && poetry install --no-root \
     # Clean-up
-    rm -rf /root/.cache/pypoetry \
+    && rm -rf /root/.cache/pypoetry \
     && pip uninstall -y poetry virtualenv-clone virtualenv \
     && apt-get remove -y gcc libc-dev libproj-dev \
     && apt-get autoremove -y \
