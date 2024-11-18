@@ -1,8 +1,9 @@
-from apps.common.models import UserResource
-
 # Create your models here.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+from apps.common.models import UserResource
+
 
 class ExtractionLog(UserResource):
     class Source(models.IntegerChoices):
@@ -24,13 +25,14 @@ class ExtractionLog(UserResource):
     response_code = models.IntegerField(verbose_name=_("response code"), blank=True)
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
 
+
 class ExtractionData(UserResource):
     class ResponseDataType(models.IntegerChoices):
         JSON = 1, _("Json")
         CSV = 2, _("CSV")
         TEXT = 3, _("Text")
 
-    extraction_log = models.ForeignKey(ExtractionLog, on_delete=models.CASCADE, related_name='extraction_log')
-    uuid=models.UUIDField()
+    extraction_log = models.ForeignKey(ExtractionLog, on_delete=models.CASCADE, related_name="extraction_log")
+    uuid = models.UUIDField()
     raw_data = models.TextField(verbose_name=_("raw data"), blank=True)
     response_data_type = models.IntegerField(choices=ResponseDataType.choices)
