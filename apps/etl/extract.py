@@ -1,49 +1,67 @@
 import json
-import requests
-from datetime import timedelta, time
-from django.utils import timezone
 
-from .models import ExtractionLog
+import requests
+
+from .models import ExtractionData
 
 
 class Extraction:
     def __init__(self, url: str):
         self.url = url
 
-    def calculate_res_time(self, starttime, endtime):
-        # Ensure the times are set
-        if starttime and endtime:
-            delta = endtime - starttime
-            # Convert timedelta to time
-            total_seconds = int(delta.total_seconds())
-            hours, remainder = divmod(total_seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            return time(hour=hours % 24, minute=minutes, second=seconds)  # Ensure it's within 24 hours
-        return None
-
-    def pull_data(self, source: str, attempt_no: int=1, timeout: int=30):
-        start_time = timezone.now()
+    def pull_data(self, source: int, attempt_no: int = 1, timeout: int = 30):
         response = requests.get(self.url, timeout=timeout)
-        end_time = timezone.now()
+        resp_type = response.headers.get("Content-Type", "")
+        file_extension = "txt"  # Default file extension
+        resp_data = response.content
+
         if response.status_code == 200:
+            if resp_type == "application/json":
+                file_extension = "json"
+                resp_type = ExtractionData.ResponseDataType.JSON
+                content = response.json()
+                resp_data = json.dumps(content, ensure_ascii=False, indent=4)
+
+            elif "text/csv" in resp_type or "application/csv" in resp_type:
+                file_extension = "csv"
+                resp_type = ExtractionData.ResponseDataType.CSV
+            elif "text/html" in resp_type:
+                file_extension = "html"
+                resp_type = ExtractionData.ResponseDataType.HTML
+                resp_data = response.text
+            elif "application/xml" in resp_type or "text/xml" in resp_type:
+                file_extension = "xml"
+                resp_type = ExtractionData.ResponseDataType.XML
+                resp_data = response.text
+            elif "application/pdf" in resp_type:
+                file_extension = "pdf"
+                resp_type = ExtractionData.ResponseDataType.PDF
+            elif "text/plain" in resp_type:
+                file_extension = "txt"
+                resp_type = ExtractionData.ResponseDataType.TEXT
+                resp_data = response.text
+            elif "image/png" in resp_type:
+                file_extension = "png"
+            elif "image/jpeg" in resp_type:
+                file_extension = "jpg"
+
             return {
                 "source": source,
                 "url": self.url,
                 "attempt_no": attempt_no,
-                "req_started_datetime": start_time,
-                "response_time": self.calculate_res_time(start_time, end_time),
-                "response_code": response.status_code,
-                "raw_data": json.dumps(response.json()),
-                "status": ExtractionLog.Status.SUCCESS
+                "resp_code": response.status_code,
+                "status": ExtractionData.Status.SUCCESS,
+                "resp_data": resp_data,
+                "resp_type": resp_type,
+                "file_extension": file_extension,
             }
         return {
             "source": source,
             "url": self.url,
             "attempt_no": attempt_no,
-            "req_started_datetime": start_time,
-            "response_time": self.calculate_res_time(start_time, end_time),
-            # "response_time": (end_time - start_time).time(),
-            "response_code": response.status_code,
-            "raw_data": json.dumps({}),
-            "status": ExtractionLog.Status.FAILED
+            "resp_code": response.status_code,
+            "status": ExtractionData.Status.FAILED,
+            "resp_data": None,
+            "resp_type": None,
+            "file_extension": None,
         }
