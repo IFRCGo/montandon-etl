@@ -43,17 +43,22 @@ services:
 
   web:
     <<: *base_server_setup
-    command: bash -c 'python manage.py runserver 0.0.0.0:8001'
+    command: bash -c "/code/scripts/run_develop.sh"
     ports:
-      - 8001:8001 
+      - 8000:8000
 
     depends_on:
       - db
       - redis
 
+  celery-beat:
+    <<: *base_server_setup
+    command: bash -c "/code/scripts/run_worker_beat.sh"
+
   worker:
     <<: *base_server_setup
-    command: celery -A main worker --loglevel=info
+    # command: celery -A main worker --loglevel=info
+    command: bash -c "/code/scripts/run_worker.sh"
 
 volumes:
   postgres-data:
