@@ -1,5 +1,3 @@
-import json
-
 import requests
 
 from .models import ExtractionData
@@ -12,16 +10,13 @@ class Extraction:
     def pull_data(self, source: int, attempt_no: int = 1, timeout: int = 30):
         response = requests.get(self.url, timeout=timeout)
         resp_type = response.headers.get("Content-Type", "")
-        file_extension = "txt"  # Default file extension
+        file_extension = "txt"
         resp_data = response.content
 
         if response.status_code == 200:
-            if resp_type == "application/json":
+            if "application/json" in resp_type:
                 file_extension = "json"
                 resp_type = ExtractionData.ResponseDataType.JSON
-                content = response.json()
-                resp_data = json.dumps(content, ensure_ascii=False, indent=4)
-
             elif "text/csv" in resp_type or "application/csv" in resp_type:
                 file_extension = "csv"
                 resp_type = ExtractionData.ResponseDataType.CSV
@@ -40,10 +35,6 @@ class Extraction:
                 file_extension = "txt"
                 resp_type = ExtractionData.ResponseDataType.TEXT
                 resp_data = response.text
-            elif "image/png" in resp_type:
-                file_extension = "png"
-            elif "image/jpeg" in resp_type:
-                file_extension = "jpg"
 
             return {
                 "source": source,

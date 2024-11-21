@@ -5,6 +5,19 @@ from django.utils.translation import gettext_lazy as _
 from apps.common.models import UserResource
 
 
+class HazardType(models.TextChoices):
+    EARTHQUAKE = "EQ", "Earthquake"
+    FLOOD = "FL", "Flood"
+    CYCLONE = "TC", "Cyclone"
+    EPIDEMIC = "EP", "Epidemic"
+    FOOD_INSECURITY = "FI", "Food Insecurity"
+    STORM = "SS", "Storm Surge"
+    DROUGHT = "DR", "Drought"
+    TSUNAMI = "TS", "Tsunami"
+    WIND = "CD", "Cyclonic Wind"
+    WILDFIRE = "WF", "WildFire"
+
+
 class ExtractionData(UserResource):
     class ResponseDataType(models.IntegerChoices):
         JSON = 1, _("Json")
