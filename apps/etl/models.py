@@ -19,6 +19,10 @@ class HazardType(models.TextChoices):
 
 
 class ExtractionData(UserResource):
+    class ValidationStatus(models.IntegerChoices):
+        SUCCESS = 1, _("Success")
+        FAILED = 2, _("Failed")
+
     class ResponseDataType(models.IntegerChoices):
         JSON = 1, _("Json")
         CSV = 2, _("CSV")
@@ -44,4 +48,7 @@ class ExtractionData(UserResource):
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
     resp_data = models.FileField(verbose_name=_("resp_data"), upload_to="source_raw_data/", blank=True, null=True)
     resp_type = models.IntegerField(verbose_name=_("response type"), choices=ResponseDataType.choices, blank=True, null=True)
+    resp_data_type = models.CharField(verbose_name=_("response data type"), blank=True)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extraction")
+    source_validation_status = models.IntegerField(verbose_name=_("validation status"), choices=ValidationStatus.choices)
+    source_validation_fail_reason = models.TextField(verbose_name=_("validation status fail reason"), blank=True)

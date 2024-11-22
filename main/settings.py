@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 import environ
@@ -31,6 +32,8 @@ env = environ.Env(
     DJANGO_TIME_ZONE=(str, "UTC"),
     # Redis
     CELERY_REDIS_URL=str,
+    DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
+    DJANGO_STATIC_URL=(str, "/static/"),
 )
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
@@ -149,7 +152,10 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = env("DJANGO_STATIC_URL")
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
