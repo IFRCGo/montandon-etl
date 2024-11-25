@@ -1,3 +1,4 @@
+import json
 import logging
 import typing
 from datetime import datetime, timedelta
@@ -67,7 +68,7 @@ class Command(BaseCommand):
                 exc_info=True,
             )
 
-            pop_exposure_data = ExtractionData.objects.create(
+            ExtractionData.objects.create(
                 parent=parent_gdacs_instance,
                 source=ExtractionData.Source.GDACS,
                 url=url,
@@ -75,11 +76,11 @@ class Command(BaseCommand):
                 resp_data_type="text/html",
                 attempt_no=1,  # TODO need to set a function for automatically set attempt_no
                 resp_code=201,  # TODO need to set dynamically
-                source_validation_status=2,
+                source_validation_status=ExtractionData.ValidationStatus.FAILED,
             )
             return
 
-        pop_exposure_data = ExtractionData.objects.create(
+        pop_exposure_data = ExtractionData(
             parent=parent_gdacs_instance,
             source=ExtractionData.Source.GDACS,
             url=url,
@@ -87,10 +88,12 @@ class Command(BaseCommand):
             resp_data_type="text/html",
             attempt_no=1,  # TODO need to set a function for automatically set attempt_no
             resp_code=200,  # TODO need to set dynamically
-            source_validation_status=1,
+            source_validation_status=ExtractionData.ValidationStatus.SUCCESS,
         )
         file_name = "gdacs_pop_exposure.html"
         resp_data_content = population_exposure
+        # convent dict obj into bytes obj
+        resp_data_content = json.dumps(resp_data_content, indent=2).encode("utf-8")
         pop_exposure_data.resp_data.save(file_name, ContentFile(resp_data_content))
 
     def import_hazard_data(self, hazard_type, hazard_type_str):
@@ -102,34 +105,38 @@ class Command(BaseCommand):
         gdacs_extraction = Extraction(url=gdacs_url)
         response = gdacs_extraction.pull_data(source=ExtractionData.Source.GDACS)
 
-        resp_data = response.pop("resp_data")
-        resp_data_content = resp_data.content
         file_extension = response.pop("file_extension")
         file_name = f"gdacs.{file_extension}"
+
+        resp_data = response.pop("resp_data")
 
         gdacs_instance = ExtractionData(
             **response,
         )
-        gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
+        if resp_data:
+            resp_data_content = resp_data.content
+            gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
 
-        for old_data in resp_data.json()["features"]:
-            event_id = old_data["properties"]["eventid"]
-            episode_id = old_data["properties"]["episodeid"]
+            for old_data in resp_data.json()["features"]:
+                event_id = old_data["properties"]["eventid"]
+                episode_id = old_data["properties"]["episodeid"]
 
-            self.scrape_population_exposure_data(gdacs_instance, event_id, hazard_type_str)
+                self.scrape_population_exposure_data(gdacs_instance, event_id, hazard_type_str)
 
-            footprint_url = old_data["properties"]["url"]["geometry"]
-            if hazard_type == HazardType.CYCLONE:
-                footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
-                gdacs_extraction_footprint = Extraction(url=footprint_url)
-                response = gdacs_extraction_footprint.pull_data(source=ExtractionData.Source.GDACS)
-                resp_data = response.pop("resp_data")
-                resp_data_content = resp_data.content
-                file_extension = response.pop("file_extension")
-                file_name = f"gdacs_footprint.{file_extension}"
+                footprint_url = old_data["properties"]["url"]["geometry"]
+                if hazard_type == HazardType.CYCLONE:
+                    footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+                    gdacs_extraction_footprint = Extraction(url=footprint_url)
+                    response = gdacs_extraction_footprint.pull_data(source=ExtractionData.Source.GDACS)
+                    resp_data = response.pop("resp_data")
+                    resp_data_content = resp_data.content
+                    file_extension = response.pop("file_extension")
+                    file_name = f"gdacs_footprint.{file_extension}"
 
-                gdacs_instance = ExtractionData(**response, parent=gdacs_instance)
-                gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
+                    gdacs_instance = ExtractionData(**response, parent=gdacs_instance)
+                    gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
+
+        gdacs_instance.save()
 
         print(f"{hazard_type} data imported sucessfully")
 

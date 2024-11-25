@@ -53,6 +53,6 @@ class Extraction:
             "status": ExtractionData.Status.FAILED,
             "source_validation_status": ExtractionData.ValidationStatus.FAILED,
             "resp_data": None,
-            "resp_data_type": None,
+            "resp_data_type": "",
             "file_extension": None,
         }
