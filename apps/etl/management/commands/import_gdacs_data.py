@@ -1,9 +1,7 @@
-import json
 import logging
 import typing
 from datetime import datetime, timedelta
 
-import numpy as np
 import pandas as pd
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
@@ -33,33 +31,9 @@ class Command(BaseCommand):
 
     def scrape_population_exposure_data(self, parent_gdacs_instance, event_id: int, hazard_type_str: str):
         url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type_str}"
-        population_exposure = {}
         try:
-
             tables = pd.read_html(url)
-            displacement_data_raw = tables[0].replace({np.nan: None}).to_dict()
-            displacement_data = dict(
-                zip(
-                    displacement_data_raw[0].values(),  # First column are keys
-                    displacement_data_raw[1].values(),  # Second column are values
-                )
-            )
-
-            if hazard_type_str == "EQ":
-                population_exposure["exposed_population"] = displacement_data.get("Exposed Population:")
-
-            elif hazard_type_str == "TC":
-                population_exposure["exposed_population"] = displacement_data.get("Exposed population")
-
-            elif hazard_type_str == "FL":
-                population_exposure["death"] = get_as_int(displacement_data.get("Death:"))
-                population_exposure["displaced"] = get_as_int(displacement_data.get("Displaced:"))
-
-            elif hazard_type_str == "DR":
-                population_exposure["impact"] = displacement_data.get("Impact:")
-
-            elif hazard_type_str == "WF":
-                population_exposure["people_affected"] = displacement_data.get("People affected:")
+            html_table_content = tables[0].to_html(index=False)
 
         except Exception:
             logger.error(
@@ -91,10 +65,7 @@ class Command(BaseCommand):
             source_validation_status=ExtractionData.ValidationStatus.SUCCESS,
         )
         file_name = "gdacs_pop_exposure.html"
-        resp_data_content = population_exposure
-        # convent dict obj into bytes obj
-        resp_data_content = json.dumps(resp_data_content, indent=2).encode("utf-8")
-        pop_exposure_data.resp_data.save(file_name, ContentFile(resp_data_content))
+        pop_exposure_data.resp_data.save(file_name, ContentFile(html_table_content))
 
     def import_hazard_data(self, hazard_type, hazard_type_str):
         print(f"Importing {hazard_type} data")
