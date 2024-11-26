@@ -12,7 +12,6 @@ class ExtractionDataAdmin(admin.ModelAdmin):
             return [field.name for field in self.model._meta.fields]
         return []
 
-    # readonly_fields = ('__all__',)
     list_display = (
         "id",
         "source",
@@ -20,6 +19,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
         "status",
         "parent__id",
         "resp_data_type",
+        "source_validation_status",
         "created_at",
     )
     list_filter = ("status",)

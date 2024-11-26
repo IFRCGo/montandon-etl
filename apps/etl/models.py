@@ -24,6 +24,7 @@ class ExtractionData(UserResource):
         FAILED = 2, _("Failed")
         NO_DATA = 3, _("No data")
         NO_CHANGE = 4, _("No change")
+        NO_VALIDATION = 5, _("No validation")
 
     class ResponseDataType(models.IntegerChoices):
         JSON = 1, _("json")
@@ -53,7 +54,7 @@ class ExtractionData(UserResource):
     resp_data_type = models.CharField(verbose_name=_("response data type"), blank=True)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extraction")
     source_validation_status = models.IntegerField(verbose_name=_("validation status"), choices=ValidationStatus.choices)
-    source_validation_fail_reason = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
+    content_validation = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
 
     def __str__(self):
         return str(self.id)

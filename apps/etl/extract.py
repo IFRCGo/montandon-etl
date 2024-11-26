@@ -1,6 +1,11 @@
 import requests
+import json
 
 from .models import ExtractionData
+
+from pydantic import ValidationError
+
+from apps.etl.extraction_validators.gdacs_events_validator import GdacsEventsDataValidator
 
 
 class Extraction:
@@ -17,6 +22,7 @@ class Extraction:
             if "application/json" in resp_type:
                 file_extension = "json"
                 resp_type = resp_type
+
             # if "application/json" in resp_type:
             #     print("Inside geo json")
             #     file_extension = "json"
@@ -43,7 +49,8 @@ class Extraction:
                 "resp_data": resp_data,
                 "resp_data_type": resp_type,
                 "file_extension": file_extension,
-                "source_validation_status": ExtractionData.ValidationStatus.SUCCESS,
+                "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
+                "content_validation": ""
             }
         return {
             "source": source,
@@ -51,8 +58,9 @@ class Extraction:
             "attempt_no": attempt_no,
             "resp_code": response.status_code,
             "status": ExtractionData.Status.FAILED,
-            "source_validation_status": ExtractionData.ValidationStatus.FAILED,
+            "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
             "resp_data": None,
             "resp_data_type": "",
             "file_extension": None,
+            "content_validation": ""
         }
