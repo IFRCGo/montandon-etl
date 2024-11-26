@@ -22,18 +22,20 @@ class ExtractionData(UserResource):
     class ValidationStatus(models.IntegerChoices):
         SUCCESS = 1, _("Success")
         FAILED = 2, _("Failed")
+        NO_DATA = 3, _("No data")
+        NO_CHANGE = 4, _("No change")
 
     class ResponseDataType(models.IntegerChoices):
-        JSON = 1, _("Json")
-        CSV = 2, _("CSV")
-        TEXT = 3, _("Text")
-        HTML = 4, _("Html")
-        XML = 5, _("XML")
+        JSON = 1, _("json")
+        CSV = 2, _("csv")
+        TEXT = 3, _("text")
+        HTML = 4, _("html")
+        XML = 5, _("xml")
         PDF = 6, _("pdf")
 
     class Source(models.IntegerChoices):
-        GDACS = 1, _("Gdacs")
-        PDC = 2, _("pdc")
+        GDACS = 1, _("GDACS")
+        PDC = 2, _("PDC")
 
     class Status(models.IntegerChoices):
         PENDING = 1, _("Pending")
@@ -52,3 +54,6 @@ class ExtractionData(UserResource):
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extraction")
     source_validation_status = models.IntegerField(verbose_name=_("validation status"), choices=ValidationStatus.choices)
     source_validation_fail_reason = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
+
+    def __str__(self):
+        return str(self.id)

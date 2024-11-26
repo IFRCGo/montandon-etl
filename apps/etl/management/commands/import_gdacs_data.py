@@ -1,8 +1,7 @@
 import logging
-import typing
 from datetime import datetime, timedelta
 
-import pandas as pd
+import requests
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
@@ -12,60 +11,40 @@ from apps.etl.models import ExtractionData, HazardType
 logger = logging.getLogger(__name__)
 
 
-def logging_context(context) -> dict:
-    return {
-        "context": context,
-    }
-
-
-def get_as_int(value: typing.Optional[str]) -> typing.Optional[int]:
-    if value is None:
-        return
-    if value == "-":
-        return
-    return int(value)
-
-
 class Command(BaseCommand):
     help = "Import data from gdacs api"
 
     def scrape_population_exposure_data(self, parent_gdacs_instance, event_id: int, hazard_type_str: str):
         url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type_str}"
-        try:
-            tables = pd.read_html(url)
-            html_table_content = tables[0].to_html(index=False)
 
-        except Exception:
-            logger.error(
-                "Error scraping data",
-                extra=logging_context(dict(url=url)),
-                exc_info=True,
-            )
-
-            ExtractionData.objects.create(
+        response = requests.get(url)
+        if response.status_code == 200:
+            html_content = response.text
+            pop_exposure_data = ExtractionData(
                 parent=parent_gdacs_instance,
                 source=ExtractionData.Source.GDACS,
                 url=url,
-                status=ExtractionData.Status.FAILED,
-                resp_data_type="text/html",
+                status=ExtractionData.Status.SUCCESS,
+                resp_data_type=response.headers.get("Content-Type", ""),
                 attempt_no=1,  # TODO need to set a function for automatically set attempt_no
-                resp_code=201,  # TODO need to set dynamically
-                source_validation_status=ExtractionData.ValidationStatus.FAILED,
+                resp_code=response.status_code,
+                source_validation_status=ExtractionData.ValidationStatus.SUCCESS,
             )
+            file_name = "gdacs_pop_exposure.html"
+            pop_exposure_data.resp_data.save(file_name, ContentFile(html_content))
+
             return
 
-        pop_exposure_data = ExtractionData(
+        ExtractionData.objects.create(
             parent=parent_gdacs_instance,
             source=ExtractionData.Source.GDACS,
             url=url,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data_type="text/html",
+            status=ExtractionData.Status.FAILED,
+            resp_data_type=response.headers.get("Content-Type", ""),
             attempt_no=1,  # TODO need to set a function for automatically set attempt_no
-            resp_code=200,  # TODO need to set dynamically
-            source_validation_status=ExtractionData.ValidationStatus.SUCCESS,
+            resp_code=response.status_code,
+            source_validation_status=ExtractionData.ValidationStatus.FAILED,
         )
-        file_name = "gdacs_pop_exposure.html"
-        pop_exposure_data.resp_data.save(file_name, ContentFile(html_table_content))
 
     def import_hazard_data(self, hazard_type, hazard_type_str):
         print(f"Importing {hazard_type} data")
@@ -88,13 +67,13 @@ class Command(BaseCommand):
             resp_data_content = resp_data.content
             gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
 
-            for old_data in resp_data.json()["features"]:
-                event_id = old_data["properties"]["eventid"]
-                episode_id = old_data["properties"]["episodeid"]
+            for feature in resp_data.json()["features"]:
+                event_id = feature["properties"]["eventid"]
+                episode_id = feature["properties"]["episodeid"]
 
                 self.scrape_population_exposure_data(gdacs_instance, event_id, hazard_type_str)
 
-                footprint_url = old_data["properties"]["url"]["geometry"]
+                footprint_url = feature["properties"]["url"]["geometry"]
                 if hazard_type == HazardType.CYCLONE:
                     footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
                     gdacs_extraction_footprint = Extraction(url=footprint_url)
