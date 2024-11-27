@@ -1,11 +1,6 @@
 import requests
-import json
 
 from .models import ExtractionData
-
-from pydantic import ValidationError
-
-from apps.etl.extraction_validators.gdacs_events_validator import GdacsEventsDataValidator
 
 
 class Extraction:
@@ -50,7 +45,7 @@ class Extraction:
                 "resp_data_type": resp_type,
                 "file_extension": file_extension,
                 "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
-                "content_validation": ""
+                "content_validation": "",
             }
         return {
             "source": source,
@@ -62,5 +57,5 @@ class Extraction:
             "resp_data": None,
             "resp_data_type": "",
             "file_extension": None,
-            "content_validation": ""
+            "content_validation": "",
         }
