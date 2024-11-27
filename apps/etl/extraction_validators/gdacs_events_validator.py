@@ -47,7 +47,7 @@ class Properties(BaseModel):
     sourceid: Optional[str]
     polygonlabel: str
     Class: str
-    countryonland: str
+    country: str
     affectedcountries: List[AffectedCountry]
     severitydata: SeverityData
 
