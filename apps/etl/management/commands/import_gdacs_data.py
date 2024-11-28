@@ -3,7 +3,6 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-import requests
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from pydantic import ValidationError
@@ -17,24 +16,38 @@ from apps.etl.models import ExtractionData, HazardType
 logger = logging.getLogger(__name__)
 
 
-def hash_file(file):
+def validate_source_data(resp_data):
+    try:
+        resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
+        GdacsEventsDataValidator(**resp_data_for_validation)
+        validation_error = ""
+    except ValidationError as e:
+        validation_error = e.json()
+    validation_data = {
+        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
+        "validation_error": validation_error if validation_error else "",
+    }
+    return validation_data
+
+
+def manage_dublicate_file_content(source, hash_content, instance, response_data, file_name):
+    dublicate_file_content = ExtractionData.objects.filter(source=source, file_hash=hash_content)
+    if dublicate_file_content:
+        instance.resp_data = dublicate_file_content.first().resp_data
+    else:
+        instance.resp_data.save(file_name, ContentFile(response_data))
+
+    instance.save()
+
+
+def hash_file_content(content):
     """
     Compute the hash of a file using the specified algorithm.
     :return: Hexadecimal hash of the file
     """
-    if file:
-        if file.closed:
-            file.open()
+    file_hash = hashlib.sha256(content).hexdigest()
 
-        # Compute the hash of the file's content
-        hash_sha256 = hashlib.sha256()  # Use others hashlib if preferred
-        for chunk in file.chunks():  # Read file in chunks to avoid memory issues
-            hash_sha256.update(chunk)
-
-        file_hash = hash_sha256.hexdigest()
-        file.close()
-
-        return file_hash
+    return file_hash
 
 
 class Command(BaseCommand):
@@ -42,34 +55,27 @@ class Command(BaseCommand):
 
     def scrape_population_exposure_data(self, parent_gdacs_instance, event_id: int, hazard_type_str: str):
         url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type_str}"
+        pop_exposure_extraction = Extraction(url=url)
+        response = pop_exposure_extraction.pull_data(source=ExtractionData.Source.GDACS)
 
-        response = requests.get(url)
-        if response.status_code == 200:
-            html_content = response.text
-            pop_exposure_data = ExtractionData(
-                parent=parent_gdacs_instance,
-                source=ExtractionData.Source.GDACS,
-                url=url,
-                status=ExtractionData.Status.SUCCESS,
-                resp_data_type=response.headers.get("Content-Type", ""),
-                attempt_no=1,  # TODO need to set a function for automatically set attempt_no
-                resp_code=response.status_code,
-                source_validation_status=ExtractionData.ValidationStatus.SUCCESS,
-            )
-            file_name = "gdacs_pop_exposure.html"
-            pop_exposure_data.resp_data.save(file_name, ContentFile(html_content))
+        resp_data = response.pop("resp_data")
+        resp_data_content = resp_data.content
+        file_extension = response.pop("file_extension")
+        file_name = f"gdacs_footprint.{file_extension}"
 
-            return
+        gdacs_instance = ExtractionData(**response, parent=parent_gdacs_instance)
 
-        ExtractionData.objects.create(
-            parent=parent_gdacs_instance,
+        # TODO Source validation
+
+        # TODO Fix dublicate file creation
+        # Dublicate file content check
+        hash_content = hash_file_content(resp_data_content)
+        manage_dublicate_file_content(
             source=ExtractionData.Source.GDACS,
-            url=url,
-            status=ExtractionData.Status.FAILED,
-            resp_data_type=response.headers.get("Content-Type", ""),
-            attempt_no=1,  # TODO need to set a function for automatically set attempt_no
-            resp_code=response.status_code,
-            source_validation_status=ExtractionData.ValidationStatus.FAILED,
+            hash_content=hash_content,
+            instance=gdacs_instance,
+            response_data=resp_data_content,
+            file_name=file_name,
         )
 
     def import_hazard_data(self, hazard_type, hazard_type_str):
@@ -93,20 +99,19 @@ class Command(BaseCommand):
         if resp_data:
             resp_data_content = resp_data.content
 
-            # Validate the response data, if changes encountered then save the erroe response
-            try:
-                resp_data_for_validation = json.loads(resp_data_content.decode("utf-8"))
-                GdacsEventsDataValidator(**resp_data_for_validation)
-                validation_error = ""
-            except ValidationError as e:
-                validation_error = e.json()
-            gdacs_instance.source_validation_status = (
-                ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS
+            # Source validation
+            gdacs_instance.source_validation_status = validate_source_data(resp_data_content)["status"]
+            gdacs_instance.content_validation = validate_source_data(resp_data_content)["validation_error"]
+
+            # Dublicate file content check
+            hash_content = hash_file_content(resp_data_content)
+            manage_dublicate_file_content(
+                source=ExtractionData.Source.GDACS,
+                hash_content=hash_content,
+                instance=gdacs_instance,
+                response_data=resp_data_content,
+                file_name=file_name,
             )
-            gdacs_instance.content_validation = validation_error if validation_error else ""
-            gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
-            # save hash value for file
-            gdacs_instance.file_hash = hash_file(gdacs_instance.resp_data)
 
             for feature in resp_data.json()["features"]:
                 event_id = feature["properties"]["eventid"]
@@ -124,9 +129,18 @@ class Command(BaseCommand):
                     file_extension = response.pop("file_extension")
                     file_name = f"gdacs_footprint.{file_extension}"
                     gdacs_instance = ExtractionData(**response, parent=gdacs_instance)
-                    gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
 
-        gdacs_instance.save()
+                    # TODO Source validation
+
+                    # Dublicate file content check
+                    hash_content = hash_file_content(resp_data_content)
+                    manage_dublicate_file_content(
+                        source=ExtractionData.Source.GDACS,
+                        hash_content=hash_content,
+                        instance=gdacs_instance,
+                        response_data=resp_data_content,
+                        file_name=file_name,
+                    )
 
         print(f"{hazard_type} data imported sucessfully")
 

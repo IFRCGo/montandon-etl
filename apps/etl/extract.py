@@ -17,15 +17,15 @@ class Extraction:
             if "application/json" in resp_type:
                 file_extension = "json"
                 resp_type = resp_type
+            if "text/html" in resp_type:
+                file_extension = "html"
+                resp_type = resp_type
 
             # if "application/json" in resp_type:
             #     print("Inside geo json")
             #     file_extension = "json"
             # elif "text/csv" in resp_type or "application/csv" in resp_type:
             #     file_extension = "csv"
-            # elif "text/html" in resp_type:
-            #     file_extension = "html"
-            #     resp_data = response.text
             # elif "application/xml" in resp_type or "text/xml" in resp_type:
             #     file_extension = "xml"
             #     resp_data = response.text
