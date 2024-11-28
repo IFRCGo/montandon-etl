@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from datetime import datetime, timedelta
@@ -16,9 +17,24 @@ from apps.etl.models import ExtractionData, HazardType
 logger = logging.getLogger(__name__)
 
 
-def generate_hash(file):
+def hash_file(file):
+    """
+    Compute the hash of a file using the specified algorithm.
+    :return: Hexadecimal hash of the file
+    """
+    if file:
+        if file.closed:
+            file.open()
 
-    pass
+        # Compute the hash of the file's content
+        hash_sha256 = hashlib.sha256()  # Use others hashlib if preferred
+        for chunk in file.chunks():  # Read file in chunks to avoid memory issues
+            hash_sha256.update(chunk)
+
+        file_hash = hash_sha256.hexdigest()
+        file.close()
+
+        return file_hash
 
 
 class Command(BaseCommand):
@@ -89,6 +105,8 @@ class Command(BaseCommand):
             )
             gdacs_instance.content_validation = validation_error if validation_error else ""
             gdacs_instance.resp_data.save(file_name, ContentFile(resp_data_content))
+            # save hash value for file
+            gdacs_instance.file_hash = hash_file(gdacs_instance.resp_data)
 
             for feature in resp_data.json()["features"]:
                 event_id = feature["properties"]["eventid"]

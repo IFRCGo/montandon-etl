@@ -49,12 +49,27 @@ class ExtractionData(UserResource):
     attempt_no = models.IntegerField(verbose_name=_("attempt number"), blank=True)
     resp_code = models.IntegerField(verbose_name=_("response code"), blank=True)
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
-    resp_data = models.FileField(verbose_name=_("resp_data"), upload_to="source_raw_data/", blank=True, null=True)
+    resp_data = models.FileField(verbose_name=_("response data"), upload_to="source_raw_data/", blank=True, null=True)
+    file_hash = models.CharField(
+        verbose_name=_("file hash value"),
+        max_length=500,
+        blank=True,
+    )
     resp_type = models.IntegerField(verbose_name=_("response type"), choices=ResponseDataType.choices, blank=True, null=True)
     resp_data_type = models.CharField(verbose_name=_("response data type"), blank=True)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extraction")
-    source_validation_status = models.IntegerField(verbose_name=_("validation status"), choices=ValidationStatus.choices)
+    source_validation_status = models.IntegerField(
+        verbose_name=_("source data validation status"), choices=ValidationStatus.choices
+    )
     content_validation = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
+    revision_id = models.ForeignKey(
+        "self",
+        verbose_name=_("revision id"),
+        help_text="This id points to the extraction object having same file content",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return str(self.id)
