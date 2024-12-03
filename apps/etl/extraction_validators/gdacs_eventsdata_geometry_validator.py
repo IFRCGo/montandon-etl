@@ -1,20 +1,25 @@
-from typing import List, Optional, Union
-from pydantic import BaseModel, HttpUrl
 from datetime import datetime
+from typing import List, Optional, Union
+
+from pydantic import BaseModel, HttpUrl
+
 
 class URLDetails(BaseModel):
     geometry: HttpUrl
     report: HttpUrl
     details: HttpUrl
 
+
 class SeverityData(BaseModel):
     severity: float
     severitytext: str
     severityunit: str
 
+
 class AffectedCountry(BaseModel):
     iso3: str
     countryname: str
+
 
 class Properties(BaseModel):
     eventtype: str
@@ -43,19 +48,22 @@ class Properties(BaseModel):
     sourceid: str
     polygonlabel: str
     Class: str
-    countryonland: str
+    country: str
     affectedcountries: List[AffectedCountry]
     severitydata: SeverityData
+
 
 class Geometry(BaseModel):
     type: str
     coordinates: Union[List[float], List[List[List[float]]]]
+
 
 class Feature(BaseModel):
     type: str
     bbox: List[float]
     geometry: Geometry
     properties: Properties
+
 
 class GdacsEventsGeometryData(BaseModel):
     type: str
