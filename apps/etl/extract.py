@@ -62,7 +62,7 @@ class Extraction:
             "resp_code": response.status_code,
             "status": resp_status,
             "source_validation_status": source_validation_status,
-            "resp_data": None,
+            "resp_data": response,
             "resp_data_type": "",
             "file_extension": None,
             "content_validation": "",
