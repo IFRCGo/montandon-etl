@@ -52,6 +52,9 @@ class Extraction:
         elif response.status_code == 204:
             resp_status = ExtractionData.Status.SUCCESS
             source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+        elif response.status_code == 500:
+            resp_status = ExtractionData.Status.FAILED
+            source_validation_status = ExtractionData.ValidationStatus.NO_DATA
         return {
             "source": source,
             "url": self.url,
@@ -59,7 +62,7 @@ class Extraction:
             "resp_code": response.status_code,
             "status": resp_status,
             "source_validation_status": source_validation_status,
-            "resp_data": None,
+            "resp_data": response,
             "resp_data_type": "",
             "file_extension": None,
             "content_validation": "",
