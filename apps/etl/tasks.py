@@ -3,7 +3,9 @@ import json
 import logging
 from datetime import datetime, timedelta
 
+import requests
 from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from pydantic import ValidationError
@@ -16,6 +18,7 @@ from apps.etl.extraction_validators.gdacs_eventsdata_geometry_validator import (
     GdacsEventsGeometryData,
 )
 from apps.etl.models import ExtractionData
+from apps.etl.transformer import transform_1, transform_2, transform_3
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,17 @@ logger = logging.getLogger(__name__)
 @shared_task
 def fetch_gdacs_data():
     call_command("import_gdacs_data")
+
+
+def retry_fetch_data(self, url):
+    response = None  # Initialize response variable
+    try:
+        gdacs_extraction = Extraction(url=url)
+        response = gdacs_extraction.pull_data(source=ExtractionData.Source.GDACS)
+    except requests.exceptions.RequestException as exc:
+        self.retry(exc=exc)
+
+    return response
 
 
 def validate_source_data(resp_data):
@@ -72,64 +86,52 @@ def hash_file_content(content):
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=5)
-def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str):
-    try:
-        url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
-        pop_exposure_extraction = Extraction(url=url)
-        response = pop_exposure_extraction.pull_data(source=ExtractionData.Source.GDACS)
-        if response["status"] == ExtractionData.Status.FAILED:
-            raise Exception()
-        resp_data = response.pop("resp_data")
-        file_extension = response.pop("file_extension")
-        file_name = f"gdacs_footprint.{file_extension}"
-        gdacs_instance = ExtractionData.objects.create(**response, parent=ExtractionData.objects.get(id=parent_id))
-        if resp_data:
-            resp_data_content = resp_data.content
-            # TODO Source validation
-            # duplicate file content check
-            hash_content = hash_file_content(resp_data_content)
-            manage_duplicate_file_content(
-                source=ExtractionData.Source.GDACS,
-                hash_content=hash_content,
-                instance=gdacs_instance,
-                response_data=resp_data_content,
-                file_name=file_name,
-            )
+def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id):
+    url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
-    except Exception as exc:
-        print(f"Unexpected error: {exc}")
-        raise self.retry(exc=exc)
+    response = retry_fetch_data(self, url)
+    resp_data = response.pop("resp_data")
+    file_extension = response.pop("file_extension")
+    file_name = f"gdacs_footprint.{file_extension}"
+    gdacs_instance = ExtractionData.objects.create(**response, parent=ExtractionData.objects.get(id=parent_id))
+    if resp_data:
+        resp_data_content = resp_data.content
+        # TODO Source validation
+        # duplicate file content check
+        hash_content = hash_file_content(resp_data_content)
+        manage_duplicate_file_content(
+            source=ExtractionData.Source.GDACS,
+            hash_content=hash_content,
+            instance=gdacs_instance,
+            response_data=resp_data_content,
+            file_name=file_name,
+        )
+        transform_3.delay(parent_transform_id)
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=5)
-def fetch_gdacs_geometry_data(self, parent_id, footprint_url):
-    try:
-        gdacs_extraction_footprint = Extraction(url=footprint_url)
-        response = gdacs_extraction_footprint.pull_data(source=ExtractionData.Source.GDACS)
-        if response["status"] == ExtractionData.Status.FAILED:
-            raise Exception()
-        resp_data = response.pop("resp_data")
-        file_extension = response.pop("file_extension")
-        file_name = f"gdacs_footprint.{file_extension}"
-        gdacs_instance = ExtractionData.objects.create(**response, parent=ExtractionData.objects.get(id=parent_id))
-        if resp_data:
-            resp_data_content = resp_data.content
-            # Source validation
-            gdacs_instance.source_validation_status = validate_gdacs_geometry_data(resp_data_content)["status"]
-            gdacs_instance.content_validation = validate_gdacs_geometry_data(resp_data_content)["validation_error"]
+def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_id):
+    response = retry_fetch_data(self, footprint_url)
+    resp_data = response.pop("resp_data")
+    file_extension = response.pop("file_extension")
+    file_name = f"gdacs_footprint.{file_extension}"
+    gdacs_instance = ExtractionData.objects.create(**response, parent=ExtractionData.objects.get(id=parent_id))
+    if resp_data:
+        resp_data_content = resp_data.content
+        # Source validation
+        gdacs_instance.source_validation_status = validate_gdacs_geometry_data(resp_data_content)["status"]
+        gdacs_instance.content_validation = validate_gdacs_geometry_data(resp_data_content)["validation_error"]
 
-            # duplicate file content check
-            hash_content = hash_file_content(resp_data_content)
-            manage_duplicate_file_content(
-                source=ExtractionData.Source.GDACS,
-                hash_content=hash_content,
-                instance=gdacs_instance,
-                response_data=resp_data_content,
-                file_name=file_name,
-            )
-    except Exception as exc:
-        print(f"Unexpected error: {exc}")
-        raise self.retry(exc=exc)
+        # duplicate file content check
+        hash_content = hash_file_content(resp_data_content)
+        manage_duplicate_file_content(
+            source=ExtractionData.Source.GDACS,
+            hash_content=hash_content,
+            instance=gdacs_instance,
+            response_data=resp_data_content,
+            file_name=file_name,
+        )
+        transform_2.delay(parent_transform_id)
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=5)
@@ -139,49 +141,52 @@ def import_hazard_data(self, hazard_type, hazard_type_str):
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
 
-    try:
-        gdacs_extraction = Extraction(url=gdacs_url)
-        response = gdacs_extraction.pull_data(source=ExtractionData.Source.GDACS)
-        if response["status"] == ExtractionData.Status.FAILED:
-            raise Exception()
-        file_extension = response.pop("file_extension")
-        file_name = f"gdacs.{file_extension}"
-        resp_data = response.pop("resp_data")
-        gdacs_instance = ExtractionData.objects.create(
-            **response,
+    response = retry_fetch_data(self, gdacs_url)
+    print("RESP", response)
+
+    file_extension = response.pop("file_extension")
+    file_name = f"gdacs.{file_extension}"
+    resp_data = response.pop("resp_data")
+    gdacs_instance = ExtractionData.objects.create(
+        **response,
+    )
+    if resp_data:
+        resp_data_content = resp_data.content
+        # Source validation
+        gdacs_instance.source_validation_status = validate_source_data(resp_data_content)["status"]
+        gdacs_instance.content_validation = validate_source_data(resp_data_content)["validation_error"]
+
+        # duplicate file content check
+        hash_content = hash_file_content(resp_data_content)
+        manage_duplicate_file_content(
+            source=ExtractionData.Source.GDACS,
+            hash_content=hash_content,
+            instance=gdacs_instance,
+            response_data=resp_data_content,
+            file_name=file_name,
         )
-        if resp_data:
-            resp_data_content = resp_data.content
-            # Source validation
-            gdacs_instance.source_validation_status = validate_source_data(resp_data_content)["status"]
-            gdacs_instance.content_validation = validate_source_data(resp_data_content)["validation_error"]
 
-            # duplicate file content check
-            hash_content = hash_file_content(resp_data_content)
-            manage_duplicate_file_content(
-                source=ExtractionData.Source.GDACS,
-                hash_content=hash_content,
-                instance=gdacs_instance,
-                response_data=resp_data_content,
-                file_name=file_name,
-            )
+    transform_id = None
+    if (
+        gdacs_instance.resp_code == 200
+        and gdacs_instance.status == ExtractionData.Status.SUCCESS
+        and gdacs_instance.resp_data
+    ):
+        transform = transform_1.delay("test")
+        transform_id = transform.id
+        print("Trandform 1 id", transform_id)
 
-        if gdacs_instance.resp_code == 200 and gdacs_instance.resp_data:
-            for feature in resp_data.json()["features"]:
-                event_id = feature["properties"]["eventid"]
-                episode_id = feature["properties"]["episodeid"]
-                footprint_url = feature["properties"]["url"]["geometry"]
-                # if hazard_type == HazardType.CYCLONE:
-                #     footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+        for feature in resp_data.json()["features"]:
+            event_id = feature["properties"]["eventid"]
+            episode_id = feature["properties"]["episodeid"]
+            footprint_url = feature["properties"]["url"]["geometry"]
+            # if hazard_type == HazardType.CYCLONE:
+            #     footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
-                # fetch geometry data
-                # fetch_gdacs_geometry_data.delay(gdacs_instance.id, footprint_url)
+            # fetch geometry data
+            fetch_gdacs_geometry_data.delay(gdacs_instance.id, footprint_url, transform_id)
 
-                # fetch population exposure data
-                scrape_population_exposure_data.delay(gdacs_instance.id, event_id, hazard_type)
-
-    except Exception as exc:
-        print(f"Unexpected error: {exc}")
-        raise self.retry(exc=exc)
+            # fetch population exposure data
+            scrape_population_exposure_data.delay(gdacs_instance.id, event_id, hazard_type, transform_id)
 
     print(f"{hazard_type} data imported sucessfully")
