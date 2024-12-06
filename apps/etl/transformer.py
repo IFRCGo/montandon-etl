@@ -8,16 +8,19 @@ def transform_1(data):
     print("Data :", data)
     print("Trandformation 1 ended")
 
-@shared_task
-def transform_2(transform_id : int):
-    result = AsyncResult(transform_id)
-    if result == "SUCCESS":
-        print("Trandformation 2 started")
-        print("Trandformation 2 ended")
 
 @shared_task
-def transform_3(transform_id : int):
+def transform_2(transform_id: int):
+    print("Transformation 2 started")
     result = AsyncResult(transform_id)
-    if result == "SUCCESS":
-        print("Trandformation 2 started")
-        print("Trandformation 2 ended")
+    if result.status == "SUCCESS":
+        print("Trandformation 1 Success")
+        print("Strarting transformation 2")
+
+
+@shared_task
+def transform_3(transform_id: int):
+    result = AsyncResult(transform_id)
+    if result.status == "SUCCESS":
+        print("Trandformation 1 Success")
+        print("Strarting transformation 3")
