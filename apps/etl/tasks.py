@@ -3,10 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-import requests
 from celery import shared_task
-
-# from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from pydantic import ValidationError
@@ -32,9 +29,11 @@ def fetch_gdacs_data():
 def retry_fetch_data(self, url):
     response = None
     try:
+        retry_count = self.request.retries
         gdacs_extraction = Extraction(url=url)
-        response = gdacs_extraction.pull_data(source=ExtractionData.Source.GDACS)
-    except requests.exceptions.RequestException as exc:
+        response = gdacs_extraction.pull_data(retry_count=retry_count, source=ExtractionData.Source.GDACS)
+
+    except Exception as exc:
         self.retry(exc=exc)
 
     return response
@@ -72,6 +71,7 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     duplicate_file_content = ExtractionData.objects.filter(source=source, file_hash=hash_content)
     if duplicate_file_content:
         instance.resp_data = duplicate_file_content.first().resp_data
+        instance.revision_id = duplicate_file_content.first()
     else:
         instance.resp_data.save(file_name, ContentFile(response_data))
     instance.save()
@@ -126,14 +126,20 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
     transform_2.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=5)
+@shared_task(bind=True, max_retries=None, default_retry_delay=5)
 def import_hazard_data(self, hazard_type, hazard_type_str):
     print(f"Importing {hazard_type} data")
-
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
     response = retry_fetch_data(self, gdacs_url)
+    resp_data_content = response["resp_data"].content
+
+    resp_data_json = b""
+    try:
+        resp_data_json = json.loads(resp_data_content.decode("utf-8"))
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
 
     gdacs_instance = store_extraction_data(response, validate_source_data)
 
@@ -142,12 +148,12 @@ def import_hazard_data(self, hazard_type, hazard_type_str):
         gdacs_instance.resp_code == 200
         and gdacs_instance.status == ExtractionData.Status.SUCCESS
         and gdacs_instance.resp_data
+        and resp_data_json != b""
     ):
-        resp_data = response.content
         transform = transform_1.delay("test")
         transform_id = transform.id
 
-        for feature in resp_data.json()["features"]:
+        for feature in resp_data_json["features"]:
             event_id = feature["properties"]["eventid"]
             episode_id = feature["properties"]["episodeid"]
             footprint_url = feature["properties"]["url"]["geometry"]
