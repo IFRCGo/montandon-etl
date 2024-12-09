@@ -57,6 +57,7 @@ class ExtractionData(UserResource):
     )
     resp_type = models.IntegerField(verbose_name=_("response type"), choices=ResponseDataType.choices, blank=True, null=True)
     resp_data_type = models.CharField(verbose_name=_("response data type"), blank=True)
+    resp_text = models.TextField(verbose_name=_("response data in case failure occurs"), blank=True)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extraction")
     source_validation_status = models.IntegerField(
         verbose_name=_("source data validation status"), choices=ValidationStatus.choices
