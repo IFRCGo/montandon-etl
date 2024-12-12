@@ -71,6 +71,7 @@ class ExtractionData(UserResource):
         null=True,
         blank=True,
     )
+    hazard_type = models.CharField(max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True)
 
     def __str__(self):
         return str(self.id)
