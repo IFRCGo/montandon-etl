@@ -2,19 +2,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
-class HazardType(models.TextChoices):
-    EARTHQUAKE = "EQ", "Earthquake"
-    FLOOD = "FL", "Flood"
-    CYCLONE = "TC", "Cyclone"
-    EPIDEMIC = "EP", "Epidemic"
-    FOOD_INSECURITY = "FI", "Food Insecurity"
-    STORM = "SS", "Storm Surge"
-    DROUGHT = "DR", "Drought"
-    TSUNAMI = "TS", "Tsunami"
-    WIND = "CD", "Cyclonic Wind"
-    WILDFIRE = "WF", "WildFire"
-
-
 class UserResource(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)

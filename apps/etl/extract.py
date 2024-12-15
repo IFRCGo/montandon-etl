@@ -1,5 +1,4 @@
 import requests
-
 from django.core.exceptions import ObjectDoesNotExist
 
 from .models import ExtractionData
@@ -49,7 +48,7 @@ class Extraction:
                     "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
                     "content_validation": "",
                     "resp_text": response.text,
-                    }
+                }
 
                 instance_obj = ExtractionData.objects.get(id=ext_object_id)
                 for key, value in data.items():
@@ -64,18 +63,18 @@ class Extraction:
             resp_status = ExtractionData.Status.SUCCESS
 
             return {
-                    "source": source,
-                    "url": self.url,
-                    "attempt_no": retry_count,
-                    "resp_code": response.status_code,
-                    "status": resp_status,
-                    "resp_data": response,
-                    "resp_data_type": resp_type,
-                    "file_extension": file_extension,
-                    "source_validation_status": source_validation_status,
-                    "content_validation": "",
-                    "resp_text": "",
-                }
+                "source": source,
+                "url": self.url,
+                "attempt_no": retry_count,
+                "resp_code": response.status_code,
+                "status": resp_status,
+                "resp_data": response,
+                "resp_data_type": resp_type,
+                "file_extension": file_extension,
+                "source_validation_status": source_validation_status,
+                "content_validation": "",
+                "resp_text": "",
+            }
 
         except Exception:
             raise Exception()

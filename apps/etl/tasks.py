@@ -26,9 +26,9 @@ from apps.etl.extraction_validators.gdacs_pop_exposure_validator import (
 )
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transformer import (
-    transform_hazard_data,
     transform_geometry_data,
-    transform_population_exposure
+    transform_hazard_data,
+    transform_population_exposure,
 )
 
 logger = logging.getLogger(__name__)
@@ -122,8 +122,8 @@ def validate_gdacs_geometry_data(resp_data):
 
 def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name):
     """
-        if duplicate file content exists then do not create a new file, but point the url to
-        the previous file.
+    if duplicate file content exists then do not create a new file, but point the url to
+    the previous file.
     """
     duplicate_file_content = ExtractionData.objects.filter(source=source, file_hash=hash_content)
     if duplicate_file_content:
@@ -144,12 +144,7 @@ def hash_file_content(content):
 
 
 def store_extraction_data(
-        response,
-        validate_source_func,
-        parent_id=None,
-        instance_id=None,
-        hazard_type=None,
-        requires_hazard_type=False
+    response, validate_source_func, parent_id=None, instance_id=None, hazard_type=None, requires_hazard_type=False
 ):
     file_extension = response.pop("file_extension")
     file_name = f"gdacs.{file_extension}"
@@ -190,7 +185,7 @@ def store_extraction_data(
     return gdacs_instance
 
 
-@shared_task(bind=True, max_retries=4, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
     url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
@@ -217,13 +212,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             retry_count=0,
         )
     except Exception as exc:
-        self.retry(
-            exc=exc,
-            kwargs={
-                "instance_id": gdacs_instance.id,
-                "retry_count": self.request.retries
-            }
-        )
+        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
 
     # Save the extracted data into the existing gdacs object
     if response:
@@ -241,7 +230,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
         transform_population_exposure.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_id, **kwargs):
 
     instance_id = kwargs.get("instance_id", None)
@@ -265,13 +254,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
             retry_count=0,
         )
     except Exception as exc:
-        self.retry(
-            exc=exc,
-            kwargs={
-                "instance_id": gdacs_instance.id,
-                "retry_count": self.request.retries
-            }
-        )
+        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
 
     if response:
         gdacs_instance = store_extraction_data(
@@ -285,12 +268,13 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
         transform_geometry_data.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=5, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     """
-        Import hazard data from gdacs api
+    Import hazard data from gdacs api
     """
-    print(f"Importing {hazard_type} data")
+    logger.info(f"Importing {hazard_type} data")
+
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
@@ -298,7 +282,6 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
     retry_count = kwargs.get("retry_count", None)
-    print("REtry count", retry_count)
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -317,16 +300,10 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
         response = gdacs_extraction.pull_data(
             source=ExtractionData.Source.GDACS,
             ext_object_id=gdacs_instance.id,
-            retry_count=retry_count if retry_count else 1
+            retry_count=retry_count if retry_count else 1,
         )
     except Exception as exc:
-        self.retry(
-            exc=exc,
-            kwargs={
-                "instance_id": gdacs_instance.id,
-                "retry_count": self.request.retries
-            }
-        )
+        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
 
     if response:
         resp_data_content = response["resp_data"].content
@@ -336,7 +313,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
         try:
             resp_data_json = json.loads(resp_data_content.decode("utf-8"))
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
+            logger.info(f"JSON decode error: {e}")
 
         # Save the extracted data into the existing gdacs object
         gdacs_instance = store_extraction_data(
@@ -353,7 +330,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             and gdacs_instance.resp_data
             and resp_data_json != b""
         ):
-            transform = transform_hazard_data.delay(gdacs_instance.resp_data)
+            transform = transform_hazard_data.delay("test data")  # TODO input appropriate data as input.
             transform_id = transform.id
 
             for feature in resp_data_json["features"]:
@@ -365,17 +342,12 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
 
                 # fetch geometry data
                 fetch_gdacs_geometry_data.delay(
-                   parent_id=gdacs_instance.id,
-                   footprint_url=footprint_url,
-                   parent_transform_id=transform_id
+                    parent_id=gdacs_instance.id, footprint_url=footprint_url, parent_transform_id=transform_id
                 )
 
                 # fetch population exposure data
                 scrape_population_exposure_data.delay(
-                   parent_id=gdacs_instance.id,
-                   event_id=event_id,
-                   hazard_type=hazard_type,
-                   parent_transform_id=transform_id
+                    parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
                 )
 
-    print("{hazard_type} data imported sucessfully")
+    logger.info("{hazard_type} data imported sucessfully")
