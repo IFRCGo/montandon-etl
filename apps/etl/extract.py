@@ -25,7 +25,8 @@ class Extraction:
             try:
                 instance_obj = ExtractionData.objects.get(id=ext_object_id)
                 instance_obj.resp_code = resp_status
-                instance_obj.save(update_fields=["resp_code"])
+                instance_obj.attempt_no = retry_count
+                instance_obj.save(update_fields=["resp_code", "attempt_no"])
             except ExtractionData.DoesNotExist:
                 raise ObjectDoesNotExist("ExtractionData object with ID {ext_object_id} not found")
 
@@ -34,7 +35,7 @@ class Extraction:
             resp_type = response.headers.get("Content-Type", "")
             file_extension = self._get_file_extension(resp_type)
 
-            # Try fetching the data in case of failure
+            # Try saving the data in case of failure
             if response.status_code != 200:
                 data = {
                     "source": source,
@@ -49,10 +50,8 @@ class Extraction:
                     "content_validation": "",
                     "resp_text": response.text,
                     }
-                instance_obj = ExtractionData.objects.get(id=ext_object_id)
-#                instance_obj.resp_code = response.status_code
-#                instance_obj.save(update_fields=["resp_code"])
 
+                instance_obj = ExtractionData.objects.get(id=ext_object_id)
                 for key, value in data.items():
                     setattr(instance_obj, key, value)
                 instance_obj.save()

@@ -25,7 +25,11 @@ from apps.etl.extraction_validators.gdacs_pop_exposure_validator import (
     PopulationExposureWF,
 )
 from apps.etl.models import ExtractionData, HazardType
-from apps.etl.transformer import transform_1, transform_2, transform_3
+from apps.etl.transformer import (
+    transform_hazard_data,
+    transform_geometry_data,
+    transform_population_exposure
+)
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +170,7 @@ def store_extraction_data(
     if resp_data and not response["resp_code"] == 204:
         resp_data_content = resp_data.content
         # Source validation
+        # if the validate function requires hazard type as argument pass it as argument else don't.
         if requires_hazard_type:
             gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
             gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
@@ -173,7 +178,7 @@ def store_extraction_data(
             gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
             gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
-        # duplicate file content check
+        # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
         manage_duplicate_file_content(
             source=ExtractionData.Source.GDACS,
@@ -185,7 +190,7 @@ def store_extraction_data(
     return gdacs_instance
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=5)
+@shared_task(bind=True, max_retries=4, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
     url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
@@ -212,7 +217,13 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             retry_count=0,
         )
     except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id})
+        self.retry(
+            exc=exc,
+            kwargs={
+                "instance_id": gdacs_instance.id,
+                "retry_count": self.request.retries
+            }
+        )
 
     # Save the extracted data into the existing gdacs object
     if response:
@@ -227,7 +238,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
 
     # Run transformation.
     if gdacs_instance.resp_code == 200:
-        transform_3.delay(parent_transform_id)
+        transform_population_exposure.delay(parent_transform_id)
 
 
 @shared_task(bind=True, max_retries=2, default_retry_delay=5)
@@ -254,7 +265,13 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
             retry_count=0,
         )
     except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id})
+        self.retry(
+            exc=exc,
+            kwargs={
+                "instance_id": gdacs_instance.id,
+                "retry_count": self.request.retries
+            }
+        )
 
     if response:
         gdacs_instance = store_extraction_data(
@@ -265,10 +282,10 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
         )
 
     if gdacs_instance.resp_code == 200:
-        transform_2.delay(parent_transform_id)
+        transform_geometry_data.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=5)
+@shared_task(bind=True, max_retries=5, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     """
         Import hazard data from gdacs api
@@ -280,6 +297,8 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
+    retry_count = kwargs.get("retry_count", None)
+    print("REtry count", retry_count)
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -298,10 +317,16 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
         response = gdacs_extraction.pull_data(
             source=ExtractionData.Source.GDACS,
             ext_object_id=gdacs_instance.id,
-            retry_count=0
+            retry_count=retry_count if retry_count else 1
         )
     except Exception as exc:
-        self.retry(exc=exc, kwargs={'instance_id': gdacs_instance.id})
+        self.retry(
+            exc=exc,
+            kwargs={
+                "instance_id": gdacs_instance.id,
+                "retry_count": self.request.retries
+            }
+        )
 
     if response:
         resp_data_content = response["resp_data"].content
@@ -328,7 +353,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             and gdacs_instance.resp_data
             and resp_data_json != b""
         ):
-            transform = transform_1.delay("test")
+            transform = transform_hazard_data.delay(gdacs_instance.resp_data)
             transform_id = transform.id
 
             for feature in resp_data_json["features"]:
@@ -340,17 +365,17 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
 
                 # fetch geometry data
                 fetch_gdacs_geometry_data.delay(
-                    parent_id=gdacs_instance.id,
-                    footprint_url=footprint_url,
-                    parent_transform_id=transform_id
+                   parent_id=gdacs_instance.id,
+                   footprint_url=footprint_url,
+                   parent_transform_id=transform_id
                 )
 
                 # fetch population exposure data
                 scrape_population_exposure_data.delay(
-                    parent_id=gdacs_instance.id,
-                    event_id=event_id,
-                    hazard_type=hazard_type,
-                    parent_transform_id=transform_id
+                   parent_id=gdacs_instance.id,
+                   event_id=event_id,
+                   hazard_type=hazard_type,
+                   parent_transform_id=transform_id
                 )
 
-    print(f"{hazard_type} data imported sucessfully")
+    print("{hazard_type} data imported sucessfully")
