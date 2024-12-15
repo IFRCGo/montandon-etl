@@ -190,7 +190,7 @@ def store_extraction_data(
     return gdacs_instance
 
 
-@shared_task(bind=True, max_retries=4, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
     url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
@@ -241,7 +241,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
         transform_population_exposure.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_id, **kwargs):
 
     instance_id = kwargs.get("instance_id", None)
@@ -285,12 +285,13 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
         transform_geometry_data.delay(parent_transform_id)
 
 
-@shared_task(bind=True, max_retries=5, default_retry_delay=5)
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     """
         Import hazard data from gdacs api
     """
-    print(f"Importing {hazard_type} data")
+    logger.info(f"Importing {hazard_type} data")
+
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
@@ -298,7 +299,6 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
     retry_count = kwargs.get("retry_count", None)
-    print("REtry count", retry_count)
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -336,7 +336,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
         try:
             resp_data_json = json.loads(resp_data_content.decode("utf-8"))
         except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
+            logger.info(f"JSON decode error: {e}")
 
         # Save the extracted data into the existing gdacs object
         gdacs_instance = store_extraction_data(
@@ -353,7 +353,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             and gdacs_instance.resp_data
             and resp_data_json != b""
         ):
-            transform = transform_hazard_data.delay(gdacs_instance.resp_data)
+            transform = transform_hazard_data.delay("test data") # TODO input appropriate data as input.
             transform_id = transform.id
 
             for feature in resp_data_json["features"]:
@@ -378,4 +378,4 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                    parent_transform_id=transform_id
                 )
 
-    print("{hazard_type} data imported sucessfully")
+    logger.info("{hazard_type} data imported sucessfully")
