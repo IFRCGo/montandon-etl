@@ -12,12 +12,8 @@ class Command(BaseCommand):
     help = "Import data from gdacs api"
 
     def handle(self, *args, **options):
-        print("Importing data from GDACS api")
-
         import_hazard_data.delay("EQ", HazardType.EARTHQUAKE)
         import_hazard_data.delay("TC", HazardType.CYCLONE)
         import_hazard_data.delay("FL", HazardType.FLOOD)
         import_hazard_data.delay("DR", HazardType.DROUGHT)
         import_hazard_data.delay("WF", HazardType.WILDFIRE)
-
-        print("Data Imported Sucessfully")
