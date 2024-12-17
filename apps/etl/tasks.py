@@ -201,8 +201,10 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_tr
     # url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
     url = f"https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype={hazard_type}&eventid={event_id}"
 
-    # Create a Extraction object in the begining
+    # instance_id is passed in this func in kwargs during retry from self.retry() method.
+    # It forbids creating new extraction object during retry.
     instance_id = kwargs.get("instance_id", None)
+    hazard_type = ExtractionData.objects.get(id=parent_id).hazard_type
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -210,6 +212,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_tr
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
+            hazard_type=hazard_type
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -237,17 +240,15 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_tr
             hazard_type=hazard_type,
         )
 
-    # Run transformation.
-    # if gdacs_instance.resp_code == 200:
-    #     transform_event_data.delay(parent_transform_id)
-
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
     url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
-    # Create a Extraction object in the begining
+    # instance_id is passed in this func in kwargs during retry from self.retry() method.
+    # It forbids creating new extraction object during retry.
     instance_id = kwargs.get("instance_id", None)
+    hazard_type = ExtractionData.objects.get(id=parent_id).hazard_type
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -255,6 +256,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
+            hazard_type=hazard_type
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -290,7 +292,10 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_id, **kwargs):
 
+    # instance_id is passed in this func in kwargs during retry from self.retry() method.
+    # It forbids creating new extraction object during retry.
     instance_id = kwargs.get("instance_id", None)
+    hazard_type = ExtractionData.objects.get(id=parent_id).hazard_type
     if not instance_id:
         gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
@@ -298,6 +303,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, parent_transform_i
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
+            hazard_type=hazard_type
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
