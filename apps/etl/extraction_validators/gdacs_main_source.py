@@ -64,6 +64,6 @@ class Feature(BaseModel):
     properties: Properties
 
 
-class GdacsEventsDataValidator(BaseModel):
+class GdacsEventSourceValidator(BaseModel):
     type: str
     features: List[Feature]
