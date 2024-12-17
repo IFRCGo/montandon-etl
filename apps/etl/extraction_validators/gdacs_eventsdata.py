@@ -1,6 +1,7 @@
-from pydantic import BaseModel, HttpUrl
-from typing import List, Optional, Union
 from datetime import datetime
+from typing import List, Optional, Union
+
+from pydantic import BaseModel, HttpUrl
 
 
 # Nested Models
@@ -45,24 +46,24 @@ class SendaiData(BaseModel):
 
 
 class Images(BaseModel):
-    populationmap: Optional[HttpUrl]
-    floodmap_cached: Optional[HttpUrl]
-    thumbnailmap_cached: Optional[HttpUrl]
-    rainmap_cached: Optional[HttpUrl]
-    overviewmap_cached: Optional[HttpUrl]
-    overviewmap: Optional[HttpUrl]
-    floodmap: Optional[HttpUrl]
-    rainmap: Optional[HttpUrl]
-    rainmap_legend: Optional[HttpUrl]
-    floodmap_legend: Optional[HttpUrl]
-    overviewmap_legend: Optional[HttpUrl]
-    rainimage: Optional[HttpUrl]
-    meteoimages: Optional[HttpUrl]
-    mslpimages: Optional[HttpUrl]
-    event_icon_map: Optional[HttpUrl]
-    event_icon: Optional[HttpUrl]
-    thumbnailmap: Optional[HttpUrl]
-    npp_icon: Optional[HttpUrl]
+    populationmap: Optional[HttpUrl] = None
+    floodmap_cached: Optional[HttpUrl] = None
+    thumbnailmap_cached: Optional[HttpUrl] = None
+    rainmap_cached: Optional[HttpUrl] = None
+    overviewmap_cached: Optional[HttpUrl] = None
+    overviewmap: Optional[HttpUrl] = None
+    floodmap: Optional[HttpUrl] = None
+    rainmap: Optional[HttpUrl] = None
+    rainmap_legend: Optional[HttpUrl] = None
+    floodmap_legend: Optional[HttpUrl] = None
+    overviewmap_legend: Optional[HttpUrl] = None
+    rainimage: Optional[HttpUrl] = None
+    meteoimages: Optional[HttpUrl] = None
+    mslpimages: Optional[HttpUrl] = None
+    event_icon_map: Optional[HttpUrl] = None
+    event_icon: Optional[HttpUrl] = None
+    thumbnailmap: Optional[HttpUrl] = None
+    npp_icon: Optional[HttpUrl] = None
 
 
 # Main Schema
@@ -96,7 +97,7 @@ class FeatureProperties(BaseModel):
     affectedcountries: List[AffectedCountry]
     severitydata: SeverityData
     episodes: List[EpisodeDetails]
-    sendai: List[SendaiData]
+    sendai: Optional[List[SendaiData]] = None
     impacts: List[dict]
     images: Images
     additionalinfos: dict

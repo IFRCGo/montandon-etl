@@ -12,12 +12,9 @@ from django.core.management import call_command
 from pydantic import ValidationError
 
 from apps.etl.extract import Extraction
-from apps.etl.extraction_validators.gdacs_main_source import (
-    GdacsEventSourceValidator,
-)
-from apps.etl.extraction_validators.gdacs_geometry import (
-    GdacsEventsGeometryData,
-)
+from apps.etl.extraction_validators.gdacs_eventsdata import GDacsEventDataValidator
+from apps.etl.extraction_validators.gdacs_geometry import GdacsEventsGeometryData
+from apps.etl.extraction_validators.gdacs_main_source import GdacsEventSourceValidator
 from apps.etl.extraction_validators.gdacs_pop_exposure import (
     GdacsPopulationExposure_FL,
     GdacsPopulationExposureDR,
@@ -51,6 +48,20 @@ def validate_source_data(resp_data):
     try:
         resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
         GdacsEventSourceValidator(**resp_data_for_validation)
+        validation_error = ""
+    except ValidationError as e:
+        validation_error = e.json()
+    validation_data = {
+        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
+        "validation_error": validation_error if validation_error else "",
+    }
+    return validation_data
+
+
+def validate_event_data(resp_data):
+    try:
+        resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
+        GDacsEventDataValidator(**resp_data_for_validation)
         validation_error = ""
     except ValidationError as e:
         validation_error = e.json()
@@ -166,13 +177,12 @@ def store_extraction_data(
         resp_data_content = resp_data.content
         # Source validation
         # if the validate function requires hazard type as argument pass it as argument else don't.
-        if validate_source_func:  # TODO remove this if condition when all validate_function are done.
-            if requires_hazard_type:
-                gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-                gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
-            else:
-                gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-                gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
+        if requires_hazard_type:
+            gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
+            gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
+        else:
+            gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
+            gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
@@ -220,10 +230,10 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_tr
     if response:
         gdacs_instance = store_extraction_data(
             response=response,
-            validate_source_func=None,
+            validate_source_func=validate_event_data,
             instance_id=gdacs_instance.id,
             parent_id=parent_id,
-            requires_hazard_type=True,
+            requires_hazard_type=False,
             hazard_type=hazard_type,
         )
 
@@ -334,6 +344,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             source=ExtractionData.Source.GDACS,
             status=ExtractionData.Status.PENDING,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            hazard_type=hazard_type_str,
             attempt_no=0,
             resp_code=0,
         )
