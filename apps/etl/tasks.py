@@ -166,12 +166,13 @@ def store_extraction_data(
         resp_data_content = resp_data.content
         # Source validation
         # if the validate function requires hazard type as argument pass it as argument else don't.
-        if requires_hazard_type:
-            gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-            gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
-        else:
-            gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-            gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
+        if validate_source_func:  # TODO remove this if condition when all validate_function are done.
+            if requires_hazard_type:
+                gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
+                gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
+            else:
+                gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
+                gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
@@ -183,6 +184,52 @@ def store_extraction_data(
             file_name=file_name,
         )
     return gdacs_instance
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
+def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
+    # url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
+    url = f"https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype={hazard_type}&eventid={event_id}"
+
+    # Create a Extraction object in the begining
+    instance_id = kwargs.get("instance_id", None)
+    if not instance_id:
+        gdacs_instance = ExtractionData.objects.create(
+            source=ExtractionData.Source.GDACS,
+            status=ExtractionData.Status.PENDING,
+            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            attempt_no=0,
+            resp_code=0,
+        )
+    else:
+        gdacs_instance = ExtractionData.objects.get(id=instance_id)
+
+    # Extract the data from api.
+    gdacs_extraction = Extraction(url=url)
+    response = None
+    try:
+        response = gdacs_extraction.pull_data(
+            source=ExtractionData.Source.GDACS,
+            ext_object_id=gdacs_instance.id,
+            retry_count=0,
+        )
+    except Exception as exc:
+        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
+
+    # Save the extracted data into the existing gdacs object
+    if response:
+        gdacs_instance = store_extraction_data(
+            response=response,
+            validate_source_func=None,
+            instance_id=gdacs_instance.id,
+            parent_id=parent_id,
+            requires_hazard_type=True,
+            hazard_type=hazard_type,
+        )
+
+    # Run transformation.
+    # if gdacs_instance.resp_code == 200:
+    #     transform_event_data.delay(parent_transform_id)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -347,6 +394,11 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
 
                 # fetch population exposure data
                 scrape_population_exposure_data.delay(
+                    parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
+                )
+
+                # getch event data
+                fetch_event_data.delay(
                     parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
                 )
 
