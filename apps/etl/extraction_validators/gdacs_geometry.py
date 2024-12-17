@@ -55,7 +55,7 @@ class Properties(BaseModel):
 
 class Geometry(BaseModel):
     type: str
-    coordinates: Union[List[float], List[List[List[float]]]]
+    coordinates: Union[List[float], List[List[List[float]]], List[List[List[List[float]]]]]
 
 
 class Feature(BaseModel):

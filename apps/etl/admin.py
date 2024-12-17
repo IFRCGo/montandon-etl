@@ -20,6 +20,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
         "parent__id",
         "resp_data_type",
         "source_validation_status",
+        "hazard_type",
         "created_at",
     )
     list_filter = ("status",)
