@@ -12,17 +12,17 @@ from django.core.management import call_command
 from pydantic import ValidationError
 
 from apps.etl.extract import Extraction
-from apps.etl.extraction_validators.gdacs_events_validator import (
-    GdacsEventsDataValidator,
+from apps.etl.extraction_validators.gdacs_main_source import (
+    GdacsEventSourceValidator,
 )
-from apps.etl.extraction_validators.gdacs_eventsdata_geometry_validator import (
+from apps.etl.extraction_validators.gdacs_geometry import (
     GdacsEventsGeometryData,
 )
-from apps.etl.extraction_validators.gdacs_pop_exposure_validator import (
-    PopulationExposure_FL,
-    PopulationExposureDR,
-    PopulationExposureEQTC,
-    PopulationExposureWF,
+from apps.etl.extraction_validators.gdacs_pop_exposure import (
+    GdacsPopulationExposure_FL,
+    GdacsPopulationExposureDR,
+    GdacsPopulationExposureEQTC,
+    GdacsPopulationExposureWF,
 )
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transformer import (
@@ -50,7 +50,7 @@ def get_as_int(value: typing.Optional[str]) -> typing.Optional[int]:
 def validate_source_data(resp_data):
     try:
         resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
-        GdacsEventsDataValidator(**resp_data_for_validation)
+        GdacsEventSourceValidator(**resp_data_for_validation)
         validation_error = ""
     except ValidationError as e:
         validation_error = e.json()
@@ -77,24 +77,24 @@ def validate_population_exposure(html_content, hazard_type=None):
     try:
         if hazard_type == "EQ":
             population_exposure["exposed_population"] = displacement_data.get("Exposed Population:")
-            PopulationExposureEQTC(**population_exposure)
+            GdacsPopulationExposureEQTC(**population_exposure)
 
         elif hazard_type == "TC":
             population_exposure["exposed_population"] = displacement_data.get("Exposed population")
-            PopulationExposureEQTC(**population_exposure)
+            GdacsPopulationExposureEQTC(**population_exposure)
 
         elif hazard_type == "FL":
             population_exposure["death"] = get_as_int(displacement_data.get("Death:"))
             population_exposure["displaced"] = get_as_int(displacement_data.get("Displaced:"))
-            PopulationExposure_FL(**population_exposure)
+            GdacsPopulationExposure_FL(**population_exposure)
 
         elif hazard_type == "DR":
             population_exposure["impact"] = displacement_data.get("Impact:")
-            PopulationExposureDR(**population_exposure)
+            GdacsPopulationExposureDR(**population_exposure)
 
         elif hazard_type == "WF":
             population_exposure["people_affected"] = displacement_data.get("People affected:")
-            PopulationExposureWF(**population_exposure)
+            GdacsPopulationExposureWF(**population_exposure)
 
     except ValidationError as e:
         validation_error = e.json()
