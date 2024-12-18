@@ -21,4 +21,5 @@
        docker-compose exec web python manage.py createsuperuser
     ```
     Fill up the form for creating super user.
-- Once user is created, go the browser and request the link http://localhost:8000/admin/ to view the data in Extraction data table.
+- Once user is created, go the browser and request the link localhost:8000/admin/ to view the data in Extraction data table.
+- To go to graphql server go to: localhost:8000/graphql
