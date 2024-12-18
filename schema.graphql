@@ -1,0 +1,56 @@
+input ExtractionDataFilter {
+  source: ExtractionDataSourceTypeEnum
+  status: ExtractionDataStatusTypeEnum
+  AND: ExtractionDataFilter
+  OR: ExtractionDataFilter
+  NOT: ExtractionDataFilter
+  DISTINCT: Boolean
+}
+
+type ExtractionDataListType {
+  id: ID!
+  source: ExtractionDataSourceTypeEnum!
+  url: String!
+  respCode: Int!
+  status: ExtractionDataStatusTypeEnum!
+  respDataType: String!
+  parentId: Int
+  sourceValidationStatus: Int!
+  revisionId: Int
+  hazardType: String!
+}
+
+enum ExtractionDataSourceTypeEnum {
+  GDACS
+  PDC
+}
+
+enum ExtractionDataStatusTypeEnum {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
+type ExtractionDataType {
+  id: ID!
+  source: ExtractionDataSourceTypeEnum!
+  url: String!
+  respCode: Int!
+  status: ExtractionDataStatusTypeEnum!
+  respDataType: String!
+  parentId: Int
+  sourceValidationStatus: Int!
+  revisionId: Int
+  hazardType: String!
+}
+
+input OffsetPaginationInput {
+  offset: Int! = 0
+  limit: Int
+}
+
+type Query {
+  extractionDataList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): [ExtractionDataListType!]!
+  extractionData(pk: ID!): ExtractionDataType!
+}

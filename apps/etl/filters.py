@@ -1,11 +1,9 @@
-import strawberry
 from typing import Optional
 
+import strawberry
+
+from .enums import ExtractionDataStatusTypeEnum, ExtractionSourceTypeEnum
 from .models import ExtractionData
-from .enums import (
-    ExtractionDataStatusTypeEnum,
-    ExtractionSourceTypeEnum,
-)
 
 
 @strawberry.django.filters.filter(ExtractionData)
