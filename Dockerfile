@@ -8,6 +8,8 @@ WORKDIR /code
 
 COPY pyproject.toml poetry.lock /code/
 
+COPY libs /code/libs
+
 RUN apt-get update -y \
     && apt-get install -y --no-install-recommends \
         # Build required packages

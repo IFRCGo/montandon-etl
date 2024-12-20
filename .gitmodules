@@ -1,0 +1,3 @@
+[submodule "libs/pystac-monty"]
+	path = libs/pystac-monty
+	url = https://github.com/IFRCGo/pystac-monty.git
