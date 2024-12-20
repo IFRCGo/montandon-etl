@@ -53,4 +53,15 @@ input OffsetPaginationInput {
 type Query {
   extractionDataList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): [ExtractionDataListType!]!
   extractionData(pk: ID!): ExtractionDataType!
+  me: UserMeType!
+}
+
+type UserMeType {
+  id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  isStaff: Boolean!
+  isSuperuser: Boolean!
 }
