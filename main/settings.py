@@ -34,12 +34,10 @@ env = environ.Env(
     CELERY_REDIS_URL=str,
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
     DJANGO_STATIC_URL=(str, "/static/"),
-
     APP_DOMAIN=str,
     APP_HTTP_PROTOCOL=str,
     DJANGO_CORS_ORIGIN_REGEX_WHITELIST=(list, []),
 )
-
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -76,7 +74,6 @@ INSTALLED_APPS = [
     # third party apps
     "strawberry.django",
     "corsheaders",
-
     # internal apps
     "apps.common",
     "apps.etl",
@@ -203,6 +200,7 @@ CORS_ALLOW_HEADERS = (
 )
 
 APP_HTTP_PROTOCOL = env("APP_HTTP_PROTOCOL")
+APP_DOMAIN = env("APP_DOMAIN")
 
 if APP_HTTP_PROTOCOL == "https":
     CSRF_TRUSTED_ORIGINS = [
