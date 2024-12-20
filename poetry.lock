@@ -960,7 +960,7 @@ description = "Python library for working with the SpatioTemporal Asset Catalog 
 optional = false
 python-versions = ">=3.10"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 geojson = ">=2.5.0"
@@ -1175,4 +1175,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "b2bb991963e6d7e95e83fbd91685f1aa00f8ed409fd1c79c179fb136d538e93c"
+content-hash = "ef012eb09177f59b37c9526b4d98351695a7c3f19519bc978bf5d4fa5ab96654"
