@@ -2,7 +2,14 @@ import hashlib
 import json
 import logging
 import typing
+import requests
 from datetime import datetime, timedelta
+
+from pystac_monty.sources.gdacs import (
+    GDACSTransformer,
+    GDACSDataSourceType,
+    GDACSDataSource,
+)
 
 import numpy as np
 import pandas as pd
@@ -23,8 +30,8 @@ from apps.etl.extraction_validators.gdacs_pop_exposure import (
 )
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transformer import (
+    transform_event_data,
     transform_geometry_data,
-    transform_hazard_data,
     transform_population_exposure,
 )
 
@@ -240,6 +247,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, parent_tr
             hazard_type=hazard_type,
         )
 
+        transform_event_data.delay(gdacs_instance)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
@@ -394,7 +402,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             and gdacs_instance.resp_data
             and resp_data_json != b""
         ):
-            transform = transform_hazard_data.delay("test data")  # TODO input appropriate data as input.
+            transform = transform_event_data.delay("test data")  # TODO input appropriate data as input.
             transform_id = transform.id
 
             for feature in resp_data_json["features"]:
@@ -404,19 +412,19 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                 if hazard_type == HazardType.CYCLONE:
                     footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
-                # fetch geometry data
-                fetch_gdacs_geometry_data.delay(
-                    parent_id=gdacs_instance.id, footprint_url=footprint_url, parent_transform_id=transform_id
-                )
-
-                # fetch population exposure data
-                scrape_population_exposure_data.delay(
-                    parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
-                )
-
                 # getch event data
                 fetch_event_data.delay(
                     parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
                 )
+
+                # # fetch geometry data
+                # fetch_gdacs_geometry_data.delay(
+                #     parent_id=gdacs_instance.id, footprint_url=footprint_url, parent_transform_id=transform_id
+                # )
+
+                # # fetch population exposure data
+                # scrape_population_exposure_data.delay(
+                #     parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
+                # )
 
     logger.info("{hazard_type} data imported sucessfully")
