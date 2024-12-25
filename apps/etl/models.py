@@ -75,3 +75,21 @@ class ExtractionData(UserResource):
 
     def __str__(self):
         return str(self.id)
+
+
+class GdacsTransformation(UserResource):
+    class ItemType(models.IntegerChoices):
+        EVENT = 1, "Event"
+        HAZARD = 2, "Hazard"
+        IMPACT = 3, "Impact"
+
+    class TransformationStatus(models.IntegerChoices):
+        FAILED = 1, "Failed"
+        SUCCESS = 2, "Success"
+
+    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, null=True, blank=True)
+    item_type = models.IntegerField(choices=ItemType.choices)
+    data = models.JSONField(default=dict)
+    status = models.IntegerField(choices=TransformationStatus.choices)
+    failed_reason = models.TextField(blank=True)
+
