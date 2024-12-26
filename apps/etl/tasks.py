@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import typing
+from celery import chain, group, chord
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -27,6 +28,8 @@ from apps.etl.transformer import (
     transform_geo_data,
     transform_impact_data,
 )
+from apps.etl.loaders import finalize_all_tasks
+
 
 logger = logging.getLogger(__name__)
 
@@ -327,7 +330,10 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             parent_id=parent_id,
         )
 
-        return gdacs_instance.id
+        with open(gdacs_instance.resp_data.path, "r") as file:
+            data = file.read()
+
+        return {"extraction_id": gdacs_instance.id, "extracted_data": data}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -409,16 +415,18 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                     transform_event_data.s(),
                 )
                 event_result = event_workflow.apply_async()
-                event_result_id = event_result.parent.id
+                event_result_id = event_result.id
+                event_result_parent_id = event_result.parent.id
 
                 geo_workflow = chain(
                     fetch_gdacs_geometry_data.s(
                         parent_id=gdacs_instance.id,
                         footprint_url=footprint_url,
                     ),
-                    transform_geo_data.s(event_result_id),
+                    transform_geo_data.s(event_result_parent_id),
                 )
-                geo_workflow.apply_async()
+                geo_result = geo_workflow.apply_async()
+                geo_result_id = geo_result.id
 
                 impact_workflow = chain(
                     fetch_event_data.s(
@@ -428,6 +436,14 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                     ),
                     transform_impact_data.s(),
                 )
-                impact_workflow.apply_async()
+                impact_result = impact_workflow.apply_async()
+                impact_result_id = impact_result.id
 
-    logger.info("{hazard_type} data imported sucessfully")
+                group_finalize = group(
+                    finalize_all_tasks.s(event_result_id, geo_result_id, impact_result_id)
+                )
+                group_finalize.apply_async()
+
+        logger.info("{hazard_type} data imported sucessfully")
+
+

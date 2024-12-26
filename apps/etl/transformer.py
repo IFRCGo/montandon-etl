@@ -27,6 +27,7 @@ def transform_event_data(data):
         [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
     )
 
+    transformed_item_dict = {}
     try:
         transformed_event_item = transformer.make_source_event_item()
         transformed_item_dict = transformed_event_item.to_dict()
@@ -46,11 +47,13 @@ def transform_event_data(data):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
+
     logger.info("Trandformation ended for event data")
+    return transformed_item_dict
 
 
 @shared_task
-def transform_geo_data(gdacs_instance_id, event_task_id):
+def transform_geo_data(geo_data, event_task_id):
     logger.info("Transformation started for hazard data")
 
     while True:
@@ -63,7 +66,7 @@ def transform_geo_data(gdacs_instance_id, event_task_id):
             raise Exception(f"Fetching event data failed with error: {result.result}")
         time.sleep(1)
 
-    gdacs_instance = ExtractionData.objects.get(id=gdacs_instance_id)
+    gdacs_instance = ExtractionData.objects.get(id=geo_data["extraction_id"])
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
 
     with open(data_file_path, "r") as file:
@@ -76,6 +79,7 @@ def transform_geo_data(gdacs_instance_id, event_task_id):
             GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
         ]
     )
+    transformed_item_dict = {}
     try:
         transformed_geo_item = transformer.make_hazard_event_item()
         transformed_item_dict = transformed_geo_item.to_dict()
@@ -95,7 +99,9 @@ def transform_geo_data(gdacs_instance_id, event_task_id):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
+
     logger.info("Transformation ended for hazard data")
+    return transformed_item_dict
 
 
 @shared_task
@@ -110,6 +116,7 @@ def transform_impact_data(event_data):
         [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
     )
 
+    transformed_item_dict = {"data": []}
     try:
         transformed_impact_item = transformer.make_impact_items()
         transformed_item_dict = {"data": transformed_impact_item}
@@ -129,4 +136,6 @@ def transform_impact_data(event_data):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
+
     logger.info("Transformation ended for impact data")
+    return transformed_item_dict["data"]
