@@ -1,11 +1,12 @@
 import logging
+import time
+
 from celery import shared_task
 from celery.result import AsyncResult
-
 from pystac_monty.sources.gdacs import (
-    GDACSTransformer,
-    GDACSDataSourceType,
     GDACSDataSource,
+    GDACSDataSourceType,
+    GDACSTransformer,
 )
 
 from apps.etl.models import ExtractionData, GdacsTransformation
@@ -14,22 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def transform_event_data(gdacs_instance_id):
-    print("Trandformation started for event data")
+def transform_event_data(data):
+    logger.info("Trandformation started for event data")
 
-    gdacs_instance = ExtractionData.objects.get(id=gdacs_instance_id)
+    gdacs_instance = ExtractionData.objects.get(id=data["extraction_id"])
 
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
-    with open(data_file_path, 'r') as file:
+    with open(data_file_path, "r") as file:
         data = file.read()
     transformer = GDACSTransformer(
-        [
-            GDACSDataSource(
-                type=GDACSDataSourceType.EVENT,
-                source_url=gdacs_instance.url,
-                data=data
-            )
-        ]
+        [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
     )
 
     try:
@@ -51,24 +46,34 @@ def transform_event_data(gdacs_instance_id):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
-    print("Trandformation ended for event data")
+    logger.info("Trandformation ended for event data")
 
 
 @shared_task
-def transform_geo_data(gdacs_instance_id):
-    print("Transformation started for hazard data")
+def transform_geo_data(gdacs_instance_id, event_task_id):
+    logger.info("Transformation started for hazard data")
+
+    while True:
+        result = AsyncResult(event_task_id)
+        if result.state == "SUCCESS":
+            # Fetch the output of event task
+            event_data = result.result
+            break
+        elif result.state == "FAILURE":
+            raise Exception(f"Fetching event data failed with error: {result.result}")
+        time.sleep(1)
 
     gdacs_instance = ExtractionData.objects.get(id=gdacs_instance_id)
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
-    with open(data_file_path, 'r') as file:
+
+    with open(data_file_path, "r") as file:
         data = file.read()
     transformer = GDACSTransformer(
         [
             GDACSDataSource(
-                type=GDACSDataSourceType.GEOMETRY,
-                source_url=gdacs_instance.url,
-                data=data
-            )
+                type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=event_data["extracted_data"]
+            ),
+            GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
         ]
     )
     try:
@@ -90,25 +95,19 @@ def transform_geo_data(gdacs_instance_id):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
-    print("Transformation ended for hazard data")
+    logger.info("Transformation ended for hazard data")
 
 
 @shared_task
-def transform_impact_data(gdacs_instance_id):
-    print("Transformation started for impact data")
+def transform_impact_data(event_data):
+    logger.info("Transformation started for impact data")
 
-    gdacs_instance = ExtractionData.objects.get(id=gdacs_instance_id)
+    gdacs_instance = ExtractionData.objects.get(id=event_data["extraction_id"])
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
-    with open(data_file_path, 'r') as file:
+    with open(data_file_path, "r") as file:
         data = file.read()
     transformer = GDACSTransformer(
-        [
-            GDACSDataSource(
-                type=GDACSDataSourceType.EVENT,
-                source_url=gdacs_instance.url,
-                data=data
-            )
-        ]
+        [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
     )
 
     try:
@@ -130,17 +129,4 @@ def transform_impact_data(gdacs_instance_id):
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=e,
         )
-    print("Transformation ended for impact data")
-
-# @shared_task
-# def transform_geometry_data(transform_id: int):
-#     result = AsyncResult(transform_id)
-#     if result.status == "SUCCESS":
-#         print("Strarting transformation for geometry data")
-
-
-# @shared_task
-# def transform_population_exposure(transform_id: int):
-#     result = AsyncResult(transform_id)
-#     if result.status == "SUCCESS":
-#         print("Strarting transformation for population exposure")
+    logger.info("Transformation ended for impact data")

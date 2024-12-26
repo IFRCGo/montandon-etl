@@ -2,19 +2,11 @@ import hashlib
 import json
 import logging
 import typing
-import requests
-from celery import chain
 from datetime import datetime, timedelta
-
-from pystac_monty.sources.gdacs import (
-    GDACSTransformer,
-    GDACSDataSourceType,
-    GDACSDataSource,
-)
 
 import numpy as np
 import pandas as pd
-from celery import shared_task
+from celery import chain, shared_task
 from django.core.files.base import ContentFile
 from django.core.management import call_command
 from pydantic import ValidationError
@@ -220,7 +212,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
-            hazard_type=hazard_type
+            hazard_type=hazard_type,
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -247,7 +239,10 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
             requires_hazard_type=False,
             hazard_type=hazard_type,
         )
-        return gdacs_instance.id
+        with open(gdacs_instance.resp_data.path, "r") as file:
+            data = file.read()
+
+        return {"extraction_id": gdacs_instance.id, "extracted_data": data}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -265,7 +260,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
-            hazard_type=hazard_type
+            hazard_type=hazard_type,
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -293,10 +288,6 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             hazard_type=hazard_type,
         )
 
-    # Run transformation.
-    if gdacs_instance.resp_code == 200:
-        transform_population_exposure.delay(parent_transform_id)
-
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
@@ -312,7 +303,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
-            hazard_type=hazard_type
+            hazard_type=hazard_type,
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -337,6 +328,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
         )
 
         return gdacs_instance.id
+
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
@@ -394,7 +386,6 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
         )
 
         # Fetch geometry and population exposure data
-        transform_id = None
         if (
             gdacs_instance.resp_code == 200
             and gdacs_instance.status == ExtractionData.Status.SUCCESS
@@ -417,41 +408,26 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                     ),
                     transform_event_data.s(),
                 )
-                event_workflow()
+                event_result = event_workflow.apply_async()
+                event_result_id = event_result.parent.id
 
                 geo_workflow = chain(
-                   fetch_gdacs_geometry_data.s(
-                       parent_id=gdacs_instance.id,
-                       footprint_url=footprint_url
-                   ),
-                   transform_geo_data.s(),
+                    fetch_gdacs_geometry_data.s(
+                        parent_id=gdacs_instance.id,
+                        footprint_url=footprint_url,
+                    ),
+                    transform_geo_data.s(event_result_id),
                 )
-                geo_workflow()
+                geo_workflow.apply_async()
 
-                event_workflow = chain(
-                   fetch_event_data.s(
-                       parent_id=gdacs_instance.id,
-                       event_id=event_id,
-                       hazard_type=hazard_type,
-                   ),
-                   transform_impact_data.s(),
+                impact_workflow = chain(
+                    fetch_event_data.s(
+                        parent_id=gdacs_instance.id,
+                        event_id=event_id,
+                        hazard_type=hazard_type,
+                    ),
+                    transform_impact_data.s(),
                 )
-                event_workflow()
-
-
-               # # getch event data
-               # fetch_event_data.delay(
-               #     parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
-               # )
-
-               # # fetch geometry data
-               # fetch_gdacs_geometry_data.delay(
-               #     parent_id=gdacs_instance.id, footprint_url=footprint_url, parent_transform_id=transform_id
-               # )
-
-                # # fetch population exposure data
-                # scrape_population_exposure_data.delay(
-                #     parent_id=gdacs_instance.id, event_id=event_id, hazard_type=hazard_type, parent_transform_id=transform_id
-                # )
+                impact_workflow.apply_async()
 
     logger.info("{hazard_type} data imported sucessfully")

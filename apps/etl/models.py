@@ -92,4 +92,3 @@ class GdacsTransformation(UserResource):
     data = models.JSONField(default=dict)
     status = models.IntegerField(choices=TransformationStatus.choices)
     failed_reason = models.TextField(blank=True)
-
