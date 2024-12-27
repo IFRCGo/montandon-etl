@@ -1,7 +1,10 @@
 import requests
+from celery.utils.log import get_task_logger
 from django.core.exceptions import ObjectDoesNotExist
 
 from .models import ExtractionData
+
+logger = get_task_logger(__name__)
 
 
 class Extraction:
@@ -9,11 +12,13 @@ class Extraction:
         self.url = url
 
     def _get_file_extension(self, content_type):
-        if "application/json" in content_type:
-            return "json"
-        elif "text/html" in content_type:
-            return "html"
-        return "txt"
+        mappings = {
+            "application/json": "json",
+            "text/html": "html",
+            "application/xml": "xml",
+            "text/csv": "csv",
+        }
+        return mappings.get(content_type, "txt")
 
     def pull_data(self, source: int, retry_count: int, timeout: int = 30, ext_object_id: int = None):
         resp_status = ExtractionData.Status.IN_PROGRESS
@@ -50,12 +55,12 @@ class Extraction:
                     "resp_text": response.text,
                 }
 
-                instance_obj = ExtractionData.objects.get(id=ext_object_id)
                 for key, value in data.items():
                     setattr(instance_obj, key, value)
                 instance_obj.save()
 
-                raise Exception()
+                logger.error(f"Request failed with status {response.status_code}")
+                raise Exception("Request failed")
 
             elif response.status_code == 204:
                 source_validation_status = ExtractionData.ValidationStatus.NO_DATA
@@ -75,6 +80,6 @@ class Extraction:
                 "content_validation": "",
                 "resp_text": "",
             }
-
-        except Exception:
-            raise Exception()
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Extraction failed for source {source}: {str(e)}")
+            raise Exception(f"Request failed: {e}")

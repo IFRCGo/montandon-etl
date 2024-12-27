@@ -13,7 +13,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import_hazard_data.delay("EQ", HazardType.EARTHQUAKE)
-#        import_hazard_data.delay("TC", HazardType.CYCLONE)
-#        import_hazard_data.delay("FL", HazardType.FLOOD)
-#        import_hazard_data.delay("DR", HazardType.DROUGHT)
-#        import_hazard_data.delay("WF", HazardType.WILDFIRE)
+        import_hazard_data.delay("TC", HazardType.CYCLONE)
+        import_hazard_data.delay("FL", HazardType.FLOOD)
+        import_hazard_data.delay("DR", HazardType.DROUGHT)
+        import_hazard_data.delay("WF", HazardType.WILDFIRE)
