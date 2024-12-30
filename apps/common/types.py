@@ -1,11 +1,9 @@
-from typing import Optional
-
-import strawberry
-from strawberry import auto
+import strawberry_django
 from django.contrib.auth.models import User
+from strawberry import auto
 
 
-@strawberry.django.type(User)
+@strawberry_django.type(User)
 class UserMeType:
     id: auto
     username: auto
@@ -14,4 +12,3 @@ class UserMeType:
     email: auto
     is_staff: auto
     is_superuser: auto
-

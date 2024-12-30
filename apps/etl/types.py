@@ -1,14 +1,13 @@
 from typing import Optional
 
-import strawberry
+import strawberry_django
 from strawberry import auto
 
 from .enums import ExtractionDataStatusTypeEnum, ExtractionSourceTypeEnum
-from .filters import ExtractionDataFilter
 from .models import ExtractionData
 
 
-@strawberry.django.type(ExtractionData)
+@strawberry_django.type(ExtractionData)
 class ExtractionDataType:
     id: auto
     source: ExtractionSourceTypeEnum
@@ -26,8 +25,3 @@ class ExtractionDataType:
 
     def resolve_revision_id(self, root):
         return root.revision_id.id
-
-
-@strawberry.django.type(ExtractionData, pagination=True, filters=ExtractionDataFilter)
-class ExtractionDataListType(ExtractionDataType):
-    pass

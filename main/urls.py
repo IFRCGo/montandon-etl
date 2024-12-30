@@ -20,17 +20,15 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
-from strawberry.django.views import GraphQLView
 
-from .schema import schema
+from main.graphql.schema import CustomAsyncGraphQLView, schema
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 ]
 
 if settings.DEBUG:
-    urlpatterns.append(path("graphiql/", csrf_exempt(GraphQLView.as_view(schema=schema))))
-
+    urlpatterns.append(path("graphiql/", csrf_exempt(CustomAsyncGraphQLView.as_view(schema=schema))))
     # Static and media file URLs
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

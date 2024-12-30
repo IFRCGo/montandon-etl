@@ -3,7 +3,7 @@ import argparse
 from django.core.management.base import BaseCommand
 from strawberry.printer import print_schema
 
-from main.schema import schema
+from main.graphql.schema import schema
 
 
 class Command(BaseCommand):

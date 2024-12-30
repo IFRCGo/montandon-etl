@@ -62,6 +62,9 @@ CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
 CELERY_ACKS_LATE = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
+# Strawberry
+STRAWBERRY_DEFAULT_PAGINATION_LIMIT = 50
+STRAWBERRY_MAX_PAGINATION_LIMIT = 100
 # Application definition
 
 INSTALLED_APPS = [
@@ -72,7 +75,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # third party apps
-    "strawberry.django",
     "corsheaders",
     # internal apps
     "apps.common",
@@ -177,6 +179,7 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_URLS_REGEX = r"(^/media/.*$)|(^/graphql/$)"
+CSRF_COOKIE_NAME = "ifrc-monty-csrftoken"
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",
