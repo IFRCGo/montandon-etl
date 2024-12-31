@@ -16,6 +16,7 @@ class HazardType(models.TextChoices):
     TSUNAMI = "TS", "Tsunami"
     WIND = "CD", "Cyclonic Wind"
     WILDFIRE = "WF", "WildFire"
+    VOLCANO = "VO", "Volcano"
 
 
 class ExtractionData(UserResource):

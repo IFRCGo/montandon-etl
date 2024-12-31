@@ -54,16 +54,17 @@ class Extraction:
                     "content_validation": "",
                     "resp_text": response.text,
                 }
+                if response.status_code == 204:
+                    data["source_validation_status"] = ExtractionData.ValidationStatus.NO_DATA
+                    source_validation_status = ExtractionData.ValidationStatus.NO_DATA
 
                 for key, value in data.items():
                     setattr(instance_obj, key, value)
                 instance_obj.save()
 
-                logger.error(f"Request failed with status {response.status_code}")
-                raise Exception("Request failed")
-
-            elif response.status_code == 204:
-                source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+                if not response.status_code == 204:  # bypass exception when content is empty
+                    logger.error(f"Request failed with status {response.status_code}")
+                    raise Exception("Request failed")
 
             resp_status = ExtractionData.Status.SUCCESS
 
