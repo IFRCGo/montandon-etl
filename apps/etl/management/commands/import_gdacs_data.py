@@ -17,3 +17,5 @@ class Command(BaseCommand):
         import_hazard_data.delay("FL", HazardType.FLOOD)
         import_hazard_data.delay("DR", HazardType.DROUGHT)
         import_hazard_data.delay("WF", HazardType.WILDFIRE)
+        import_hazard_data.delay("VO", HazardType.VOLCANO)
+        import_hazard_data.delay("TS", HazardType.TSUNAMI)
