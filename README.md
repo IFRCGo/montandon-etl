@@ -4,6 +4,10 @@
 - Go the directory where manage.py exists.
 - Create a .env file and copy all environment variable from sample.env.
 - Set your own environment variables in .env file.
+- Initialize, update, and ensure the proper setup of submodules in your repository.
+    ```bash
+       git submodule update --init --recursive
+    ```
 - Buiid docker using this command:
     ```bash
        docker compose up --build -d
