@@ -171,5 +171,5 @@ CELERY_BEAT_SCHEDULE = {
     "import_glide_data": {
         "task": "apps.etl.glide_task.fetch_glide_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
-    }
+    },
 }

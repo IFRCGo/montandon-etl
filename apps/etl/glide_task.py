@@ -1,15 +1,13 @@
-import requests
-import logging
-import typing
 import json
-
-from celery import chain, shared_task
+import logging
 from datetime import datetime, timedelta
+
+import requests
+from celery import shared_task
 from django.core.management import call_command
 
 from apps.etl.extract import Extraction
-from apps.etl.models import ExtractionData, HazardType
-from apps.etl.tasks import store_extraction_data
+from apps.etl.models import ExtractionData
 
 logger = logging.getLogger(__name__)
 
@@ -21,25 +19,28 @@ def fetch_glide_data():
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
+    from apps.etl.tasks import store_extraction_data
+
     """
-    Import hazard data from gdacs api
+    Import hazard data from glide api
     """
     logger.info(f"Importing {hazard_type} data")
 
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
-    # gdacs_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}" # noqa: E501
-    gdacs_url = "https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=01&fromday=01&toyear=2024&frommonth=12&today=31&events=EQ"
+    # TODO make the url dynamic
+    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=01&fromday=01&toyear=2024&frommonth=12&today=31&events={hazard_type}" # noqa: E501
+    glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
     retry_count = kwargs.get("retry_count", None)
 
-    gdacs_instance = (
+    glide_instance = (
         ExtractionData.objects.get(id=instance_id)
         if instance_id
         else ExtractionData.objects.create(
-            source=ExtractionData.Source.GDACS,
+            source=ExtractionData.Source.GLIDE,
             status=ExtractionData.Status.PENDING,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             hazard_type=hazard_type_str,
@@ -49,16 +50,16 @@ def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwa
     )
 
     # Extract the data from api.
-    gdacs_extraction = Extraction(url=gdacs_url)
+    glide_extraction = Extraction(url=glide_url)
     response = None
     try:
-        response = gdacs_extraction.pull_data(
-            source=ExtractionData.Source.GDACS,
-            ext_object_id=gdacs_instance.id,
+        response = glide_extraction.pull_data(
+            source=ExtractionData.Source.GLIDE,
+            ext_object_id=glide_instance.id,
             retry_count=retry_count if retry_count else 1,
         )
     except requests.exceptions.RequestException as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
+        self.retry(exc=exc, kwargs={"instance_id": glide_instance.id, "retry_count": self.request.retries})
 
     if response:
         resp_data_content = response["resp_data"].content
@@ -70,51 +71,17 @@ def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwa
             logger.info(f"JSON decode error: {e}")
             resp_data_json = {}
 
-        # Save the extracted data into the existing gdacs object
-        gdacs_instance = store_extraction_data(
+        # Save the extracted data into the existing glide object
+        glide_instance = store_extraction_data(
             response=response,
+            source=ExtractionData.Source.GLIDE,
             validate_source_func=None,
-            instance_id=gdacs_instance.id,
+            instance_id=glide_instance.id,
         )
 
-        # # Fetch geometry and population exposure data
-        # if gdacs_instance.resp_code == 200 and gdacs_instance.status == ExtractionData.Status.SUCCESS and resp_data_json:
-        #     for feature in resp_data_json["features"]:
-        #         event_id = feature["properties"]["eventid"]
-        #         episode_id = feature["properties"]["episodeid"]
-        #         footprint_url = feature["properties"]["url"]["geometry"]
-        #         if hazard_type == HazardType.CYCLONE and event_id and episode_id:
-        #             footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
-
-        #         event_workflow = chain(
-        #             fetch_event_data.s(
-        #                 parent_id=gdacs_instance.id,
-        #                 event_id=event_id,
-        #                 hazard_type=hazard_type,
-        #             ),
-        #             transform_event_data.s(),
-        #         )
-        #         event_result = event_workflow.apply_async()
-
-        #         geo_workflow = chain(
-        #             fetch_gdacs_geometry_data.s(
-        #                 parent_id=gdacs_instance.id,
-        #                 footprint_url=footprint_url,
-        #             ),
-        #             transform_geo_data.s(event_result.parent.id),
-        #         )
-        #         geo_result = geo_workflow.apply_async()
-
-        #         impact_workflow = chain(
-        #             fetch_event_data.s(
-        #                 parent_id=gdacs_instance.id,
-        #                 event_id=event_id,
-        #                 hazard_type=hazard_type,
-        #             ),
-        #             transform_impact_data.s(),
-        #         )
-        #         impact_result = impact_workflow.apply_async()
-
-        #         load_data.s(event_result.id, geo_result.id, impact_result.id).apply_async()
+        # Fetch geometry and population exposure data
+        if glide_instance.resp_code == 200 and glide_instance.status == ExtractionData.Status.SUCCESS and resp_data_json:
+            for glide_obj in resp_data_json["glideset"]:
+                print("Glide obj", glide_obj)
 
         logger.info(f"{hazard_type} data imported sucessfully")
