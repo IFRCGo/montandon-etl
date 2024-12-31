@@ -38,6 +38,7 @@ class ExtractionData(UserResource):
     class Source(models.IntegerChoices):
         GDACS = 1, _("GDACS")
         PDC = 2, _("PDC")
+        GLIDE = 3, _("Glide")
 
     class Status(models.IntegerChoices):
         PENDING = 1, _("Pending")
