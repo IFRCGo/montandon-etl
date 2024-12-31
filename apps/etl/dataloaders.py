@@ -1,11 +1,9 @@
-
 import typing
 
 from asgiref.sync import sync_to_async
+from common.dataloaders import load_model_objects
 from django.utils.functional import cached_property
 from strawberry.dataloader import DataLoader
-
-from common.dataloaders import load_model_objects
 
 from .models import User
 

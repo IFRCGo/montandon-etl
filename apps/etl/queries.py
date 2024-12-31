@@ -1,10 +1,11 @@
 import strawberry
-from strawberry.types import Info
 from asgiref.sync import sync_to_async
+from strawberry.types import Info
 
 from apps.common.types import UserMeType
 from apps.etl.types import ExtractionDataType
 from main.graphql.paginations import CountList, pagination_field
+
 from .filters import ExtractionDataFilter
 
 

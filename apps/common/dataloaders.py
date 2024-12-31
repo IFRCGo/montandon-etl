@@ -1,4 +1,3 @@
-
 import typing
 
 from django.db import models

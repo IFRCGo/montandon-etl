@@ -1,11 +1,11 @@
 import strawberry
-
 from strawberry.django.views import AsyncGraphQLView
+
 from apps.etl import queries as etl_queries
-from .permission import IsAuthenticated
-from .dataloaders import GlobalDataLoader
 
 from .context import GraphQLContext
+from .dataloaders import GlobalDataLoader
+from .permission import IsAuthenticated
 
 
 class CustomAsyncGraphQLView(AsyncGraphQLView):
@@ -18,37 +18,29 @@ class CustomAsyncGraphQLView(AsyncGraphQLView):
 
 
 @strawberry.type
-class PublicQuery(
-):
+class PublicQuery:
     id: strawberry.ID = strawberry.ID("public")
 
 
 @strawberry.type
-class PrivateQuery(
-    etl_queries.PrivateQuery
-):
+class PrivateQuery(etl_queries.PrivateQuery):
     id: strawberry.ID = strawberry.ID("private")
 
 
 @strawberry.type
-class PublicMutation(
-):
+class PublicMutation:
     id: strawberry.ID = strawberry.ID("public")
 
 
 @strawberry.type
-class PrivateMutation(
-):
+class PrivateMutation:
     id: strawberry.ID = strawberry.ID("private")
 
 
 @strawberry.type
 class Query:
     public: PublicQuery = strawberry.field(resolver=lambda: PublicQuery())
-    private: PrivateQuery = strawberry.field(
-        permission_classes=[IsAuthenticated],
-        resolver=lambda: PrivateQuery()
-    )
+    private: PrivateQuery = strawberry.field(permission_classes=[IsAuthenticated], resolver=lambda: PrivateQuery())
 
 
 @strawberry.type
