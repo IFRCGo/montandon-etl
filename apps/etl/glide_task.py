@@ -1,24 +1,30 @@
-import json
 import logging
 from datetime import datetime, timedelta
 
 import requests
-from celery import shared_task
-from django.core.management import call_command
+from celery import chain, shared_task
 
 from apps.etl.extract import Extraction
 from apps.etl.models import ExtractionData
+from apps.etl.transformers.glide_transformer import transform_glide_event_data
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task
-def fetch_glide_data():
-    call_command("import_glide_data")
+def import_glide_hazard_data(hazard_type: str, hazard_type_str: str, **kwargs):
+    event_workflow = chain(
+        import_hazard_data.s(
+            hazard_type=hazard_type,
+            hazard_type_str=hazard_type_str,
+        ),
+        transform_glide_event_data.s(),
+    )
+    event_workflow.apply_async()
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
+def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     from apps.etl.tasks import store_extraction_data
 
     """
@@ -62,15 +68,6 @@ def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwa
         self.retry(exc=exc, kwargs={"instance_id": glide_instance.id, "retry_count": self.request.retries})
 
     if response:
-        resp_data_content = response["resp_data"].content
-
-        # decode the byte object(response data) into json
-        try:
-            resp_data_json = json.loads(resp_data_content.decode("utf-8"))
-        except json.JSONDecodeError as e:
-            logger.info(f"JSON decode error: {e}")
-            resp_data_json = {}
-
         # Save the extracted data into the existing glide object
         glide_instance = store_extraction_data(
             response=response,
@@ -78,10 +75,8 @@ def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwa
             validate_source_func=None,
             instance_id=glide_instance.id,
         )
-
-        # Fetch geometry and population exposure data
-        if glide_instance.resp_code == 200 and glide_instance.status == ExtractionData.Status.SUCCESS and resp_data_json:
-            for glide_obj in resp_data_json["glideset"]:
-                print("Glide obj", glide_obj)
+        with open(glide_instance.resp_data.path, "r") as file:
+            data = file.read()
 
         logger.info(f"{hazard_type} data imported sucessfully")
+        return {"extraction_id": glide_instance.id, "extracted_data": data}
