@@ -25,17 +25,21 @@ from apps.etl.extraction_validators.gdacs_pop_exposure import (
 from apps.etl.glide_task import import_glide_hazard_data  # noqa: F401
 from apps.etl.loaders import load_data
 from apps.etl.models import ExtractionData, HazardType
+from apps.etl.stac_loaders.glide_loader import load_glide_data  # noqa: F401
 from apps.etl.transformer import (
     transform_event_data,
     transform_geo_data,
     transform_impact_data,
+)
+from apps.etl.transformers.glide_transformer import (  # noqa: F401
+    transform_glide_event_data,
 )
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task
-def import_glide_data():
+def fetch_glide_data():
     call_command("import_glide_data")
 
 

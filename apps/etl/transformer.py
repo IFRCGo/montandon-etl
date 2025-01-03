@@ -144,14 +144,15 @@ def transform_impact_data(event_data):
     except IOError as e:
         logger.error(f"I/O error while reading file: {str(e)}")
         raise
+
     transformer = GDACSTransformer(
         [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
     )
 
-    transformed_item_dict = {"data": []}
+    transformed_item_dict = {}
     try:
         transformed_impact_item = transformer.make_impact_items()
-        transformed_item_dict = {"data": transformed_impact_item}
+        transformed_item_dict["data"] = transformed_impact_item
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
@@ -168,7 +169,7 @@ def transform_impact_data(event_data):
             failed_reason=str(e),
         )
 
-    if transformed_item_dict:
+    if not transformed_item_dict == {}:
         logger.info("Transformation ended for impact data")
         return transformed_item_dict
     else:

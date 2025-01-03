@@ -17,6 +17,24 @@ class HazardType(models.TextChoices):
     WIND = "CD", "Cyclonic Wind"
     WILDFIRE = "WF", "WildFire"
     VOLCANO = "VO", "Volcano"
+    COLDWAVE = "CW", "Cold Wave"
+    COMPLEX_EMERGENCY = "CE", "Complex Emergency"
+    EXTRATROPICAL_CYCLONE = "EC", "Extratropical Cyclone"
+    EXTREME_TEMPERATURE = "ET", "Extreme temperature"
+    FAMINE = "FA", "Famine"
+    FIRE = "FR", "Fire"
+    FLASH_FLOOD = "FF", "Flash Flood"
+    HEAT_WAVE = "HT", "Heat Wave"
+    INSECT_INFESTATION = "IN", "Insect Infestation"
+    LANDSLIDE = "LS", "Land Slide"
+    MUD_SLIDE = "MS", "Mud Slide"
+    SEVERE_LOCAL_STROM = "ST", "Severe Local Strom"
+    SLIDE = "SL", "Slide"
+    SNOW_AVALANCHE = "AV", "Snow Avalanche"
+    TECH_DISASTER = "AC", "Tech. Disaster"
+    TORNADO = "TO", "Tornado"
+    VIOLENT_WIND = "VW", "Violent Wind"
+    WAVE_SURGE = "WV", "Wave/Surge"
 
 
 class ExtractionData(UserResource):
@@ -93,4 +111,11 @@ class GdacsTransformation(UserResource):
     item_type = models.IntegerField(choices=ItemType.choices)
     data = models.JSONField(default=dict)
     status = models.IntegerField(choices=TransformationStatus.choices)
+    failed_reason = models.TextField(blank=True)
+
+
+class GlideTransformation(UserResource):
+    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, null=True, blank=True)
+    data = models.JSONField(default=dict)
+    status = models.IntegerField(choices=GdacsTransformation.TransformationStatus.choices)
     failed_reason = models.TextField(blank=True)
