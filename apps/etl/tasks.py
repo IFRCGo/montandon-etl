@@ -25,6 +25,7 @@ from apps.etl.extraction_validators.gdacs_pop_exposure import (
 from apps.etl.glide_task import import_glide_hazard_data  # noqa: F401
 from apps.etl.loaders import load_data
 from apps.etl.models import ExtractionData, HazardType
+from apps.etl.stac_loaders.glide_loader import load_glide_data  # noqa: F401
 from apps.etl.transformer import (
     transform_event_data,
     transform_geo_data,

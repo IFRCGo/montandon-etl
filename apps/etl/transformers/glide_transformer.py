@@ -1,6 +1,7 @@
 import logging
 
 from celery import shared_task
+from django.db import transaction
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
 from apps.etl.models import ExtractionData, GdacsTransformation, GlideTransformation
@@ -24,25 +25,27 @@ def transform_glide_event_data(data):
         raise
     transformer = GlideTransformer([GlideDataSource(source_url=glide_instance.url, data=data)])
 
-    try:
-        transformed_event_item = transformer.make_items()
-        item = {"data": [obj.to_dict() for obj in transformed_event_item]}
+    transformed_event_item = transformer.make_items()
 
-        GlideTransformation.objects.create(
-            extraction=glide_instance,
-            data=item,
-            status=GdacsTransformation.TransformationStatus.SUCCESS,
-            failed_reason="",
-        )
+    try:
+        with transaction.atomic():
+            transformed_event_item = transformer.make_items()
+            if not transformed_event_item == []:
+                for item in transformed_event_item:
+
+                    GlideTransformation.objects.create(
+                        extraction=glide_instance,
+                        data=item.to_dict(),
+                        status=GdacsTransformation.TransformationStatus.SUCCESS,
+                        failed_reason="",
+                    )
+                    logger.info("Transformation ended for glide event data")
+                return {"data": [i.to_dict() for i in transformed_event_item]}
     except Exception as e:
+        logger.info(f"Glide transformation failed for extraction id {glide_instance.id}")
         GlideTransformation.objects.create(
             extraction=glide_instance,
             status=GdacsTransformation.TransformationStatus.FAILED,
             failed_reason=str(e),
         )
-
-    if item:
-        logger.info("Transformation ended for glide event data")
-        return item
-    else:
-        raise Exception("Transformation failed for glide. Check logs for details.")
+        raise

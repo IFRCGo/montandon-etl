@@ -31,7 +31,6 @@ class HazardType(models.TextChoices):
     SEVERE_LOCAL_STROM = "ST", "Severe Local Strom"
     SLIDE = "SL", "Slide"
     SNOW_AVALANCHE = "AV", "Snow Avalanche"
-    STROM_SURGE = "SS", "Strom Surge"
     TECH_DISASTER = "AC", "Tech. Disaster"
     TORNADO = "TO", "Tornado"
     VIOLENT_WIND = "VW", "Violent Wind"

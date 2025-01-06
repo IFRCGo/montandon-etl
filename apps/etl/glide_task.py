@@ -6,6 +6,7 @@ from celery import chain, shared_task
 
 from apps.etl.extract import Extraction
 from apps.etl.models import ExtractionData
+from apps.etl.stac_loaders.glide_loader import load_glide_data
 from apps.etl.transformers.glide_transformer import transform_glide_event_data
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ def import_glide_hazard_data(hazard_type: str, hazard_type_str: str, **kwargs):
             hazard_type_str=hazard_type_str,
         ),
         transform_glide_event_data.s(),
+        load_glide_data.s(),
     )
     event_workflow.apply_async()
 
@@ -35,8 +37,8 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     # TODO make the url dynamic
-    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=01&fromday=01&toyear=2024&frommonth=12&today=31&events={hazard_type}" # noqa: E501
-    glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}"  # noqa: E501
+    glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=01&fromday=01&toyear=2024&frommonth=12&today=31&events={hazard_type}"  # noqa: E501
+    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
