@@ -365,6 +365,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
+    # gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL&fromDate=2025-01-06&toDate=2025-01-08&alertlevel=Green;Orange;Red" # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
