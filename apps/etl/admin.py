@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import ExtractionData, GdacsTransformation
+from .models import ExtractionData, GdacsTransformation, GlideTransformation
 
 
 @admin.register(ExtractionData)
@@ -40,6 +40,24 @@ class GdacsTransformationAdmin(admin.ModelAdmin):
         "id",
         "extraction",
         "item_type",
+        "status",
+    )
+    list_filter = ("status",)
+    autocomplete_fields = ["extraction"]
+    search_fields = ["extraction"]
+
+
+@admin.register(GlideTransformation)
+class GlideTransformationAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        # Use the model's fields to populate readonly_fields
+        if obj:  # If the object exists (edit page)
+            return [field.name for field in self.model._meta.fields]
+        return []
+
+    list_display = (
+        "id",
+        "extraction",
         "status",
     )
     list_filter = ("status",)

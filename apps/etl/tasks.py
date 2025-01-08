@@ -22,15 +22,25 @@ from apps.etl.extraction_validators.gdacs_pop_exposure import (
     GdacsPopulationExposureEQTC,
     GdacsPopulationExposureWF,
 )
+from apps.etl.glide_task import import_glide_hazard_data  # noqa: F401
 from apps.etl.loaders import load_data
 from apps.etl.models import ExtractionData, HazardType
+from apps.etl.stac_loaders.glide_loader import load_glide_data  # noqa: F401
 from apps.etl.transformer import (
     transform_event_data,
     transform_geo_data,
     transform_impact_data,
 )
+from apps.etl.transformers.glide_transformer import (  # noqa: F401
+    transform_glide_event_data,
+)
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task
+def fetch_glide_data():
+    call_command("import_glide_data")
 
 
 @shared_task
@@ -157,7 +167,13 @@ def hash_file_content(content):
 
 
 def store_extraction_data(
-    response, validate_source_func, parent_id=None, instance_id=None, hazard_type=None, requires_hazard_type=False
+    response,
+    source=None,
+    validate_source_func=None,
+    parent_id=None,
+    instance_id=None,
+    hazard_type=None,
+    requires_hazard_type=False,
 ):
     file_extension = response.pop("file_extension")
     file_name = f"gdacs.{file_extension}"
@@ -179,17 +195,18 @@ def store_extraction_data(
         resp_data_content = resp_data.content
         # Source validation
         # if the validate function requires hazard type as argument pass it as argument else don't.
-        if requires_hazard_type:
-            gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-            gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
-        else:
-            gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-            gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
+        if validate_source_func:
+            if requires_hazard_type:
+                gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
+                gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
+            else:
+                gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
+                gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
         manage_duplicate_file_content(
-            source=ExtractionData.Source.GDACS,
+            source=source,
             hash_content=hash_content,
             instance=gdacs_instance,
             response_data=resp_data_content,
@@ -235,6 +252,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
     if response:
         gdacs_instance = store_extraction_data(
             response=response,
+            source=ExtractionData.Source.GDACS,
             validate_source_func=validate_event_data,
             instance_id=gdacs_instance.id,
             parent_id=parent_id,
@@ -282,6 +300,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
     # Save the extracted data into the existing gdacs object
     if response:
         gdacs_instance = store_extraction_data(
+            source=ExtractionData.Source.GDACS,
             response=response,
             validate_source_func=validate_population_exposure,
             instance_id=gdacs_instance.id,
@@ -323,6 +342,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
 
     if response:
         gdacs_instance = store_extraction_data(
+            source=ExtractionData.Source.GDACS,
             response=response,
             validate_source_func=validate_gdacs_geometry_data,
             instance_id=gdacs_instance.id,
@@ -345,6 +365,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
+    # gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL&fromDate=2025-01-06&toDate=2025-01-08&alertlevel=Green;Orange;Red" # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
@@ -387,6 +408,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
 
         # Save the extracted data into the existing gdacs object
         gdacs_instance = store_extraction_data(
+            source=ExtractionData.Source.GDACS,
             response=response,
             validate_source_func=validate_source_data,
             instance_id=gdacs_instance.id,
