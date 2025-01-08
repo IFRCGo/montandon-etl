@@ -152,7 +152,7 @@ def transform_impact_data(event_data):
     transformed_item_dict = {}
     try:
         transformed_impact_item = transformer.make_impact_items()
-        transformed_item_dict["data"] = transformed_impact_item
+        transformed_item_dict["data"] = [item.to_dict() for item in transformed_impact_item]
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,

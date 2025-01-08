@@ -23,9 +23,8 @@ def transform_glide_event_data(data):
     except IOError as e:
         logger.error(f"I/O error while reading file: {str(e)}")
         raise
-    transformer = GlideTransformer([GlideDataSource(source_url=glide_instance.url, data=data)])
 
-    transformed_event_item = transformer.make_items()
+    transformer = GlideTransformer(GlideDataSource(source_url=glide_instance.url, data=data))
 
     try:
         with transaction.atomic():

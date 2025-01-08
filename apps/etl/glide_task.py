@@ -37,8 +37,8 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     today = datetime.now().date()
     yesterday = today - timedelta(days=1)
     # TODO make the url dynamic
-    glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=01&fromday=01&toyear=2024&frommonth=12&today=31&events={hazard_type}"  # noqa: E501
-    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}"  # noqa: E501
+    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=10&fromday=01&toyear=2024&frommonth=12&today=31&events={hazard_type}"  # noqa: E501
+    glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={yesterday.year}&frommonth={yesterday.month}&fromday={yesterday.day}&toyear={today.year}&frommonth={today.month}&today={today.day}&events={hazard_type}"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
