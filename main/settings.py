@@ -34,6 +34,9 @@ env = environ.Env(
     CELERY_REDIS_URL=str,
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
     DJANGO_STATIC_URL=(str, "/static/"),
+    APP_DOMAIN=str,
+    APP_HTTP_PROTOCOL=str,
+    DJANGO_CORS_ORIGIN_REGEX_WHITELIST=(list, []),
 )
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
@@ -59,6 +62,9 @@ CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
 CELERY_ACKS_LATE = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
+# Strawberry
+STRAWBERRY_DEFAULT_PAGINATION_LIMIT = 50
+STRAWBERRY_MAX_PAGINATION_LIMIT = 100
 # Application definition
 
 INSTALLED_APPS = [
@@ -68,6 +74,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # third party apps
+    "corsheaders",
+    # internal apps
     "apps.common",
     "apps.etl",
 ]
@@ -161,6 +170,45 @@ MEDIA_ROOT = BASE_DIR / "media"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+if not env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST"):
+    CORS_ORIGIN_ALLOW_ALL = True
+else:
+    # Example ^https://[\w-]+\.mapswipe\.org$
+    CORS_ORIGIN_REGEX_WHITELIST = env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST")
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"(^/media/.*$)|(^/graphql/$)"
+CSRF_COOKIE_NAME = "ifrc-monty-csrftoken"
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "sentry-trace",
+)
+
+APP_HTTP_PROTOCOL = env("APP_HTTP_PROTOCOL")
+APP_DOMAIN = env("APP_DOMAIN")
+
+if APP_HTTP_PROTOCOL == "https":
+    CSRF_TRUSTED_ORIGINS = [
+        f"{APP_HTTP_PROTOCOL}://{APP_DOMAIN}",
+    ]
 
 
 CELERY_BEAT_SCHEDULE = {

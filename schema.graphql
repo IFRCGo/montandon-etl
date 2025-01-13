@@ -1,0 +1,155 @@
+"""Date with time (isoformat)"""
+scalar DateTime
+
+input DatetimeDatetimeFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: DateTime
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [DateTime!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: DateTime
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: DateTime
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: DateTime
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: DateTime
+
+  """Inclusive range test (between)"""
+  range: DatetimeRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+  hour: IntComparisonFilterLookup
+  minute: IntComparisonFilterLookup
+  second: IntComparisonFilterLookup
+  date: IntComparisonFilterLookup
+  time: IntComparisonFilterLookup
+}
+
+input DatetimeRangeLookup {
+  start: DateTime = null
+  end: DateTime = null
+}
+
+input ExtractionDataFilter {
+  source: ExtractionDataSourceTypeEnum
+  status: ExtractionDataStatusTypeEnum
+  createdAt: DatetimeDatetimeFilterLookup
+  AND: ExtractionDataFilter
+  OR: ExtractionDataFilter
+  NOT: ExtractionDataFilter
+  DISTINCT: Boolean
+  createdAtLte: ID
+  createdAtGte: ID
+}
+
+enum ExtractionDataSourceTypeEnum {
+  GDACS
+  PDC
+}
+
+enum ExtractionDataStatusTypeEnum {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
+type ExtractionDataType {
+  id: ID!
+  source: ExtractionDataSourceTypeEnum!
+  url: String!
+  respCode: Int!
+  status: ExtractionDataStatusTypeEnum!
+  respDataType: String!
+  parentId: Int
+  sourceValidationStatus: Int!
+  revisionId: Int
+  hazardType: String!
+}
+
+type ExtractionDataTypeCountList {
+  limit: Int!
+  offset: Int!
+  count: Int!
+  items: [ExtractionDataType!]!
+}
+
+input IntComparisonFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Int
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Int!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Int
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Int
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Int
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Int
+
+  """Inclusive range test (between)"""
+  range: IntRangeLookup
+}
+
+input IntRangeLookup {
+  start: Int = null
+  end: Int = null
+}
+
+input OffsetPaginationInput {
+  offset: Int! = 0
+  limit: Int! = -1
+}
+
+type PrivateQuery {
+  extractionList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): ExtractionDataTypeCountList!
+  me: UserMeType
+  id: ID!
+}
+
+type PublicQuery {
+  id: ID!
+}
+
+type Query {
+  public: PublicQuery!
+  private: PrivateQuery!
+}
+
+type UserMeType {
+  id: ID!
+  username: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  isStaff: Boolean!
+  isSuperuser: Boolean!
+}
