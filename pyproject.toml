@@ -1,30 +1,27 @@
-[tool.poetry]
+[project]
 name = "montandon-etl"
 version = "0.1.0"
 description = ""
-authors = ["Togglecorp Dev <dev@togglecorp.com>"]
+authors = [{ name = "Togglecorp Dev", email = "dev@togglecorp.com" }]
+requires-python = "~=3.12"
 readme = "README.md"
+dependencies = [
+    "django>=5.1.3,<6",
+    "django-environ",
+    "psycopg2-binary>=2.9.9,<3",
+    "flake8>=7.1.1,<8",
+    "celery[redis]>=5.4.0,<6",
+    "django-redis>=5.4.0,<6",
+    "django-celery-beat>=2.7.0,<3",
+    "pandas>=2.2.3,<3",
+    "lxml>=5.3.0,<6",
+    "pydantic>=2.10.2,<3",
+    "pystac-monty",
+    "requests>=2.32.3",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-django = "^5.1.3"
-django-environ = "*"
-psycopg2-binary = "^2.9.9"
-flake8 = "^7.1.1"
-celery = {extras = ["redis"], version = "^5.4.0"}
-django-redis = "^5.4.0"
-django-celery-beat = "^2.7.0"
-pandas = "^2.2.3"
-lxml = "^5.3.0"
-pydantic = "^2.10.2"
-pystac-monty = {path = "libs/pystac-monty", develop = true}
-geopandas = "^1.0.1"
-shapely = "^2.0.6"
-rtree = "^1.3.0"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.uv.sources]
+pystac-monty = { path = "libs/pystac-monty", editable = true }
 
 [tool.black]
 line-length = 125
