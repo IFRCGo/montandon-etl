@@ -10,9 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,7 +29,14 @@ env = environ.Env(
     DB_PASSWORD=str,
     DB_HOST=str,
     DB_PORT=int,
+    DJANGO_TIME_ZONE=(str, "UTC"),
+    # Redis
+    CELERY_REDIS_URL=str,
+    DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
+    DJANGO_STATIC_URL=(str, "/static/"),
 )
+
+TIME_ZONE = env("DJANGO_TIME_ZONE")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
@@ -39,6 +48,17 @@ DEBUG = env("DJANGO_DEBUG")
 
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOST")
 
+# Redis
+CELERY_REDIS_URL = env("CELERY_REDIS_URL")
+
+# Celery
+CELERY_BROKER_URL = CELERY_REDIS_URL
+CELERY_RESULT_BACKEND = CELERY_REDIS_URL
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
+CELERY_ACKS_LATE = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +68,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "apps.common",
+    "apps.etl",
 ]
 
 MIDDLEWARE = [
@@ -130,9 +152,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = env("DJANGO_STATIC_URL")
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+CELERY_BEAT_SCHEDULE = {
+    "import_gdacs_data": {
+        "task": "apps.etl.tasks.fetch_gdacs_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    }
+}
