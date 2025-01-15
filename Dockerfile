@@ -1,30 +1,31 @@
-FROM python:3.12-slim-bullseye as base
+FROM python:3.12-slim-bullseye AS base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 LABEL maintainer="Togglecorp Dev"
 
 ENV PYTHONUNBUFFERED=1
 
-WORKDIR /code
+ENV UV_COMPILE_BYTECODE=1
 
-COPY pyproject.toml poetry.lock /code/
+ENV UV_LINK_MODE=copy
+
+ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+
+WORKDIR /code
 
 COPY libs /code/libs
 
-RUN apt-get update -y \
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    apt-get update -y \
     && apt-get install -y --no-install-recommends \
         # Build required packages
         gcc libc-dev gdal-bin libproj-dev \
         # Helper packages
         wait-for-it \
-    # Upgrade pip and install python packages for code
-    && pip install --upgrade --no-cache-dir pip poetry \
-    && poetry --version \
-    # Configure to use system instead of virtualenvs
-    && poetry config virtualenvs.create false \
-    && poetry install --no-root \
+    && uv sync --frozen --no-install-project  --no-dev \
     # Clean-up
-    && rm -rf /root/.cache/pypoetry \
-    && pip uninstall -y poetry virtualenv-clone virtualenv \
     && apt-get remove -y gcc libc-dev libproj-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
