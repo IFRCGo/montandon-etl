@@ -1,0 +1,66 @@
+x-server: &base_server_setup
+  restart: unless-stopped
+  image: etl-montandon/server
+  build:
+    context: ./
+  # Used for python debugging.
+  stdin_open: true
+  tty: true
+  env_file:
+    - .env
+  environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?err}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      CELERY_REDIS_URL: ${CELERY_REDIS_URL:-redis://redis:6379/0}
+      DJANGO_CACHE_REDIS_URL: ${DJANGO_CACHE_REDIS_URL:-redis://redis:6379/1}
+
+  volumes:
+    - .:/code
+  depends_on:
+    - db
+    - redis
+
+services:
+  db:
+    image: postgis/postgis:15-3.5-alpine
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PORT=5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6-alpine
+    volumes:
+      - redis-data:/data
+
+  web:
+    <<: *base_server_setup
+    command: bash -c "/code/scripts/run_develop.sh"
+    ports:
+      - 8000:8000
+
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    <<: *base_server_setup
+    command: bash -c "/code/scripts/run_worker_beat.sh"
+
+  worker:
+    <<: *base_server_setup
+    # command: celery -A main worker --loglevel=info
+    command: bash -c "/code/scripts/run_worker.sh"
+
+volumes:
+  postgres-data:
+  redis-data:
+
