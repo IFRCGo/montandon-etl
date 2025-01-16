@@ -2,28 +2,12 @@ import logging
 from datetime import datetime, timedelta
 
 import requests
-from celery import chain, shared_task
+from celery import shared_task
 
-from apps.etl.extract import Extraction
+from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.models import ExtractionData
-from apps.etl.stac_loaders.glide_loader import load_glide_data
-from apps.etl.transformers.glide_transformer import transform_glide_event_data
 
 logger = logging.getLogger(__name__)
-
-
-@shared_task
-def import_glide_hazard_data(hazard_type: str, hazard_type_str: str, **kwargs):
-    event_workflow = chain(
-        import_hazard_data.s(
-            hazard_type=hazard_type,
-            hazard_type_str=hazard_type_str,
-        ),
-        transform_glide_event_data.s(),
-        load_glide_data.s(),
-    )
-    event_workflow.apply_async()
-
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):

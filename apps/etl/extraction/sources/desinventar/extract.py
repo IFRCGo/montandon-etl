@@ -1,12 +1,12 @@
-import os
 import io
 import logging
 import zipfile
 from pathlib import Path
 
+import requests
+
 logger = logging.getLogger(__name__)
 
-import requests
 
 def extract_country_data(country_code: str):
     logger.info(f"Desinventar: Extraction started for {country_code}")
@@ -17,7 +17,7 @@ def extract_country_data(country_code: str):
 
     xml_file_path = f"{output_dir}/DI_export_{country_code}.xml"
 
-    if (Path(xml_file_path).exists()):
+    if Path(xml_file_path).exists():
         logger.info(f"Desinventar: Required file already exists, skipping download for {country_code}")
         print(f"Desinventar: Required file already exists, skipping download for {country_code}")
         return
@@ -25,7 +25,6 @@ def extract_country_data(country_code: str):
     # desinventar_trigger_url = f"https://www.desinventar.net/DesInventar/download_base.jsp?country_code={country_code}"
     # TODO: this should come from utils
     desinventar_download_url = f"https://www.desinventar.net/DesInventar/download/DI_export_{country_code}.zip"
-
 
     try:
         logger.info(f"Desinventar: Downloading data for {country_code} from {desinventar_download_url}")

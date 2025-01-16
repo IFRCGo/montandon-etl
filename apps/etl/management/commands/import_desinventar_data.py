@@ -2,10 +2,10 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from apps.etl.desinventar.task import import_desinventar_data
-from apps.etl.models import HazardType
+from apps.etl.etl_tasks.desinventar import import_desinventar_data
 
 logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = "Import data from desinventar"
