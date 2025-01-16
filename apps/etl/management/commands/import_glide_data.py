@@ -2,7 +2,7 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from apps.etl.glide_task import import_glide_hazard_data
+from apps.etl.etl_tasks.glide import import_glide_hazard_data
 from apps.etl.models import HazardType
 
 logger = logging.getLogger(__name__)

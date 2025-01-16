@@ -3,7 +3,7 @@ import uuid
 from celery import shared_task
 from celery.utils.log import get_task_logger
 
-from apps.etl.loaders import send_post_request_to_stac_api
+from apps.etl.load.sources.base import send_post_request_to_stac_api
 
 logger = get_task_logger(__name__)
 

@@ -2,8 +2,8 @@ import logging
 
 from django.core.management.base import BaseCommand
 
+from apps.etl.etl_tasks.gdacs import import_hazard_data
 from apps.etl.models import HazardType
-from apps.etl.tasks import import_hazard_data
 
 logger = logging.getLogger(__name__)
 
