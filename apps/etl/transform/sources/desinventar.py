@@ -138,4 +138,3 @@ def transform_country_data(country_code: str, iso3: str):
 
     logger.info(f"Desinventar: Transform ended for {country_code}")
     print(f"Desinventar: Transform ended for {country_code}")
-

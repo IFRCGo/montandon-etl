@@ -2,17 +2,23 @@ import hashlib
 import json
 import logging
 import typing
+
 import numpy as np
 import pandas as pd
-
 from celery import shared_task
 from django.core.files.base import ContentFile
 from pydantic import ValidationError
 
 from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.extraction.sources.gdacs.validators.gdacs_eventsdata import GDacsEventDataValidator
-from apps.etl.extraction.sources.gdacs.validators.gdacs_geometry import GdacsEventsGeometryData
-from apps.etl.extraction.sources.gdacs.validators.gdacs_main_source import GdacsEventSourceValidator
+from apps.etl.extraction.sources.gdacs.validators.gdacs_eventsdata import (
+    GDacsEventDataValidator,
+)
+from apps.etl.extraction.sources.gdacs.validators.gdacs_geometry import (
+    GdacsEventsGeometryData,
+)
+from apps.etl.extraction.sources.gdacs.validators.gdacs_main_source import (
+    GdacsEventSourceValidator,
+)
 from apps.etl.extraction.sources.gdacs.validators.gdacs_pop_exposure import (
     GdacsPopulationExposure_FL,
     GdacsPopulationExposureDR,
@@ -22,6 +28,7 @@ from apps.etl.extraction.sources.gdacs.validators.gdacs_pop_exposure import (
 from apps.etl.models import ExtractionData
 
 logger = logging.getLogger(__name__)
+
 
 def get_as_int(value: typing.Optional[str]) -> typing.Optional[int]:
     if value is None:
@@ -328,4 +335,3 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             data = file.read()
 
         return {"extraction_id": gdacs_instance.id, "extracted_data": data}
-

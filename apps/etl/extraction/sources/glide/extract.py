@@ -9,6 +9,7 @@ from apps.etl.models import ExtractionData
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     from apps.etl.tasks import store_extraction_data

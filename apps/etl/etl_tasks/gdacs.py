@@ -12,18 +12,13 @@ from apps.etl.extraction.sources.gdacs.extract import (
     store_extraction_data,
     validate_source_data,
 )
-from apps.etl.extraction.sources.glide.extract import (
-    import_hazard_data as import_glide_data,
-)
 from apps.etl.load.sources.gdacs import load_data
-from apps.etl.load.sources.glide import load_glide_data
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.gdacs import (
     transform_event_data,
     transform_geo_data,
     transform_impact_data,
 )
-from apps.etl.transform.sources.glide import transform_glide_event_data
 
 logger = logging.getLogger(__name__)
 

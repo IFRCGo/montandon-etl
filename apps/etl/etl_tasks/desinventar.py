@@ -1,10 +1,12 @@
 import logging
-from celery import chain, shared_task
+
+from celery import shared_task
 
 from apps.etl.extraction.sources.desinventar.extract import extract_country_data
 from apps.etl.transform.sources.desinventar import transform_country_data
 
 logger = logging.getLogger(__name__)
+
 
 @shared_task
 def import_desinventar_data():
