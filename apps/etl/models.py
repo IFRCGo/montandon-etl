@@ -104,13 +104,19 @@ class GdacsTransformation(UserResource):
         IMPACT = 3, "Impact"
 
     class TransformationStatus(models.IntegerChoices):
-        FAILED = 1, "Failed"
+        SUCCESS = 1, "Success"
+        FAILED = 2, "Failed"
+
+    class LoadStatus(models.IntegerChoices):
+        PENDING = 1, "Pending"
         SUCCESS = 2, "Success"
+        FAILED = 3, "Failed"
 
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, null=True, blank=True)
     item_type = models.IntegerField(choices=ItemType.choices)
     data = models.JSONField(default=dict)
     status = models.IntegerField(choices=TransformationStatus.choices)
+    load_status = models.IntegerField(choices=LoadStatus.choices, default=LoadStatus.PENDING)
     failed_reason = models.TextField(blank=True)
 
 
