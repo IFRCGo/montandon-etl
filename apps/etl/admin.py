@@ -40,7 +40,7 @@ class GdacsTransformationAdmin(admin.ModelAdmin):
         "id",
         "extraction",
         "item_type",
-        "status",
+        "load_status",
     )
     list_filter = ("status",)
     autocomplete_fields = ["extraction"]
