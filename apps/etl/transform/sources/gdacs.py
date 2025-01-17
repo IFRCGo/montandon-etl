@@ -39,10 +39,7 @@ def transform_event_data(data):
     transformed_item_dict = {}
     try:
         transformed_event_item = transformer.make_source_event_item()
-        transformed_item_dict = {
-            "collection_id": "gdacs-events",
-            "item": transformed_event_item.to_dict()
-        }
+        transformed_item_dict = {"collection_id": "gdacs-events", "item": transformed_event_item.to_dict()}
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
@@ -108,10 +105,7 @@ def transform_geo_data(geo_data, event_task_id):
     transformed_item_dict = {}
     try:
         transformed_geo_item = transformer.make_hazard_event_item()
-        transformed_item_dict = {
-            "collection_id": "gdacs-hazards",
-            "item": transformed_geo_item.to_dict()
-        }
+        transformed_item_dict = {"collection_id": "gdacs-hazards", "item": transformed_geo_item.to_dict()}
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
@@ -159,10 +153,7 @@ def transform_impact_data(event_data):
     try:
         transformed_impact_item = transformer.make_impact_items()
         transformed_item_dict["data"] = [
-            {
-                "item": item.to_dict(),
-                "collection_id": "gdacs-impacts"
-            } for item in transformed_impact_item
+            {"item": item.to_dict(), "collection_id": "gdacs-impacts"} for item in transformed_impact_item
         ]
 
         GdacsTransformation.objects.create(

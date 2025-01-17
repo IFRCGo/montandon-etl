@@ -58,7 +58,8 @@ class GlideTransformationAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "extraction",
-        "status",
+        "item_type",
+        "load_status",
     )
     list_filter = ("status",)
     autocomplete_fields = ["extraction"]
