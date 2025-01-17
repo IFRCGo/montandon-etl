@@ -1,11 +1,12 @@
 import requests
-from celery import shared_task
+
+# from celery import shared_task
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
 
-@shared_task(bind=True, autoretry_for=(requests.exceptions.RequestException,), retry_kwargs={"max_retries": 3})
+# @shared_task(bind=True, autoretry_for=(requests.exceptions.RequestException,), retry_kwargs={"max_retries": 3})
 def send_post_request_to_stac_api(result, collection_id):
     try:
         # url = f"http://montandon-eoapi-stage.ifrc.org/stac/collections/{collection_id}/items"

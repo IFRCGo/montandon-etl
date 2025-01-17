@@ -32,7 +32,7 @@ class Extraction:
                 instance_obj.attempt_no = retry_count
                 instance_obj.save(update_fields=["resp_code", "attempt_no"])
             except ExtractionData.DoesNotExist:
-                raise ObjectDoesNotExist("ExtractionData object with ID {ext_object_id} not found")
+                raise ObjectDoesNotExist(f"ExtractionData object with ID {ext_object_id} not found")
 
         try:
             response = requests.get(self.url, timeout=timeout)
@@ -52,6 +52,7 @@ class Extraction:
                     "file_extension": None,
                     "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
                     "content_validation": "",
+                    # TODO fix for the case where there is no text
                     "resp_text": response.text,
                 }
                 if response.status_code == 204:
