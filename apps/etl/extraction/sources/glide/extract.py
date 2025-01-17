@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import requests
 from celery import shared_task
+from django.core.files.storage import default_storage
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.models import ExtractionData
@@ -62,7 +63,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             validate_source_func=None,
             instance_id=glide_instance.id,
         )
-        with open(glide_instance.resp_data.path, "r") as file:
+        with default_storage.open(glide_instance.resp_data.path, "r") as file:
             data = file.read()
 
         logger.info(f"{hazard_type} data imported sucessfully")
