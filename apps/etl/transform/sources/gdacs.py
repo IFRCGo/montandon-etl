@@ -3,13 +3,19 @@ import time
 
 from celery import shared_task
 from celery.result import AsyncResult
+from django.core.files.storage import default_storage
 from pystac_monty.sources.gdacs import (
     GDACSDataSource,
     GDACSDataSourceType,
     GDACSTransformer,
 )
 
-from apps.etl.models import ExtractionData, GdacsTransformation
+from apps.etl.models import (
+    ExtractionData,
+    GdacsTransformation,
+    ItemType,
+    TransformationStatus,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +29,9 @@ def transform_event_data(data):
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
 
     try:
-        with open(data_file_path, "r") as file:
+        with default_storage.open(data_file_path, "r") as file:
             data = file.read()
+
     except FileNotFoundError:
         logger.error(f"File not found: {data_file_path}")
         raise
@@ -43,16 +50,16 @@ def transform_event_data(data):
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.EVENT,
+            item_type=ItemType.EVENT,
             data=transformed_item_dict,
-            status=GdacsTransformation.TransformationStatus.SUCCESS,
+            status=TransformationStatus.SUCCESS,
             failed_reason="",
         )
     except Exception as e:
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.EVENT,
-            status=GdacsTransformation.TransformationStatus.FAILED,
+            item_type=ItemType.EVENT,
+            status=TransformationStatus.FAILED,
             failed_reason=str(e),
         )
 
@@ -85,7 +92,7 @@ def transform_geo_data(geo_data, event_task_id):
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
 
     try:
-        with open(data_file_path, "r") as file:
+        with default_storage.open(data_file_path, "r") as file:
             data = file.read()
     except FileNotFoundError:
         logger.error(f"File not found: {data_file_path}")
@@ -109,16 +116,16 @@ def transform_geo_data(geo_data, event_task_id):
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.HAZARD,
+            item_type=ItemType.HAZARD,
             data=transformed_item_dict,
-            status=GdacsTransformation.TransformationStatus.SUCCESS,
+            status=TransformationStatus.SUCCESS,
             failed_reason="",
         )
     except Exception as e:
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.HAZARD,
-            status=GdacsTransformation.TransformationStatus.FAILED,
+            item_type=ItemType.HAZARD,
+            status=TransformationStatus.FAILED,
             failed_reason=str(e),
         )
 
@@ -136,7 +143,7 @@ def transform_impact_data(event_data):
     gdacs_instance = ExtractionData.objects.get(id=event_data["extraction_id"])
     data_file_path = gdacs_instance.resp_data.path  # Absolute file path
     try:
-        with open(data_file_path, "r") as file:
+        with default_storage.open(data_file_path, "r") as file:
             data = file.read()
     except FileNotFoundError:
         logger.error(f"File not found: {data_file_path}")
@@ -158,16 +165,16 @@ def transform_impact_data(event_data):
 
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.IMPACT,
+            item_type=ItemType.IMPACT,
             data=transformed_item_dict,
-            status=GdacsTransformation.TransformationStatus.SUCCESS,
+            status=TransformationStatus.SUCCESS,
             failed_reason="",
         )
     except Exception as e:
         GdacsTransformation.objects.create(
             extraction=gdacs_instance,
-            item_type=GdacsTransformation.ItemType.IMPACT,
-            status=GdacsTransformation.TransformationStatus.FAILED,
+            item_type=ItemType.IMPACT,
+            status=TransformationStatus.FAILED,
             failed_reason=str(e),
         )
 

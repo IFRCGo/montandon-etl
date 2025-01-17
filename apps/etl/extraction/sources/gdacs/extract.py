@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from celery import shared_task
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from pydantic import ValidationError
 
 from apps.etl.extraction.sources.base.extract import Extraction
@@ -241,7 +242,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
             requires_hazard_type=False,
             hazard_type=hazard_type,
         )
-        with open(gdacs_instance.resp_data.path, "r") as file:
+        with default_storage.open(gdacs_instance.resp_data.path, "r") as file:
             data = file.read()
 
         return {"extraction_id": gdacs_instance.id, "extracted_data": data}
@@ -331,7 +332,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             parent_id=parent_id,
         )
 
-        with open(gdacs_instance.resp_data.path, "r") as file:
+        with default_storage.open(gdacs_instance.resp_data.path, "r") as file:
             data = file.read()
 
         return {"extraction_id": gdacs_instance.id, "extracted_data": data}

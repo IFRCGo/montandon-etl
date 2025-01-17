@@ -42,7 +42,6 @@ def transform_glide_event_data(data):
                 transformed_event_item = transformer.make_items()
                 if not transformed_event_item == []:
                     for item in transformed_event_item:
-                        print("Item", item.to_dict())
                         item_type = glide_item_type_map[item.collection_id]
 
                         GlideTransformation.objects.create(
