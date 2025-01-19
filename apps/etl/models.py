@@ -2,6 +2,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from django.contrib.postgres.fields import ArrayField
+
 from apps.common.models import Resource
 
 
@@ -137,3 +139,37 @@ class GlideTransformation(Resource):
     status = models.IntegerField(choices=TransformationStatus.choices)
     load_status = models.IntegerField(choices=LoadStatus.choices, default=LoadStatus.PENDING)
     failed_reason = models.TextField(blank=True)
+
+
+class Transformation(Resource):
+    class Status(models.IntegerChoices):
+        SUCCESS = 1, "Success"
+        FAILED = 2, "Failed"
+
+    extraction = models.ForeignKey(
+        ExtractionData, on_delete=models.PROTECT, null=True, blank=True,
+        verbose_name=_("extraction")
+    )
+    data = models.JSONField(verbose_name=_("transformed data"), default=dict)
+    status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
+
+
+class STACItem(Resource):
+    class ItemType(models.IntegerChoices):
+        EVENT = 1, "Event"
+        HAZARD = 2, "Hazard"
+        IMPACT = 3, "Impact"
+
+    class LoadStatus(models.IntegerChoices):
+        PENDING = 1, "Pending"
+        SUCCESS = 2, "Success"
+        FAILED = 3, "Failed"
+
+    extraction = models.ForeignKey(
+        ExtractionData, on_delete=models.PROTECT, null=True, blank=True,
+        verbose_name=_("extraction")
+    )
+    item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
+    collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
+    item = models.JSONField(verbose_name=_("item"), default=dict)
+    load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
