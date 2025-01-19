@@ -1,21 +1,17 @@
 import logging
 import time
+import uuid
 
 from celery import shared_task
 from celery.result import AsyncResult
-from django.core.files.storage import default_storage
 from pystac_monty.sources.gdacs import (
     GDACSDataSource,
     GDACSDataSourceType,
     GDACSTransformer,
 )
 
-from apps.etl.models import (
-    ExtractionData,
-    GdacsTransformation,
-    ItemType,
-    TransformationStatus,
-)
+from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.utils import read_file_data
 
 logger = logging.getLogger(__name__)
 
@@ -25,56 +21,43 @@ def transform_event_data(data):
     logger.info("Trandformation started for event data")
 
     gdacs_instance = ExtractionData.objects.get(id=data["extraction_id"])
-
-    data_file_path = gdacs_instance.resp_data.path  # Absolute file path
+    data = read_file_data(gdacs_instance.resp_data)
 
     try:
-        with default_storage.open(data_file_path, "r") as file:
-            data = file.read()
-
-    except FileNotFoundError:
-        logger.error(f"File not found: {data_file_path}")
-        raise
-    except IOError as e:
-        logger.error(f"I/O error while reading file: {str(e)}")
-        raise
-
-    transformer = GDACSTransformer(
-        [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
-    )
-
-    transformed_item_dict = {}
-    try:
+        transformer = GDACSTransformer(
+            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
+        )
         transformed_event_item = transformer.make_source_event_item()
-        transformed_item_dict = {"collection_id": "gdacs-events", "item": transformed_event_item.to_dict()}
-
-        GdacsTransformation.objects.create(
+        transformed_item_dict = transformed_event_item.to_dict()
+        event_transform = Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.EVENT,
-            data=transformed_item_dict,
-            status=TransformationStatus.SUCCESS,
-            failed_reason="",
+            status=Transform.Status.SUCCESS,
         )
     except Exception as e:
-        GdacsTransformation.objects.create(
+        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.EVENT,
-            status=TransformationStatus.FAILED,
-            failed_reason=str(e),
+            status=Transform.Status.FAILED,
         )
+        raise e
 
-    if transformed_item_dict:
-        logger.info("Trandformation ended for event data")
-        return transformed_item_dict
-    else:
-        raise Exception("Transformation failed. Check logs for details.")
+    transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+    PyStacLoadData.objects.create(
+        transform_id=event_transform,
+        item_type=PyStacLoadData.ItemType.EVENT,
+        collection_id=transformed_event_item.collection_id,
+        item=transformed_item_dict,
+        load_status=PyStacLoadData.LoadStatus.PENDING,
+    )
+
+    logger.info("Trandformation ended for event data")
 
 
 @shared_task
 def transform_geo_data(geo_data, event_task_id):
     logger.info("Transformation started for hazard data")
 
-    timeout = 300  # 5 minutes
+    timeout = 60  # 1 minute
     start_time = time.time()
     while True:
         result = AsyncResult(event_task_id)
@@ -89,51 +72,43 @@ def transform_geo_data(geo_data, event_task_id):
         time.sleep(1)
 
     gdacs_instance = ExtractionData.objects.get(id=geo_data["extraction_id"])
-    data_file_path = gdacs_instance.resp_data.path  # Absolute file path
+
+    data = read_file_data(gdacs_instance.resp_data)
 
     try:
-        with default_storage.open(data_file_path, "r") as file:
-            data = file.read()
-    except FileNotFoundError:
-        logger.error(f"File not found: {data_file_path}")
-        raise
-    except IOError as e:
-        logger.error(f"I/O error while reading file: {str(e)}")
-        raise
+        transformer = GDACSTransformer(
+            [
+                GDACSDataSource(
+                    type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=event_data["extracted_data"]
+                ),
+                GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
+            ]
+        )
+        transformed_hazard_item = transformer.make_hazard_event_item()
+        transformed_item_dict = transformed_hazard_item.to_dict()
 
-    transformer = GDACSTransformer(
-        [
-            GDACSDataSource(
-                type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=event_data["extracted_data"]
-            ),
-            GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
-        ]
-    )
-    transformed_item_dict = {}
-    try:
-        transformed_geo_item = transformer.make_hazard_event_item()
-        transformed_item_dict = {"collection_id": "gdacs-hazards", "item": transformed_geo_item.to_dict()}
-
-        GdacsTransformation.objects.create(
+        hazard_transform = Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.HAZARD,
-            data=transformed_item_dict,
-            status=TransformationStatus.SUCCESS,
-            failed_reason="",
+            status=Transform.Status.SUCCESS,
         )
     except Exception as e:
-        GdacsTransformation.objects.create(
+        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.HAZARD,
-            status=TransformationStatus.FAILED,
-            failed_reason=str(e),
+            status=Transform.Status.FAILED,
         )
+        raise e
 
-    if transformed_item_dict:
-        logger.info("Transformation ended for hazard data")
-        return transformed_item_dict
-    else:
-        raise Exception("Transformation failed. Check logs for details.")
+    transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+    PyStacLoadData.objects.create(
+        transform_id=hazard_transform,
+        item_type=PyStacLoadData.ItemType.HAZARD,
+        collection_id=transformed_hazard_item.collection_id,
+        item=transformed_item_dict,
+        load_status=PyStacLoadData.LoadStatus.PENDING,
+    )
+
+    logger.info("Transformation ended for hazard data")
 
 
 @shared_task
@@ -141,45 +116,35 @@ def transform_impact_data(event_data):
     logger.info("Transformation started for impact data")
 
     gdacs_instance = ExtractionData.objects.get(id=event_data["extraction_id"])
-    data_file_path = gdacs_instance.resp_data.path  # Absolute file path
-    try:
-        with default_storage.open(data_file_path, "r") as file:
-            data = file.read()
-    except FileNotFoundError:
-        logger.error(f"File not found: {data_file_path}")
-        raise
-    except IOError as e:
-        logger.error(f"I/O error while reading file: {str(e)}")
-        raise
+    data = read_file_data(gdacs_instance.resp_data)
 
-    transformer = GDACSTransformer(
-        [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
-    )
-
-    transformed_item_dict = {}
     try:
+        transformer = GDACSTransformer(
+            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
+        )
         transformed_impact_item = transformer.make_impact_items()
-        transformed_item_dict["data"] = [
-            {"item": item.to_dict(), "collection_id": "gdacs-impacts"} for item in transformed_impact_item
-        ]
-
-        GdacsTransformation.objects.create(
+        event_transform = Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.IMPACT,
-            data=transformed_item_dict,
-            status=TransformationStatus.SUCCESS,
-            failed_reason="",
+            status=Transform.Status.SUCCESS,
         )
     except Exception as e:
-        GdacsTransformation.objects.create(
+        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        Transform.objects.create(
             extraction=gdacs_instance,
-            item_type=ItemType.IMPACT,
-            status=TransformationStatus.FAILED,
-            failed_reason=str(e),
+            status=Transform.Status.FAILED,
+        )
+        raise e
+
+    for item in transformed_impact_item:
+        transformed_item_dict = item.to_dict()
+        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+        PyStacLoadData.objects.create(
+            extraction=gdacs_instance,
+            transform_id=event_transform,
+            item_type=PyStacLoadData.ItemType.IMPACT,
+            collection_id=item.collection_id,
+            item=transformed_item_dict,
+            status=PyStacLoadData.LoadStatus.SUCCESS,
         )
 
-    if not transformed_item_dict == {}:
-        logger.info("Transformation ended for impact data")
-        return transformed_item_dict
-    else:
-        raise Exception("Transformation failed. Check logs for details.")
+    logger.info("Transformation ended for impact data")

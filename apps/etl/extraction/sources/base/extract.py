@@ -64,7 +64,7 @@ class Extraction:
                 instance_obj.save()
 
                 if not response.status_code == 204:  # bypass exception when content is empty
-                    logger.error(f"Request failed with status {response.status_code}")
+                    logger.error("Request failed with status", exc_info=True, extra={"response_code": response.status_code})
                     raise Exception("Request failed")
 
             resp_status = ExtractionData.Status.SUCCESS
@@ -83,5 +83,5 @@ class Extraction:
                 "resp_text": "",
             }
         except requests.exceptions.RequestException as e:
-            logger.error(f"Extraction failed for source {source}: {str(e)}")
+            logger.error("Extraction failed", exc_info=True, extra={"source": source})
             raise Exception(f"Request failed: {e}")

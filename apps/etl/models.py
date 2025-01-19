@@ -38,23 +38,6 @@ class HazardType(models.TextChoices):
     WAVE_SURGE = "WV", "Wave/Surge"
 
 
-class ItemType(models.IntegerChoices):
-    EVENT = 1, "Event"
-    HAZARD = 2, "Hazard"
-    IMPACT = 3, "Impact"
-
-
-class TransformationStatus(models.IntegerChoices):
-    SUCCESS = 1, "Success"
-    FAILED = 2, "Failed"
-
-
-class LoadStatus(models.IntegerChoices):
-    PENDING = 1, "Pending"
-    SUCCESS = 2, "Success"
-    FAILED = 3, "Failed"
-
-
 class ExtractionData(Resource):
     class ValidationStatus(models.IntegerChoices):
         SUCCESS = 1, _("Success")
@@ -121,19 +104,30 @@ class ExtractionData(Resource):
         return str(self.id)
 
 
-class GdacsTransformation(Resource):
-    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, null=True, blank=True)
-    item_type = models.IntegerField(choices=ItemType.choices)
-    data = models.JSONField(default=dict)
-    status = models.IntegerField(choices=TransformationStatus.choices)
-    load_status = models.IntegerField(choices=LoadStatus.choices, default=LoadStatus.PENDING)
-    failed_reason = models.TextField(blank=True)
+class Transform(Resource):
+    class Status(models.IntegerChoices):
+        SUCCESS = 1, "Success"
+        FAILED = 2, "Failed"
+
+    extraction = models.ForeignKey(
+        ExtractionData, on_delete=models.PROTECT, null=True, blank=True, verbose_name=_("extraction")
+    )
+    status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
 
 
-class GlideTransformation(Resource):
-    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, null=True, blank=True)
-    item_type = models.IntegerField(choices=ItemType.choices)
-    data = models.JSONField(default=dict)
-    status = models.IntegerField(choices=TransformationStatus.choices)
-    load_status = models.IntegerField(choices=LoadStatus.choices, default=LoadStatus.PENDING)
-    failed_reason = models.TextField(blank=True)
+class PyStacLoadData(Resource):
+    class ItemType(models.IntegerChoices):
+        EVENT = 1, "Event"
+        HAZARD = 2, "Hazard"
+        IMPACT = 3, "Impact"
+
+    class LoadStatus(models.IntegerChoices):
+        PENDING = 1, "Pending"
+        SUCCESS = 2, "Success"
+        FAILED = 3, "Failed"
+
+    transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, null=True, blank=True, verbose_name=_("transform"))
+    item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
+    collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
+    item = models.JSONField(verbose_name=_("item"), default=dict)
+    load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
