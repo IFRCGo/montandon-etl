@@ -14,7 +14,7 @@ from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
 from apps.etl.extraction.sources.glide.extract import (  # noqa: F401
     import_hazard_data as import_glide_data,
 )
-from apps.etl.load.sources.gdacs import load_data  # noqa: F401
+from apps.etl.load.sources.gdacs import load_gdacs_data  # noqa: F401
 from apps.etl.load.sources.glide import load_glide_data  # noqa: F401
 from apps.etl.models import ExtractionData, HazardType  # noqa: F401
 from apps.etl.transform.sources.gdacs import (  # noqa: F401
@@ -38,3 +38,8 @@ def fetch_glide_data():
 @shared_task
 def fetch_desinventar_data():
     call_command("import_desinventar_data")
+
+
+@shared_task
+def load_data():
+    call_command("load_data_to_stac")

@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class UserResource(models.Model):
+class Resource(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     # Typing

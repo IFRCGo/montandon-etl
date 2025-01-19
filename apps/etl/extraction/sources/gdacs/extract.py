@@ -241,7 +241,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
             requires_hazard_type=False,
             hazard_type=hazard_type,
         )
-        with open(gdacs_instance.resp_data.path, "r") as file:
+        with gdacs_instance.resp_data.open() as file:
             data = file.read()
 
         return {"extraction_id": gdacs_instance.id, "extracted_data": data}
@@ -331,7 +331,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             parent_id=parent_id,
         )
 
-        with open(gdacs_instance.resp_data.path, "r") as file:
+        with gdacs_instance.resp_data.open() as file:
             data = file.read()
 
         return {"extraction_id": gdacs_instance.id, "extracted_data": data}

@@ -12,7 +12,6 @@ from apps.etl.extraction.sources.gdacs.extract import (
     store_extraction_data,
     validate_source_data,
 )
-from apps.etl.load.sources.gdacs import load_data
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.gdacs import (
     transform_event_data,
@@ -108,7 +107,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                     ),
                     transform_geo_data.s(event_result.parent.id),
                 )
-                geo_result = geo_workflow.apply_async()
+                geo_workflow.apply_async()
 
                 impact_workflow = chain(
                     fetch_event_data.s(
@@ -118,8 +117,6 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
                     ),
                     transform_impact_data.s(),
                 )
-                impact_result = impact_workflow.apply_async()
-
-                load_data.s(event_result.id, geo_result.id, impact_result.id).apply_async()
+                impact_workflow.apply_async()
 
         logger.info(f"{hazard_type} data imported sucessfully")
