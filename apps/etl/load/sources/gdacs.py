@@ -4,7 +4,8 @@ import uuid
 from celery import chain, shared_task
 from celery.result import AsyncResult
 from celery.utils.log import get_task_logger
-from etl.load.sources.base import send_post_request_to_stac_api
+
+from apps.etl.load.sources.base import send_post_request_to_stac_api
 
 logger = get_task_logger(__name__)
 
