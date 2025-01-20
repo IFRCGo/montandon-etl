@@ -113,7 +113,7 @@ class Transform(Resource):
 
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
     status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
-    is_loaded = models.BooleanField(default=False)
+    is_loaded = models.BooleanField(default=False, help_text="Check if transformation is completed. It is helpful in debugging")
 
 
 class PyStacLoadData(Resource):

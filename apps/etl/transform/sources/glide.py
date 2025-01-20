@@ -42,27 +42,19 @@ def transform_glide_event_data(data):
 
         raise e
 
-    if not transformed_event_items == []:
-        for item in transformed_event_items:
-            item_type = glide_item_type_map[item.collection_id]
-            transformed_item_dict = item.to_dict()
-            transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-            PyStacLoadData.objects.create(
+    for item in transformed_event_items:
+        item_type = glide_item_type_map[item.collection_id]
+        transformed_item_dict = item.to_dict()
+        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+        bulk_mgr.add(
+            PyStacLoadData(
                 transform_id=transform_obj,
-                item=item.to_dict(),
+                item=transformed_item_dict,
                 collection_id=item.collection_id,
                 item_type=item_type,
                 load_status=PyStacLoadData.LoadStatus.PENDING,
             )
-            bulk_mgr.add(
-                PyStacLoadData(
-                    transform_id=transform_obj,
-                    item=item.to_dict(),
-                    collection_id=item.collection_id,
-                    item_type=item_type,
-                    load_status=PyStacLoadData.LoadStatus.PENDING,
-                )
-            )
+        )
 
     bulk_mgr.done()
 

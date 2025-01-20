@@ -80,3 +80,4 @@ class Extraction:
             }
         except requests.exceptions.RequestException:
             logger.error("Extraction failed", exc_info=True, extra={"source": source})
+            raise

@@ -12,6 +12,7 @@ from pystac_monty.sources.gdacs import (
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,7 @@ def transform_impact_data(event_data):
         status=Transform.Status.PENDING,
     )
 
+    bulk_mgr = BulkCreateManager(chunk_size=1000)
     try:
         transformer = GDACSTransformer(
             [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
@@ -151,13 +153,18 @@ def transform_impact_data(event_data):
     for item in transformed_impact_item:
         transformed_item_dict = item.to_dict()
         transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-        PyStacLoadData.objects.create(
-            transform_id=transform_obj,
-            item_type=PyStacLoadData.ItemType.IMPACT,
-            collection_id=item.collection_id,
-            item=transformed_item_dict,
-            status=PyStacLoadData.LoadStatus.SUCCESS,
+        bulk_mgr.add(
+            PyStacLoadData(
+                transform_id=transform_obj,
+                item_type=PyStacLoadData.ItemType.IMPACT,
+                collection_id=item.collection_id,
+                item=transformed_item_dict,
+                status=PyStacLoadData.LoadStatus.PENDING,
+            )
         )
+
+    bulk_mgr.done()
+
     transform_obj.is_loaded = True
     transform_obj.save(update_fields=["is_loaded"])
 
