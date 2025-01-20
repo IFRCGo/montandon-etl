@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Import data from glide api"
+    help = "Load data to stac api"
 
     def handle(self, *args, **options):
         load_data(django_command=self)

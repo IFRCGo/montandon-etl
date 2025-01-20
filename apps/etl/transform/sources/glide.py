@@ -7,6 +7,7 @@ from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
@@ -22,32 +23,50 @@ def transform_glide_event_data(data):
     glide_instance = ExtractionData.objects.get(id=data["extraction_id"])
     data = json.loads(read_file_data(glide_instance.resp_data))
 
-    if data["glideset"]:
-        try:
-            transformer = GlideTransformer(GlideDataSource(source_url=glide_instance.url, data=json.dumps(data)))
-            transformed_event_items = transformer.make_items()
-            transform_obj = Transform.objects.create(
-                extraction=glide_instance,
-                status=Transform.Status.SUCCESS,
-            )
-        except Exception as e:
-            logger.error("Glide transformation failed", exc_info=True, extra={"extraction_id": glide_instance.id})
-            Transform.objects.create(
-                extraction=glide_instance,
-                status=Transform.Status.FAILED,
-            )
-            raise e
+    transform_obj = Transform.objects.create(
+        extraction=glide_instance,
+        status=Transform.Status.PENDING,
+    )
 
-        if not transformed_event_items == []:
-            for item in transformed_event_items:
-                item_type = glide_item_type_map[item.collection_id]
-                transformed_item_dict = item.to_dict()
-                transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-                PyStacLoadData.objects.create(
+    bulk_mgr = BulkCreateManager(chunk_size=1000)
+    try:
+        transformer = GlideTransformer(GlideDataSource(source_url=glide_instance.url, data=json.dumps(data)))
+        transformed_event_items = transformer.make_items()
+
+        transform_obj.status = Transform.Status.SUCCESS
+        transform_obj.save(update_fields=["status"])
+    except Exception as e:
+        logger.error("Glide transformation failed", exc_info=True, extra={"extraction_id": glide_instance.id})
+        transform_obj.status = Transform.Status.FAILED
+        transform_obj.save(update_fields=["status"])
+
+        raise e
+
+    if not transformed_event_items == []:
+        for item in transformed_event_items:
+            item_type = glide_item_type_map[item.collection_id]
+            transformed_item_dict = item.to_dict()
+            transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+            PyStacLoadData.objects.create(
+                transform_id=transform_obj,
+                item=item.to_dict(),
+                collection_id=item.collection_id,
+                item_type=item_type,
+                load_status=PyStacLoadData.LoadStatus.PENDING,
+            )
+            bulk_mgr.add(
+                PyStacLoadData(
                     transform_id=transform_obj,
                     item=item.to_dict(),
                     collection_id=item.collection_id,
                     item_type=item_type,
                     load_status=PyStacLoadData.LoadStatus.PENDING,
                 )
-        logger.info("Transformation ended for glide data")
+            )
+
+    bulk_mgr.done()
+
+    transform_obj.is_loaded = True
+    transform_obj.save(update_fields=["is_loaded"])
+
+    logger.info("Transformation ended for glide data")

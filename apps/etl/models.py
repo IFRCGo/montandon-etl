@@ -58,6 +58,7 @@ class ExtractionData(Resource):
         GDACS = 1, _("GDACS")
         PDC = 2, _("PDC")
         GLIDE = 3, _("Glide")
+        IBTRACS = 4, _("IBTrACS")
 
     class Status(models.IntegerChoices):
         PENDING = 1, _("Pending")
@@ -106,13 +107,13 @@ class ExtractionData(Resource):
 
 class Transform(Resource):
     class Status(models.IntegerChoices):
-        SUCCESS = 1, "Success"
-        FAILED = 2, "Failed"
+        PENDING = 1, "Pending"
+        SUCCESS = 2, "Success"
+        FAILED = 3, "Failed"
 
-    extraction = models.ForeignKey(
-        ExtractionData, on_delete=models.PROTECT, null=True, blank=True, verbose_name=_("extraction")
-    )
+    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
     status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
+    is_loaded = models.BooleanField(default=False)
 
 
 class PyStacLoadData(Resource):
@@ -122,12 +123,17 @@ class PyStacLoadData(Resource):
         IMPACT = 3, "Impact"
 
     class LoadStatus(models.IntegerChoices):
-        PENDING = 1, "Pending"
+        PENDING = 1, "Pending"  # XXX: Value 1 is used in Meta.indexes
         SUCCESS = 2, "Success"
         FAILED = 3, "Failed"
 
-    transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, null=True, blank=True, verbose_name=_("transform"))
+    transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
     item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
     collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
     item = models.JSONField(verbose_name=_("item"), default=dict)
     load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["load_status"], name="partial_index_on_load_status", condition=models.Q(load_status=1)),
+        ]

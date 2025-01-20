@@ -3,6 +3,7 @@ from celery.utils.log import get_task_logger
 from django.core.management.base import BaseCommand
 
 from apps.etl.models import PyStacLoadData
+from main.managers import BulkUpdateManager
 
 logger = get_task_logger(__name__)
 
@@ -24,6 +25,8 @@ def load_data(django_command: BaseCommand | None = None):
     logger.info("Loading data into Stac")
 
     transformed_items = PyStacLoadData.objects.filter(load_status=PyStacLoadData.LoadStatus.PENDING)
+
+    bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=1000)
     for item in transformed_items.iterator():
         # TODO Remove this after sucessfull testing
         # item.item["id"] = f"{item.item['collection']}-{uuid.uuid4()}"
@@ -32,13 +35,25 @@ def load_data(django_command: BaseCommand | None = None):
 
         # Set the loading status of item.
         if response and response.status_code == 200:
-            item.load_status = PyStacLoadData.LoadStatus.SUCCESS
+            bulk_mgr.add(
+                PyStacLoadData(
+                    id=item.id,
+                    load_status=PyStacLoadData.LoadStatus.SUCCESS,
+                ),
+            )
             if django_command is not None:
                 django_command.stdout.write(django_command.style.SUCCESS(f"Successfully loaded item {item.id}"))
         else:
-            item.load_status = PyStacLoadData.LoadStatus.FAILED
+            bulk_mgr.add(
+                PyStacLoadData(
+                    id=item.id,
+                    load_status=PyStacLoadData.LoadStatus.FAILED,
+                ),
+            )
+
             if django_command is not None:
                 django_command.stdout.write(django_command.ERROR(f"Fail to load item {item.id}"))
-        item.save(update_fields=["load_status"])
+
+    bulk_mgr.done()
 
     logger.info("Loading data sucessfull")

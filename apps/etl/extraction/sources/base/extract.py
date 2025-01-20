@@ -1,6 +1,5 @@
 import requests
 from celery.utils.log import get_task_logger
-from django.core.exceptions import ObjectDoesNotExist
 
 from apps.etl.models import ExtractionData
 
@@ -26,13 +25,10 @@ class Extraction:
 
         # Update extraction object status to in_progress
         if ext_object_id:
-            try:
-                instance_obj = ExtractionData.objects.get(id=ext_object_id)
-                instance_obj.resp_code = resp_status
-                instance_obj.attempt_no = retry_count
-                instance_obj.save(update_fields=["resp_code", "attempt_no"])
-            except ExtractionData.DoesNotExist:
-                raise ObjectDoesNotExist(f"ExtractionData object with ID {ext_object_id} not found")
+            instance_obj = ExtractionData.objects.get(id=ext_object_id)
+            instance_obj.resp_code = resp_status
+            instance_obj.attempt_no = retry_count
+            instance_obj.save(update_fields=["resp_code", "attempt_no"])
 
         try:
             response = requests.get(self.url, timeout=timeout)
@@ -82,6 +78,5 @@ class Extraction:
                 "content_validation": "",
                 "resp_text": "",
             }
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             logger.error("Extraction failed", exc_info=True, extra={"source": source})
-            raise Exception(f"Request failed: {e}")
