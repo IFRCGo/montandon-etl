@@ -80,4 +80,5 @@ class Extraction:
             }
         except requests.exceptions.RequestException:
             logger.error("Extraction failed", exc_info=True, extra={"source": source})
+            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise

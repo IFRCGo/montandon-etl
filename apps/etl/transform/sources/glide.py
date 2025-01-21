@@ -1,4 +1,3 @@
-import json
 import logging
 import uuid
 
@@ -18,10 +17,10 @@ glide_item_type_map = {
 
 
 @shared_task
-def transform_glide_event_data(data):
+def transform_glide_event_data(extraction_id):
     logger.info("Transformation started for glide data")
-    glide_instance = ExtractionData.objects.get(id=data["extraction_id"])
-    data = json.loads(read_file_data(glide_instance.resp_data))
+    glide_instance = ExtractionData.objects.get(id=extraction_id)
+    data = read_file_data(glide_instance.resp_data)
 
     transform_obj = Transform.objects.create(
         extraction=glide_instance,
@@ -30,7 +29,7 @@ def transform_glide_event_data(data):
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)
     try:
-        transformer = GlideTransformer(GlideDataSource(source_url=glide_instance.url, data=json.dumps(data)))
+        transformer = GlideTransformer(GlideDataSource(source_url=glide_instance.url, data=data))
         transformed_event_items = transformer.make_items()
 
         transform_obj.status = Transform.Status.SUCCESS
@@ -39,7 +38,7 @@ def transform_glide_event_data(data):
         logger.error("Glide transformation failed", exc_info=True, extra={"extraction_id": glide_instance.id})
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
-
+        # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
         raise e
 
     for item in transformed_event_items:

@@ -5,7 +5,7 @@ import requests
 from celery import shared_task
 
 from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.extraction.sources.gdacs.extract import store_extraction_data
+from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.models import ExtractionData
 
 logger = logging.getLogger(__name__)
@@ -61,8 +61,6 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
             validate_source_func=None,
             instance_id=glide_instance.id,
         )
-        with glide_instance.resp_data.open() as file:
-            data = file.read()
 
         logger.info(f"{hazard_type} data imported sucessfully")
-        return {"extraction_id": glide_instance.id, "extracted_data": data}
+        return glide_instance.id

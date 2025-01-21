@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def transform_event_data(data):
+def transform_event_data(event_extraction_data):
     logger.info("Trandformation started for event data")
 
-    gdacs_instance = ExtractionData.objects.get(id=data["extraction_id"])
+    gdacs_instance = ExtractionData.objects.get(id=event_extraction_data["extraction_id"])
     data = read_file_data(gdacs_instance.resp_data)
 
     transform_obj = Transform.objects.create(
@@ -61,13 +61,13 @@ def transform_event_data(data):
 
 
 @shared_task
-def transform_geo_data(geo_data, event_task_id):
+def transform_geo_data(geo_data_extraction_id, event_extraction_id):
     logger.info("Transformation started for hazard data")
 
     timeout = 60  # 1 minute
     start_time = time.time()
     while True:
-        result = AsyncResult(event_task_id)
+        result = AsyncResult(event_extraction_id)
         if result.state == "SUCCESS":
             # Fetch the output of event task
             event_data = result.result
@@ -78,7 +78,7 @@ def transform_geo_data(geo_data, event_task_id):
             raise TimeoutError("Fetching event data timed out.")
         time.sleep(1)
 
-    gdacs_instance = ExtractionData.objects.get(id=geo_data["extraction_id"])
+    gdacs_instance = ExtractionData.objects.get(id=geo_data_extraction_id)
 
     data = read_file_data(gdacs_instance.resp_data)
     transform_obj = Transform.objects.create(

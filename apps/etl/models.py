@@ -113,7 +113,10 @@ class Transform(Resource):
 
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
     status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
-    is_loaded = models.BooleanField(default=False, help_text="Check if transformation is completed. It is helpful in debugging")
+    is_loaded = models.BooleanField(
+        default=False,
+        help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
+    )
 
 
 class PyStacLoadData(Resource):

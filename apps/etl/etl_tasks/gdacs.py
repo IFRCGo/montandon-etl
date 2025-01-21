@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 import requests
 from celery import chain, shared_task
 
+from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.gdacs.extract import (
     fetch_event_data,
     fetch_gdacs_geometry_data,
-    store_extraction_data,
     validate_source_data,
 )
 from apps.etl.models import ExtractionData, HazardType

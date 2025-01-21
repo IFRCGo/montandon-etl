@@ -22,17 +22,17 @@ from apps.etl.transform.sources.glide import transform_glide_event_data  # noqa:
 
 @shared_task
 def extract_gdacs_data():
-    call_command("import_gdacs_data")
+    call_command("extract_gdacs_data")
 
 
 @shared_task
 def extract_glide_data():
-    call_command("import_glide_data")
+    call_command("extract_glide_data")
 
 
 @shared_task
 def extract_desinventar_data():
-    call_command("import_desinventar_data")
+    call_command("extract_desinventar_data")
 
 
 @shared_task
