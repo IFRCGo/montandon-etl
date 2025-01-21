@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='extractiondata',
             name='source',
-            field=models.IntegerField(choices=[(1, 'GDACS'), (2, 'PDC'), (3, 'GLIDE'), (4, 'NOAA-IBTrACS'), (5, 'EM-DAT'), (6, 'IDMC-GIDD'), (7, 'IDMC-IDU'), (8, 'USGS Shakesmaps'), (9, 'Global Flood Database'), (10, 'DFO'), (11, 'STORM'), (12, 'IFRC DREF & EA'), (13, 'WFP-ADAM'), (14, 'DesInventar')], verbose_name='source'),
+            field=models.IntegerField(choices=[(1, 'GDACS'), (2, 'PDC'), (3, 'Glide'), (4, 'NOAA-IBTrACS'), (5, 'EM-DAT'), (6, 'IDMC-GIDD'), (7, 'IDMC-IDU'), (8, 'USGS Shakesmaps'), (9, 'Global Flood Database'), (10, 'DFO'), (11, 'STORM'), (12, 'IFRC DREF & EA'), (13, 'WFP-ADAM'), (14, 'DesInventar')], verbose_name='source'),
         ),
         migrations.AlterField(
             model_name='extractiondata',

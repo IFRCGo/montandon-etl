@@ -34,7 +34,10 @@ env = environ.Env(
     CELERY_REDIS_URL=str,
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
     DJANGO_STATIC_URL=(str, "/static/"),
+    EMDAT_AUTHORIZATION_KEY=str,
 )
+
+EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
