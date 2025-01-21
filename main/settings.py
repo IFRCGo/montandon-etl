@@ -165,11 +165,15 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
-        "task": "apps.etl.tasks.fetch_gdacs_data",
+        "task": "apps.etl.tasks.extract_gdacs_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
     "import_glide_data": {
-        "task": "apps.etl.glide_task.fetch_glide_data",
+        "task": "apps.etl.tasks.extract_glide_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
+    "load_data_to_stac": {
+        "task": "apps.etl.tasks.load_data",
+        "schedule": crontab(minute=0, hour=0),  # TODO Set time to run this job
     },
 }

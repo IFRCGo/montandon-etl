@@ -1,6 +1,5 @@
 import requests
 from celery.utils.log import get_task_logger
-from django.core.exceptions import ObjectDoesNotExist
 
 from apps.etl.models import ExtractionData
 
@@ -26,13 +25,10 @@ class Extraction:
 
         # Update extraction object status to in_progress
         if ext_object_id:
-            try:
-                instance_obj = ExtractionData.objects.get(id=ext_object_id)
-                instance_obj.resp_code = resp_status
-                instance_obj.attempt_no = retry_count
-                instance_obj.save(update_fields=["resp_code", "attempt_no"])
-            except ExtractionData.DoesNotExist:
-                raise ObjectDoesNotExist("ExtractionData object with ID {ext_object_id} not found")
+            instance_obj = ExtractionData.objects.get(id=ext_object_id)
+            instance_obj.resp_code = resp_status
+            instance_obj.attempt_no = retry_count
+            instance_obj.save(update_fields=["resp_code", "attempt_no"])
 
         try:
             response = requests.get(self.url, timeout=timeout)
@@ -52,6 +48,7 @@ class Extraction:
                     "file_extension": None,
                     "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
                     "content_validation": "",
+                    # TODO fix for the case where there is no text
                     "resp_text": response.text,
                 }
                 if response.status_code == 204:
@@ -63,7 +60,7 @@ class Extraction:
                 instance_obj.save()
 
                 if not response.status_code == 204:  # bypass exception when content is empty
-                    logger.error(f"Request failed with status {response.status_code}")
+                    logger.error("Request failed with status", exc_info=True, extra={"response_code": response.status_code})
                     raise Exception("Request failed")
 
             resp_status = ExtractionData.Status.SUCCESS
@@ -81,6 +78,7 @@ class Extraction:
                 "content_validation": "",
                 "resp_text": "",
             }
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Extraction failed for source {source}: {str(e)}")
-            raise Exception(f"Request failed: {e}")
+        except requests.exceptions.RequestException:
+            logger.error("Extraction failed", exc_info=True, extra={"source": source})
+            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
+            raise

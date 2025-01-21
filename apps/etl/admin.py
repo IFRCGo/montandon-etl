@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import ExtractionData, GdacsTransformation, GlideTransformation
+from .models import ExtractionData, PyStacLoadData, Transform
 
 
 @admin.register(ExtractionData)
@@ -28,8 +28,8 @@ class ExtractionDataAdmin(admin.ModelAdmin):
     search_fields = ["parent"]
 
 
-@admin.register(GdacsTransformation)
-class GdacsTransformationAdmin(admin.ModelAdmin):
+@admin.register(Transform)
+class TransformAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         # Use the model's fields to populate readonly_fields
         if obj:  # If the object exists (edit page)
@@ -39,27 +39,28 @@ class GdacsTransformationAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "extraction",
+        "status",
+    )
+    list_filter = ("status",)
+    autocomplete_fields = ["extraction"]
+    search_fields = ["extraction"]
+
+
+@admin.register(PyStacLoadData)
+class PyStacLoadDataAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        # Use the model's fields to populate readonly_fields
+        if obj:  # If the object exists (edit page)
+            return [field.name for field in self.model._meta.fields]
+        return []
+
+    list_display = (
+        "id",
+        "transform_id",
         "item_type",
-        "status",
+        "load_status",
+        "collection_id",
     )
-    list_filter = ("status",)
-    autocomplete_fields = ["extraction"]
-    search_fields = ["extraction"]
-
-
-@admin.register(GlideTransformation)
-class GlideTransformationAdmin(admin.ModelAdmin):
-    def get_readonly_fields(self, request, obj=None):
-        # Use the model's fields to populate readonly_fields
-        if obj:  # If the object exists (edit page)
-            return [field.name for field in self.model._meta.fields]
-        return []
-
-    list_display = (
-        "id",
-        "extraction",
-        "status",
-    )
-    list_filter = ("status",)
-    autocomplete_fields = ["extraction"]
-    search_fields = ["extraction"]
+    list_filter = ("load_status",)
+    autocomplete_fields = ["transform_id"]
+    search_fields = ["transform_id"]
