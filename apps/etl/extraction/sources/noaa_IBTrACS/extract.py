@@ -1,4 +1,3 @@
-
 import logging
 from datetime import datetime, timedelta
 
@@ -6,15 +5,14 @@ import requests
 from celery import shared_task
 
 from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.models import ExtractionData, HazardType
 from apps.etl.extraction.sources.base.utils import store_extraction_data
+from apps.etl.models import ExtractionData, HazardType
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def import_hazard_data(self,  **kwargs):
-
+def import_hazard_data(self, **kwargs):
     """
     Import hazard data from glide api
     """
@@ -37,9 +35,9 @@ def import_hazard_data(self,  **kwargs):
             resp_code=0,
         )
     )
-    
+
     noaa_url = noaa_active_event_data
-  
+
     # Extract the data from api.
     noaa_extraction = Extraction(url=noaa_url)
     response = None
@@ -52,7 +50,6 @@ def import_hazard_data(self,  **kwargs):
     except requests.exceptions.RequestException as exc:
         self.retry(exc=exc, kwargs={"instance_id": noaa_instance.id, "retry_count": self.request.retries})
 
-
     if response:
         # Save the extracted data into the existing glide object
         noaa_instance = store_extraction_data(
@@ -61,8 +58,5 @@ def import_hazard_data(self,  **kwargs):
             validate_source_func=None,
             instance_id=noaa_instance.id,
         )
-        with open(noaa_instance.resp_data.path, "r") as file:
-            data = file.read()
-
         logger.info(f"{HazardType.CYCLONE} data imported successfully")
-        return {"extraction_id": noaa_instance.id, "extracted_data": data}
+        return noaa_instance.id

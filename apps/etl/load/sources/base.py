@@ -1,4 +1,5 @@
 import requests
+import uuid
 from celery.utils.log import get_task_logger
 from django.core.management.base import BaseCommand
 
@@ -9,6 +10,7 @@ logger = get_task_logger(__name__)
 
 
 def send_post_request_to_stac_api(result, collection_id):
+    print("...........", collection_id)
     try:
         # url = f"http://montandon-eoapi-stage.ifrc.org/stac/collections/{collection_id}/items"
         url = f"https://montandon-eoapi-1.ifrc-go.dev.togglecorp.com/stac/collections/{collection_id}/items"
@@ -24,14 +26,15 @@ def load_data(django_command: BaseCommand | None = None):
     """Load data into STAC"""
     logger.info("Loading data into Stac")
 
-    transformed_items = PyStacLoadData.objects.filter(load_status=PyStacLoadData.LoadStatus.PENDING)
+    transformed_items = PyStacLoadData.objects.exclude(load_status=PyStacLoadData.LoadStatus.SUCCESS)
 
     bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=1000)
     for item in transformed_items.iterator():
         # TODO Remove this after sucessfull testing
-        # item.item["id"] = f"{item.item['collection']}-{uuid.uuid4()}"
+        item.item["id"] = f"{item.item['collection']}-{uuid.uuid4()}"
 
         response = send_post_request_to_stac_api(item.item, f"{item.collection_id}")
+        print(response)
 
         # Set the loading status of item.
         if response and response.status_code == 200:
@@ -52,7 +55,7 @@ def load_data(django_command: BaseCommand | None = None):
             )
 
             if django_command is not None:
-                django_command.stdout.write(django_command.ERROR(f"Fail to load item {item.id}"))
+                django_command.stdout.write(django_command.style.ERROR(f"Fail to load item {item.id}"))
 
     bulk_mgr.done()
 

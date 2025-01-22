@@ -13,3 +13,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import_noaa_hazard_data()
+
+
+

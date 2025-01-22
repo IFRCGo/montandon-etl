@@ -176,4 +176,8 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.etl.tasks.load_data",
         "schedule": crontab(minute=0, hour=0),  # TODO Set time to run this job
     },
+    "import_noaa_data": {
+        "task": "apps.etl.tasks.extract_noaa_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
 }

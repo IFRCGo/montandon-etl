@@ -36,5 +36,10 @@ def extract_desinventar_data():
 
 
 @shared_task
+def extract_noaa_data():
+    call_command("extract_ibtracs")
+
+
+@shared_task
 def load_data():
     call_command("load_data_to_stac")

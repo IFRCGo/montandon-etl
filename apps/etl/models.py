@@ -102,7 +102,7 @@ class ExtractionData(Resource):
     hazard_type = models.CharField(max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True)
 
     def __str__(self):
-        return str(self.id)
+        return f"{self.get_source_display()} - {self.id}"
 
 
 class Transform(Resource):
