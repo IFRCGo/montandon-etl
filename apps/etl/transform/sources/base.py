@@ -2,31 +2,25 @@ import logging
 import uuid
 
 from celery import shared_task
-from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
-from pystac_monty.geocoding import GAULGeocoder, MockGeocoder
+from pystac_monty.geocoding import GAULGeocoder
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
-from apps.etl.utils import read_file_data
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
 collection_and_item_type_map = {
-    "glide-events": PyStacLoadData.ItemType.EVENT,
-    "glide-hazards": PyStacLoadData.ItemType.HAZARD,
-    "emdat-events": PyStacLoadData.ItemType.EVENT,
     "emdat-hazards": PyStacLoadData.ItemType.HAZARD,
     "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
 }
 
-# geocoder = GAULGeocoder(gpkg_path="../../../../natural_earth_vector.gpkg")
-geocoder = MockGeocoder()
+geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
 
-# @shared_task
+
+@shared_task
 def transform_data(source, transformer, data_source, extraction_id, data):
     logger.info(f"Transformation started for {source} data")
     ext_instance = ExtractionData.objects.get(id=extraction_id)
-    # data = read_file_data(ext_instance.resp_data)
 
     transform_obj = Transform.objects.create(
         extraction=ext_instance,
@@ -37,16 +31,11 @@ def transform_data(source, transformer, data_source, extraction_id, data):
     try:
         transformer = transformer(data=data_source(source_url=ext_instance.url, data=data), geocoder=geocoder)
         transformed_items = transformer.make_items()
-        print("Items8888888888888888888",[item.to_dict() for item in transformed_items])
 
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error(
-            "Transformation failed",
-            exc_info=True,
-            extra={"extraction_id": ext_instance.id, "source": source}
-        )
+        logger.error("Transformation failed", exc_info=True, extra={"extraction_id": ext_instance.id, "source": source})
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
         # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.

@@ -1,20 +1,18 @@
 import logging
+
 import requests
-from datetime import datetime, timedelta
-from celery import shared_task
 
-from django.core.files.base import ContentFile
+# from celery import shared_task
 from django.conf import settings
+from django.core.files.base import ContentFile
 
-from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.models import ExtractionData, HazardType
+
+# from datetime import datetime, timedelta
+
 
 logger = logging.getLogger(__name__)
 
-
-# @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-# def import_hazard_data(self, **kwargs):
 
 # def import_hazard_data(retry_count: int, timeout: int = 30, ext_object_id: int = None, **kwargs):
 def import_hazard_data(**kwargs):
@@ -93,19 +91,10 @@ def import_hazard_data(**kwargs):
         }
         """
 
-    variables = {
-        "year": 2023,
-        "to": 2024,
-        "limit": -1
-    }
+    variables = {"year": 2023, "to": 2024, "limit": -1}
     emdat_url = "https://api.emdat.be/v1"
-    paylod = {
-            "query": query,
-            "variables": variables
-        }
-    headers = {
-        "Authorization": settings.EMDAT_AUTHORIZATION_KEY
-    }
+    paylod = {"query": query, "variables": variables}
+    headers = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
 
     emdat_instance = ExtractionData.objects.create(
         source=ExtractionData.Source.EMDAT,
@@ -134,5 +123,3 @@ def import_hazard_data(**kwargs):
         logger.error("Extraction failed", exc_info=True, extra={"source": ExtractionData.Source.EMDAT})
         # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
         raise
-
-    # return ExtractionData.objects.first().id

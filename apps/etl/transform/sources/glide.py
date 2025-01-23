@@ -2,6 +2,7 @@ import logging
 import uuid
 
 from celery import shared_task
+from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
