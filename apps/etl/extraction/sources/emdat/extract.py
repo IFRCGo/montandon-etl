@@ -1,35 +1,32 @@
+import json
 import logging
 
 import requests
-
-# from celery import shared_task
+from celery import shared_task
 from django.conf import settings
 from django.core.files.base import ContentFile
 
 from apps.etl.models import ExtractionData, HazardType
 
-# from datetime import datetime, timedelta
-
-
 logger = logging.getLogger(__name__)
 
 
-# def import_hazard_data(retry_count: int, timeout: int = 30, ext_object_id: int = None, **kwargs):
+@shared_task
 def import_hazard_data(**kwargs):
     """
     Import hazard data from glide api
     """
-    # logger.info(f"Importing {hazard_type} data")
-    print("Import emdat data")
+    logger.info("Importing EMDAT data")
     query = """
-        query monty ($from: Int, $to: Int, $limit: Int, $include_hist: Boolean) {
+        query monty ($limit: Int, $offset: Int, $include_hist: Boolean, $classif: [String!]) {
           api_version
           public_emdat(
-            cursor: {limit: $limit}
+            cursor: {
+                offset: $offset,
+                limit: $limit
+            }
             filters: {
-               iso: ["NPL"],
-               from: $from,
-               to: $to,
+                classif: $classif
                include_hist: $include_hist
          }
           ) {
@@ -91,11 +88,49 @@ def import_hazard_data(**kwargs):
         }
         """
 
-    variables = {"year": 2023, "to": 2024, "limit": -1}
-    emdat_url = "https://api.emdat.be/v1"
-    paylod = {"query": query, "variables": variables}
-    headers = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
+    EMDAT_URL = "https://api.emdat.be/v1"
+    HEADERS = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
+    classification_keys = [
+        "nat-met-ext-col",
+        "nat-met-ext-hea",
+        "nat-met-ext-sev",
+        "nat-met-sto-ext",
+        "nat-met-sto-tro",
+        "nat-met-sto-san",
+        "nat-met-sto-tor",
+        "nat-hyd-flo-fla",
+        "nat-hyd-flo-flo",
+        "nat-hyd-flo-riv",
+        "nat-hyd-flo-coa",
+        "nat-hyd-flo-ice",
+        "nat-cli-dro-dro",
+        "nat-cli-wil-for",
+        "nat-cli-wil-lan",
+        "nat-cli-wil-wil",
+        "nat-cli-glo-glo",
+        "nat-geo-ear-gro",
+        "nat-geo-ear-tsu",
+        "nat-geo-vol-ash",
+        "nat-geo-vol-lah",
+        "nat-geo-vol-lav",
+        "nat-geo-vol-pyr",
+        "nat-geo-vol-vol",
+        "nat-geo-mmd-ava",
+        "nat-geo-mmd-lan",
+        "nat-geo-mmd-roc",
+        "nat-geo-mmd-sub",
+        "nat-bio-epi-bac",
+        "nat-bio-epi-vir",
+        "nat-bio-epi-par",
+        "nat-bio-inf-ins",
+        "nat-bio-inf-gra",
+        "nat-bio-inf-loc",
+    ]
 
+    # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
+    variables = {"limit": -1, "include_hist": True, "classif": classification_keys}
+
+    # Create new extraction object for each extraction
     emdat_instance = ExtractionData.objects.create(
         source=ExtractionData.Source.EMDAT,
         status=ExtractionData.Status.PENDING,
@@ -106,20 +141,55 @@ def import_hazard_data(**kwargs):
     )
 
     try:
+        # Get latest emdat extraction object so that we do not need to fetch historical data
+        latest_extraction = (
+            ExtractionData.objects.filter(
+                source=ExtractionData.Source.EMDAT, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
+            )
+            .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_DATA)
+            .order_by("-created_at")
+            .first()
+        )
+        if latest_extraction:
+            with latest_extraction.resp_data.open() as data_file:
+                data = data_file.read()
+
+            data_json = json.loads(data)
+            if data_json["data"]["public_emdat"]:
+                total_hazard_objects = data_json["data"]["public_emdat"]["total_available"]
+                # total_hazard_objects is passed as offset not to fetch historical data
+                variables = {"offset": total_hazard_objects, "include_hist": False, "classif": classification_keys}
+
+        # Set extraction status to progress
         emdat_instance.status = ExtractionData.Status.IN_PROGRESS
         emdat_instance.save(update_fields=["status"])
 
-        response = requests.post(emdat_url, json=paylod, headers=headers)
-        if response:
+        paylod = {"query": query, "variables": variables}
+        response = requests.post(EMDAT_URL, json=paylod, headers=HEADERS)
+        response.raise_for_status()
+
+        # Save the extraction data
+        if response and response.status_code == 200:
             file_name = "emdat_disaster_data.json"
             emdat_instance.resp_data.save(file_name, ContentFile(response.content))
+
+            # Set extraction status to success
             emdat_instance.status = ExtractionData.Status.SUCCESS
-            emdat_instance.save(update_fields=["status"])
+            response_content_json = json.loads(response.content)
+
+            # if data is empty set validation status to No Data
+            if not response_content_json["data"]["public_emdat"]:
+                emdat_instance.source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+
+            emdat_instance.save(update_fields=["status", "source_validation_status"])
 
         logger.info("EMDAT data imported sucessfully")
         return emdat_instance.id
 
     except requests.exceptions.RequestException:
+        # Set extraction status to Fail
+        emdat_instance.status = ExtractionData.Status.FAILED
+        emdat_instance.save(update_fields=["status"])
         logger.error("Extraction failed", exc_info=True, extra={"source": ExtractionData.Source.EMDAT})
         # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
         raise

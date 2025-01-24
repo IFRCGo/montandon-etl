@@ -18,7 +18,15 @@
     ```
 - Command to import GDACS data.
     ```bash
-       docker-compose exec web python manage.py import_gdacs_data
+       docker-compose exec web python manage.py extract_gdacs_data
+    ```
+- Command to import GLIDE data.
+    ```bash
+       docker-compose exec web python manage.py extract_glide_data
+    ```
+- Command to import EMDAT data.
+    ```bash
+       docker-compose exec web python manage.py extract_emdat_data
     ```
 - To view the imported data in the admin panel you need to create yourself as a superuser:
     ```bash

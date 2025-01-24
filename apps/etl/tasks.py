@@ -2,6 +2,7 @@ from celery import shared_task
 from django.core.management import call_command
 
 from apps.etl.etl_tasks.desinventar import import_desinventar_data  # noqa: F401
+from apps.etl.etl_tasks.emdat import extract_and_transform_emdat_data  # noqa: F401
 from apps.etl.etl_tasks.gdacs import import_hazard_data  # noqa: F401
 from apps.etl.etl_tasks.glide import import_glide_hazard_data  # noqa: F401
 from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
@@ -33,6 +34,11 @@ def extract_glide_data():
 @shared_task
 def extract_desinventar_data():
     call_command("extract_desinventar_data")
+
+
+@shared_task
+def extract_emdat_data():
+    call_command("extract_emdat_data")
 
 
 @shared_task
