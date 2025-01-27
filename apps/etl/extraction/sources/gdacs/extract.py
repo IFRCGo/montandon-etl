@@ -7,8 +7,8 @@ import pandas as pd
 from celery import shared_task
 from pydantic import ValidationError
 
-from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.extraction.sources.base.extract import Extraction
+from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.extraction.sources.gdacs.validators.gdacs_eventsdata import (
     GDacsEventDataValidator,
 )

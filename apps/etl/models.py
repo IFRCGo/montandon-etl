@@ -57,8 +57,18 @@ class ExtractionData(Resource):
     class Source(models.IntegerChoices):
         GDACS = 1, _("GDACS")
         PDC = 2, _("PDC")
-        GLIDE = 3, _("Glide")
-        IBTRACS = 4, _("IBTrACS")
+        GLIDE = 3, _("GLIDE")
+        IBTRACS = 4, _("NOAA-IBTrACS")
+        EMDAT = 5, _("EM-DAT")
+        GIDD = 6, _("IDMC-GIDD")
+        IDU = 7, _("IDMC-IDU")
+        USGS = 8, _("USGS Shakesmaps")
+        GFD = 9, _("Global Flood Database")
+        DFO = 10, _("DFO")
+        STORM = 11, _("STORM")
+        DREF = 12, _("IFRC DREF & EA")
+        WFPADAM = 13, _("WFP-ADAM")
+        DESINVENTAR = 14, _("DesInventar")
 
     class Status(models.IntegerChoices):
         PENDING = 1, _("Pending")
@@ -86,7 +96,9 @@ class ExtractionData(Resource):
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extractions")
     # TODO change to validation_status
     source_validation_status = models.IntegerField(
-        verbose_name=_("source data validation status"), choices=ValidationStatus.choices
+        verbose_name=_("source data validation status"),
+        choices=ValidationStatus.choices,
+        default=ValidationStatus.NO_VALIDATION,
     )
     # TODO change to validation_error
     content_validation = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
@@ -99,7 +111,9 @@ class ExtractionData(Resource):
         null=True,
         blank=True,
     )
-    hazard_type = models.CharField(max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True)
+    hazard_type = models.CharField(
+        max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
+    )
 
     def __str__(self):
         return str(self.id)
