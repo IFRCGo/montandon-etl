@@ -59,3 +59,8 @@ def extract_gidd_data():
 @shared_task
 def load_data():
     call_command("load_data_to_stac")
+
+
+@shared_task
+def extract_usgs_data():
+    call_command("extract_usgs_data")

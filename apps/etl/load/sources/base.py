@@ -24,7 +24,7 @@ def load_data(django_command: BaseCommand | None = None):
     """Load data into STAC"""
     logger.info("Loading data into Stac")
 
-    transformed_items = PyStacLoadData.objects.filter(load_status=PyStacLoadData.LoadStatus.PENDING)
+    transformed_items = PyStacLoadData.objects.exclude(load_status=PyStacLoadData.LoadStatus.SUCCESS)
 
     bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=1000)
     for item in transformed_items.iterator():
@@ -52,7 +52,7 @@ def load_data(django_command: BaseCommand | None = None):
             )
 
             if django_command is not None:
-                django_command.stdout.write(django_command.ERROR(f"Fail to load item {item.id}"))
+                django_command.stdout.write(django_command.style.ERROR(f"Fail to load item {item.id}"))
 
     bulk_mgr.done()
 

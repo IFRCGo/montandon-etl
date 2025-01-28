@@ -1,0 +1,61 @@
+import logging
+
+import requests
+from celery import shared_task
+
+from apps.etl.extraction.sources.base.extract import Extraction
+from apps.etl.extraction.sources.base.utils import store_extraction_data
+from apps.etl.models import ExtractionData, HazardType
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
+def import_hazard_data(self, **kwargs):
+    """
+    Import hazard data from usgs api
+    """
+    logger.info(f"Importing {HazardType.EARTHQUAKE} data")
+
+    usgs_url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"  # noqa: E501
+
+    # Create a Extraction object in the begining
+    instance_id = kwargs.get("instance_id", None)
+    retry_count = kwargs.get("retry_count", None)
+
+    usgs_instance = (
+        ExtractionData.objects.get(id=instance_id)
+        if instance_id
+        else ExtractionData.objects.create(
+            source=ExtractionData.Source.USGS,
+            status=ExtractionData.Status.PENDING,
+            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            hazard_type=HazardType.EARTHQUAKE,
+            attempt_no=0,
+            resp_code=0,
+        )
+    )
+
+    # Extract the data from api.
+    usgs_extraction = Extraction(url=usgs_url)
+    response = None
+    try:
+        response = usgs_extraction.pull_data(
+            source=ExtractionData.Source.USGS,
+            ext_object_id=usgs_instance.id,
+            retry_count=retry_count if retry_count else 1,
+        )
+    except requests.exceptions.RequestException as exc:
+        self.retry(exc=exc, kwargs={"instance_id": usgs_instance.id, "retry_count": self.request.retries})
+
+    if response:
+        # Save the extracted data into the existing usgs object
+        usgs_instance = store_extraction_data(
+            response=response,
+            source=ExtractionData.Source.GDACS,
+            validate_source_func=None,
+            instance_id=usgs_instance.id,
+        )
+
+        logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
+        return usgs_instance.id
