@@ -114,6 +114,8 @@ class ExtractionData(Resource):
     hazard_type = models.CharField(
         max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
     )
+    # meta_data field contains data required for the extraction for each sources.
+    metadata = models.JSONField(default=dict)
 
     def __str__(self):
         return str(self.id)
