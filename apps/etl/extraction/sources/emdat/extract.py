@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 import requests
 from celery import shared_task
@@ -18,7 +19,7 @@ def import_hazard_data(**kwargs):
     """
     logger.info("Importing EMDAT data")
     query = """
-        query monty ($limit: Int, $offset: Int, $include_hist: Boolean, $classif: [String!]) {
+        query monty ($limit: Int, $offset: Int, $include_hist: Boolean, $from: Int, $to: Int) {
           api_version
           public_emdat(
             cursor: {
@@ -26,8 +27,9 @@ def import_hazard_data(**kwargs):
                 limit: $limit
             }
             filters: {
-                classif: $classif
                include_hist: $include_hist
+               from: $from
+               to: $to
          }
           ) {
             total_available
@@ -90,45 +92,9 @@ def import_hazard_data(**kwargs):
 
     EMDAT_URL = "https://api.emdat.be/v1"
     HEADERS = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
-    classification_keys = [
-        "nat-met-ext-col",
-        "nat-met-ext-hea",
-        "nat-met-ext-sev",
-        "nat-met-sto-ext",
-        "nat-met-sto-tro",
-        "nat-met-sto-san",
-        "nat-met-sto-tor",
-        "nat-hyd-flo-fla",
-        "nat-hyd-flo-flo",
-        "nat-hyd-flo-riv",
-        "nat-hyd-flo-coa",
-        "nat-hyd-flo-ice",
-        "nat-cli-dro-dro",
-        "nat-cli-wil-for",
-        "nat-cli-wil-lan",
-        "nat-cli-wil-wil",
-        "nat-cli-glo-glo",
-        "nat-geo-ear-gro",
-        "nat-geo-ear-tsu",
-        "nat-geo-vol-ash",
-        "nat-geo-vol-lah",
-        "nat-geo-vol-lav",
-        "nat-geo-vol-pyr",
-        "nat-geo-vol-vol",
-        "nat-geo-mmd-ava",
-        "nat-geo-mmd-lan",
-        "nat-geo-mmd-roc",
-        "nat-geo-mmd-sub",
-        "nat-bio-epi-bac",
-        "nat-bio-epi-vir",
-        "nat-bio-epi-par",
-        "nat-bio-inf-ins",
-        "nat-bio-inf-gra",
-        "nat-bio-inf-loc",
-    ]
 
     # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
-    variables = {"limit": -1, "include_hist": True, "classif": classification_keys}
+    variables = {"limit": -1, "include_hist": True}
 
     # Create new extraction object for each extraction
     emdat_instance = ExtractionData.objects.create(
@@ -151,14 +117,14 @@ def import_hazard_data(**kwargs):
             .first()
         )
         if latest_extraction:
+            to_year = datetime.now().year
+            from_year = int(to_year) - 1
             with latest_extraction.resp_data.open() as data_file:
                 data = data_file.read()
 
             data_json = json.loads(data)
             if data_json["data"]["public_emdat"]:
-                total_hazard_objects = data_json["data"]["public_emdat"]["total_available"]
-                # total_hazard_objects is passed as offset not to fetch historical data
-                variables = {"offset": total_hazard_objects, "include_hist": False, "classif": classification_keys}
+                variables = {"limit": -1, "from": from_year, "to": to_year}
 
         # Set extraction status to progress
         emdat_instance.status = ExtractionData.Status.IN_PROGRESS

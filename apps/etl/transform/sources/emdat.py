@@ -18,10 +18,8 @@ def transform_emdat_data(extraction_id, **kwargs):
     """
     ext_instance = ExtractionData.objects.filter(id=extraction_id).first()
     if ext_instance and ext_instance.source_validation_status == ExtractionData.ValidationStatus.NO_DATA:
-        logger.error(
+        logger.warning(
             "No data available",
-            exe_info=True,
-            extra={"source": ExtractionData.Source.EMDAT, "extraction_id": ext_instance.id},
         )
         return
     data = read_file_data(ext_instance.resp_data)
