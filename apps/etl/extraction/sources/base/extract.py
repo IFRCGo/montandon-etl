@@ -19,7 +19,15 @@ class Extraction:
         }
         return mappings.get(content_type, "txt")
 
-    def pull_data(self, source: int, retry_count: int, timeout: int = 30, ext_object_id: int = None):
+    def pull_data(
+            self,
+            headers: dict,
+            params: dict,
+            source: int,
+            retry_count: int,
+            timeout: int = 30,
+            ext_object_id: int = None,
+    ):
         resp_status = ExtractionData.Status.IN_PROGRESS
         source_validation_status = ExtractionData.ValidationStatus.NO_VALIDATION
 
@@ -31,7 +39,8 @@ class Extraction:
             instance_obj.save(update_fields=["resp_code", "attempt_no"])
 
         try:
-            response = requests.get(self.url, timeout=timeout)
+            # response = requests.get(self.url, timeout=timeout)
+            response = requests.get(self.url, headers=headers, params=params, timeout=timeout)
             resp_type = response.headers.get("Content-Type", "")
             file_extension = self._get_file_extension(resp_type)
 
