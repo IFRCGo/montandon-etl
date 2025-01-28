@@ -1,6 +1,7 @@
 import hashlib
 
 from django.core.files.base import ContentFile
+
 from apps.etl.models import ExtractionData
 
 
@@ -11,6 +12,7 @@ def hash_file_content(content):
     """
     file_hash = hashlib.sha256(content).hexdigest()
     return file_hash
+
 
 def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name):
     """
@@ -73,4 +75,3 @@ def store_extraction_data(
             file_name=file_name,
         )
     return gdacs_instance
-
