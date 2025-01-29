@@ -35,9 +35,12 @@ env = environ.Env(
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
     DJANGO_STATIC_URL=(str, "/static/"),
     EMDAT_AUTHORIZATION_KEY=str,
+    IDMC_CLIENT_ID=str,
 )
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
+
+IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
