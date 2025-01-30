@@ -1,0 +1,165 @@
+import json
+import logging
+
+import requests
+from django.conf import settings
+
+from apps.etl.extraction.sources.base.extract import Extraction
+from apps.etl.extraction.sources.base.utils import (
+    hash_file_content,
+    manage_duplicate_file_content,
+)
+from apps.etl.models import ExtractionData
+
+logger = logging.getLogger(__name__)
+
+
+class GIDDExtraction(Extraction):
+    """
+    Handles data extraction from the GIDD API for hazard data.
+    """
+
+    CLIENT_ID = "IDMCWSHSOLO009"
+
+    BASE_URL = "https://helix-tools-api.idmcdb.org/external-api/gidd/disaggregations/disaggregation-geojson/"
+
+
+    def __init__(self, url: str = None):
+        """
+        Initialize the GIDD extraction process.
+        Args:
+            url (str, optional): Override the default API URL. Defaults to BASE_URL.
+        """
+        super().__init__(url or self.BASE_URL)
+        self.headers = {"accept": "application/json"}
+        self.params = {"client_id": self.CLIENT_ID}
+
+    def store_extraction_data(
+        self,
+        response,
+        source=None,
+        validate_source_func=None,
+        instance_id=None,
+    ):
+        file_extension = "json"
+        file_name = f"{source}.{file_extension}"
+        resp_data_content = response.content
+
+        # save the additional response data after the data is fetched from api.
+        extraction_instance = ExtractionData.objects.get(id=instance_id)
+        extraction_instance.resp_data_type = response.headers.get("Content-Type", "")
+        extraction_instance.save()
+
+        # Validate the non empty response data.
+        if resp_data_content and not response.status_code == 204:
+            # Source validation
+            if validate_source_func:
+                extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
+                extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
+
+            # manage duplicate file content.
+            hash_content = hash_file_content(resp_data_content)
+            manage_duplicate_file_content(
+                source=source,
+                hash_content=hash_content,
+                instance=extraction_instance,
+                response_data=resp_data_content,
+                file_name=file_name,
+            )
+        return extraction_instance
+
+    def _create_extraction_instance(self, url) -> ExtractionData:
+        """
+        Create and return a new extraction instance with initial status.
+        Returns:
+            ExtractionData: The created extraction instance
+        """
+        return ExtractionData.objects.create(
+            source=ExtractionData.Source.GIDD,
+            url=url,
+            status=ExtractionData.Status.PENDING,
+            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            hazard_type=None,
+            attempt_no=0,
+            resp_code=0,
+        )
+
+    def _update_instance_status(
+        self, instance: ExtractionData, status: int, validation_status: str = None, update_validation: bool = False
+    ) -> None:
+        """
+        Update the status of the extraction instance.
+        Args:
+            instance: ExtractionData instance to update
+            status: New status to set
+            validation_status: Optional validation status to set
+            update_validation: Whether to update validation status
+        """
+        instance.status = status
+        if update_validation and validation_status:
+            instance.source_validation_status = validation_status
+            instance.save(update_fields=["status", "source_validation_status"])
+        else:
+            instance.save(update_fields=["status"])
+
+    def _save_response_data(self, instance: ExtractionData, response: requests.Response) -> dict:
+        """
+        Save the response data to the extraction instance.
+        Args:
+            instance: ExtractionData instance to save to
+            response: Response object containing the data
+        Returns:
+            dict: Parsed JSON response content
+        """
+        instance = self.store_extraction_data(
+            response=response,
+            source=ExtractionData.Source.GIDD,
+            validate_source_func=None,
+            instance_id=instance.id,
+        )
+
+        return json.loads(response.content)
+
+    def process_data(self) -> dict:
+        """
+        Process GIDD data extraction.
+        Returns:
+            int: ID of the extraction instance
+        """
+        logger.info("Starting GIDD data extraction")
+        instance = self._create_extraction_instance(url=self.url)
+
+        try:
+            self._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+
+            response = requests.get(self.url, params=self.params, headers=self.headers, timeout=30)
+            response.raise_for_status()
+            instance.resp_code = response.status_code
+
+            if response.status_code == 200:
+                response_data = self._save_response_data(instance, response)
+                # Check if response contains data
+                if response_data:
+                    self._update_instance_status(instance, ExtractionData.Status.SUCCESS)
+                    logger.info("GIDD data extracted successfully")
+                else:
+                    self._update_instance_status(
+                        instance,
+                        ExtractionData.Status.SUCCESS,
+                        ExtractionData.ValidationStatus.NO_DATA,
+                        update_validation=True,
+                    )
+                    logger.warning("No hazard data found in GIDD response")
+
+            return {"extraction_id": instance.id, "data": response.content}
+
+        except requests.exceptions.RequestException:
+            self._update_instance_status(instance, ExtractionData.Status.FAILED)
+            logger.error(
+                "GIDD extraction failed",
+                exc_info=True,
+                extra={
+                    "source": ExtractionData.Source.GIDD,
+                },
+            )
+            raise
