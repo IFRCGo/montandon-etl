@@ -2,7 +2,7 @@ import json
 import logging
 
 import requests
-from celery import shared_task,chain
+from celery import chain, shared_task
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -100,13 +100,10 @@ def import_hazard_data(self, **kwargs):
         if usgs_instance.resp_code == 200:
             response_data = json.loads(usgs_instance.resp_data.read())
             for feature in response_data["features"]:
-                # chain(
-                #     fetch_detail.s(usgs_instance, feature["properties"]["detail"]),
-                #     transform_usgs_event_data.s(),
-                # )
-
-                data = fetch_detail(usgs_instance, feature["properties"]["detail"]),
-                transform_usgs_event_data(data[0])
+                chain(
+                    fetch_detail.s(usgs_instance, feature["properties"]["detail"]),
+                    transform_usgs_event_data.s(),
+                )
 
         logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
         return usgs_instance.id
