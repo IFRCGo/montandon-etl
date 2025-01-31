@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any, Callable
 
 import requests
 from django.conf import settings
@@ -19,8 +20,7 @@ class IDUExtraction(Extraction):
     Handles data extraction from the IDU API for hazard data.
     """
 
-    BASE_URL = "https://helix-tools-api.idmcdb.org/external-api/idus/last-180-days/"
-    CLIENT_ID = settings.GIDD_CLIENT_ID
+    IDMC_CLIENT_ID = settings.IDMC_CLIENT_ID
 
     def __init__(self, url: str = None):
         """
@@ -28,17 +28,20 @@ class IDUExtraction(Extraction):
         Args:
             url (str, optional): Override the default API URL. Defaults to BASE_URL.
         """
-        super().__init__(url or self.BASE_URL)
+        super().__init__(url)
         self.headers = {"accept": "application/json"}
-        self.params = {"client_id": self.CLIENT_ID}
+        self.params = {"client_id": self.IDMC_CLIENT_ID}
 
     def store_extraction_data(
         self,
-        response,
-        source=None,
-        validate_source_func=None,
-        instance_id=None,
+        validate_source_func: Callable[[Any], None],
+        response: dict,
+        source: ExtractionData.Source = None,
+        instance_id: int = None,
     ):
+        """
+        Save extracted data into data base. Checks for duplicate conent using hashing.
+        """
         file_extension = "json"
         file_name = f"{source}.{file_extension}"
         resp_data_content = response.content
@@ -83,7 +86,7 @@ class IDUExtraction(Extraction):
         )
 
     def _update_instance_status(
-        self, instance: ExtractionData, status: int, validation_status: str = None, update_validation: bool = False
+        self, instance: ExtractionData, status: int, validation_status: int = None, update_validation: bool = False
     ) -> None:
         """
         Update the status of the extraction instance.
@@ -118,7 +121,7 @@ class IDUExtraction(Extraction):
 
         return json.loads(response.content)
 
-    def process_data(self) -> dict:
+    def handle_extraction(self) -> dict:
         """
         Process IDU data extraction.
         Returns:
@@ -149,7 +152,7 @@ class IDUExtraction(Extraction):
                     )
                     logger.warning("No hazard data found in IDU response")
 
-            return {"extraction_id": instance.id, "data": response.content}
+            return instance.id
 
         except requests.exceptions.RequestException:
             self._update_instance_status(instance, ExtractionData.Status.FAILED)
