@@ -1,13 +1,54 @@
+import json
 import logging
 
 import requests
-from celery import shared_task
+from celery import shared_task,chain
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
 from apps.etl.models import ExtractionData, HazardType
+from apps.etl.transform.sources.usgs import transform_usgs_event_data
 
 logger = logging.getLogger(__name__)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
+def fetch_detail(self, parent_id, detail_url, **kwargs):
+    url = detail_url
+    instance_id = kwargs.get("instance_id", None)
+    if not instance_id:
+        usgs_instance = ExtractionData.objects.create(
+            source=ExtractionData.Source.USGS,
+            status=ExtractionData.Status.PENDING,
+            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            attempt_no=0,
+            resp_code=0,
+            hazard_type=HazardType.EARTHQUAKE,
+        )
+    else:
+        usgs_instance = ExtractionData.objects.get(id=instance_id)
+
+    usgs_extraction = Extraction(url=url)
+    response = None
+    try:
+        response = usgs_extraction.pull_data(
+            source=ExtractionData.Source.USGS,
+            ext_object_id=usgs_instance.id,
+            retry_count=0,
+        )
+    except Exception as exc:
+        self.retry(exc=exc, kwargs={"instance_id": usgs_instance.id, "retry_count": self.request.retries})
+    if response:
+        usgs_instance = store_extraction_data(
+            response=response,
+            source=ExtractionData.Source.USGS,
+            instance_id=usgs_instance.id,
+            parent_id=parent_id,
+            hazard_type=HazardType.EARTHQUAKE,
+        )
+        with usgs_instance.resp_data.open() as file:
+            file.read()
+        return usgs_instance.id
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -56,6 +97,16 @@ def import_hazard_data(self, **kwargs):
             validate_source_func=None,
             instance_id=usgs_instance.id,
         )
+        if usgs_instance.resp_code == 200:
+            response_data = json.loads(usgs_instance.resp_data.read())
+            for feature in response_data["features"]:
+                # chain(
+                #     fetch_detail.s(usgs_instance, feature["properties"]["detail"]),
+                #     transform_usgs_event_data.s(),
+                # )
+
+                data = fetch_detail(usgs_instance, feature["properties"]["detail"]),
+                transform_usgs_event_data(data[0])
 
         logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
         return usgs_instance.id
