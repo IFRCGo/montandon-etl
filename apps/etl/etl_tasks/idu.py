@@ -1,6 +1,6 @@
 import logging
 
-from celery import shared_task
+from celery import chain, shared_task
 from django.conf import settings
 
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
@@ -15,9 +15,10 @@ LATEST_DATA_URL = f"{settings.IDU_DATA_URL}/external-api/idus/last-180-days/"
 @shared_task
 def extract_and_transform_idu_data(url):
 
-    extraction_id = IDUExtraction(url=url).handle_extraction()
-
-    IDUTransformHandler(extraction_id=extraction_id).handle_transformation()
+    chain(
+        IDUExtraction.handle_extraction.s(url=url),
+        IDUTransformHandler.task.s(),
+    ).apply_async()
 
 
 @shared_task

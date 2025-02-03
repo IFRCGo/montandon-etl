@@ -11,8 +11,12 @@ from apps.etl.extraction.sources.base.utils import (
     manage_duplicate_file_content,
 )
 from apps.etl.models import ExtractionData
+from main.celery import app
 
 logger = logging.getLogger(__name__)
+
+HEADERS = {"accept": "application/json"}
+PARAMS = {"client_id": settings.IDMC_CLIENT_ID}
 
 
 class IDUExtraction(Extraction):
@@ -20,20 +24,16 @@ class IDUExtraction(Extraction):
     Handles data extraction from the IDU API for hazard data.
     """
 
-    IDMC_CLIENT_ID = settings.IDMC_CLIENT_ID
-
     def __init__(self, url: str = None):
         """
         Initialize the IDU extraction process.
         Args:
             url (str, optional): Override the default API URL. Defaults to BASE_URL.
         """
-        super().__init__(url)
-        self.headers = {"accept": "application/json"}
-        self.params = {"client_id": self.IDMC_CLIENT_ID}
+        super().__init__()
 
+    @staticmethod
     def store_extraction_data(
-        self,
         validate_source_func: Callable[[Any], None],
         response: dict,
         source: ExtractionData.Source = None,
@@ -69,7 +69,8 @@ class IDUExtraction(Extraction):
             )
         return extraction_instance
 
-    def _create_extraction_instance(self, url) -> ExtractionData:
+    @staticmethod
+    def _create_extraction_instance(url) -> ExtractionData:
         """
         Create and return a new extraction instance with initial status.
         Returns:
@@ -85,8 +86,9 @@ class IDUExtraction(Extraction):
             resp_code=0,
         )
 
+    @staticmethod
     def _update_instance_status(
-        self, instance: ExtractionData, status: int, validation_status: int = None, update_validation: bool = False
+        instance: ExtractionData, status: int, validation_status: int = None, update_validation: bool = False
     ) -> None:
         """
         Update the status of the extraction instance.
@@ -103,7 +105,8 @@ class IDUExtraction(Extraction):
         else:
             instance.save(update_fields=["status"])
 
-    def _save_response_data(self, instance: ExtractionData, response: requests.Response) -> dict:
+    @staticmethod
+    def _save_response_data(instance: ExtractionData, response: requests.Response) -> dict:
         """
         Save the response data to the extraction instance.
         Args:
@@ -112,7 +115,7 @@ class IDUExtraction(Extraction):
         Returns:
             dict: Parsed JSON response content
         """
-        instance = self.store_extraction_data(
+        instance = IDUExtraction.store_extraction_data(
             response=response,
             source=ExtractionData.Source.IDU,
             validate_source_func=None,
@@ -121,30 +124,33 @@ class IDUExtraction(Extraction):
 
         return json.loads(response.content)
 
-    def handle_extraction(self) -> dict:
+    @staticmethod
+    @app.task
+    def handle_extraction(url) -> dict:
         """
         Process IDU data extraction.
         Returns:
             int: ID of the extraction instance
         """
         logger.info("Starting IDU data extraction")
-        instance = self._create_extraction_instance(url=self.url)
+        print("Starting IDU data extraction")
+        instance = IDUExtraction._create_extraction_instance(url=url)
 
         try:
-            self._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+            IDUExtraction._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            response = requests.get(self.url, params=self.params, headers=self.headers, timeout=30)
+            response = requests.get(url, params=PARAMS, headers=HEADERS, timeout=30)
             response.raise_for_status()
             instance.resp_code = response.status_code
 
             if response.status_code == 200:
-                response_data = self._save_response_data(instance, response)
+                response_data = IDUExtraction._save_response_data(instance, response)
                 # Check if response contains data
                 if response_data:
-                    self._update_instance_status(instance, ExtractionData.Status.SUCCESS)
+                    IDUExtraction._update_instance_status(instance, ExtractionData.Status.SUCCESS)
                     logger.info("IDU data extracted successfully")
                 else:
-                    self._update_instance_status(
+                    IDUExtraction._update_instance_status(
                         instance,
                         ExtractionData.Status.SUCCESS,
                         ExtractionData.ValidationStatus.NO_DATA,
@@ -155,7 +161,7 @@ class IDUExtraction(Extraction):
             return instance.id
 
         except requests.exceptions.RequestException:
-            self._update_instance_status(instance, ExtractionData.Status.FAILED)
+            IDUExtraction._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(
                 "IDU extraction failed",
                 exc_info=True,

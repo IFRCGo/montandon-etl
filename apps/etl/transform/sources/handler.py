@@ -1,13 +1,9 @@
 import logging
 import uuid
-from abc import ABC, abstractmethod
-from typing import List, Union
-
-from pystac_monty.sources.gdacs import GDACSDataSource, GDACSTransformer
-from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
-from pystac_monty.sources.idu import IDUDataSource, IDUTransformer
+from abc import ABC
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from main.celery import app
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -20,57 +16,41 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 
 class BaseTransformerHandler(ABC):
 
-    def __init__(
-        self,
-        extraction_id: int,
-        transformer: Union[
-            GDACSTransformer,
-            GlideTransformer,
-            IDUTransformer,
-        ],
-        transformer_schema: Union[
-            List[GDACSDataSource],
-            GlideDataSource,
-            IDUDataSource,
-        ],
-    ):
-        self.extraction_id = extraction_id
-        self.transformer = transformer
-        self.transformer_schema = transformer_schema
+    @classmethod
+    def get_schema_data(cls, extraction_obj: ExtractionData):
+        raise NotImplementedError()
 
-    @abstractmethod
-    def get_schema_data(self, extraction_id):
-        pass
-
-    def handle_transformation(self):
+    @classmethod
+    def handle_transformation(cls, extraction_id):
         logger.info("Transformation started")
-        extraction_instance = ExtractionData.objects.filter(id=self.extraction_id).first()
+        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
 
         transform_obj = Transform.objects.create(
-            extraction=extraction_instance,
+            extraction=extraction_obj,
             status=Transform.Status.PENDING,
         )
 
         try:
-            schema = self.get_schema_data()
-            transformer = self.transformer(schema)
+            schema = cls.get_schema_data(extraction_obj)
+            transformer = cls.transformer(schema)
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS
             transform_obj.save(update_fields=["status"])
 
-            self.load_stac_item_to_queue(transformed_items, transform_obj.id)
+            cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
 
             logger.info("Transformation ended")
 
         except Exception as e:
-            logger.error("Transformation failed", exc_info=True, extra={"extraction_id": extraction_instance.id})
+            logger.error("Transformation failed", exc_info=True, extra={"extraction_id": extraction_obj.id})
             transform_obj.status = Transform.Status.FAILED
             transform_obj.save(update_fields=["status"])
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
-    def load_stac_item_to_queue(self, transform_items, transform_obj_id):
+    @classmethod
+    def load_stac_item_to_queue(cls, transform_items, transform_obj_id):
         logger.info("Loading data into queue")
 
         transform_obj = Transform.objects.filter(id=transform_obj_id).first()
@@ -95,3 +75,12 @@ class BaseTransformerHandler(ABC):
         transform_obj.save(update_fields=["is_loaded"])
 
         logger.info("Loading data into queue successfull")
+
+    @staticmethod
+    @app.task
+    def task(extraction_id):
+        """
+        Not NotImplemented due to celery limitation with classmethod
+        Eg: return XYZTransformHandler.handle_transformation(extraction_id)
+        """
+        raise NotImplementedError()
