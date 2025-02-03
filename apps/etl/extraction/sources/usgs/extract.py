@@ -55,10 +55,13 @@ def import_hazard_data(self, **kwargs):
     Import hazard data from usgs api
     """
     logger.info(f"Importing {HazardType.EARTHQUAKE} data")
+    usgs_url = (
+        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
+        if ExtractionData.objects.filter(source=ExtractionData.Source.USGS).exists()
+        else "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson"
+    )
 
-    usgs_url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"  # noqa: E501
-
-    # Create a Extraction object in the begining
+    # Create a Extraction object in the beginning
     instance_id = kwargs.get("instance_id", None)
     retry_count = kwargs.get("retry_count", None)
 
