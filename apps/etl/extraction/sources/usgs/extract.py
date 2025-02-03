@@ -46,8 +46,6 @@ def fetch_detail(self, parent_id, detail_url, **kwargs):
             parent_id=parent_id,
             hazard_type=HazardType.EARTHQUAKE,
         )
-        with usgs_instance.resp_data.open() as file:
-            file.read()
         return usgs_instance.id
 
 
@@ -103,7 +101,7 @@ def import_hazard_data(self, **kwargs):
                 chain(
                     fetch_detail.s(usgs_instance, feature["properties"]["detail"]),
                     transform_usgs_event_data.s(),
-                )
+                ).apply_async()
 
         logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
         return usgs_instance.id
