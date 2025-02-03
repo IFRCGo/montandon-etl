@@ -7,7 +7,8 @@ logger = get_task_logger(__name__)
 
 
 class Extraction:
-    def __init__(self, url: str):
+    def __init__(self, url: str, headers:str):
+        self.headers=headers
         self.url = url
 
     def _get_file_extension(self, content_type):
@@ -31,7 +32,7 @@ class Extraction:
             instance_obj.save(update_fields=["resp_code", "attempt_no"])
 
         try:
-            response = requests.get(self.url, timeout=timeout)
+            response = requests.get(self.url, timeout=timeout,headers=self.headers)
             resp_type = response.headers.get("Content-Type", "")
             file_extension = self._get_file_extension(resp_type)
 
