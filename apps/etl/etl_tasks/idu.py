@@ -8,8 +8,8 @@ from apps.etl.transform.sources.idu import IDUTransformHandler
 
 logger = logging.getLogger(__name__)
 
-HISTORICAL_DATA_URL = f"{settings.IDU_DATA_URL}/external-api/idus/idus_all_retrieve"
-LATEST_DATA_URL = f"{settings.IDU_DATA_URL}/external-api/idus/last-180-days/"
+HISTORICAL_DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/idus/idus_all_retrieve"
+LATEST_DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/idus/last-180-days/"
 
 
 @shared_task

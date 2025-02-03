@@ -36,11 +36,7 @@ class TransformAdmin(admin.ModelAdmin):
             return [field.name for field in self.model._meta.fields]
         return []
 
-    list_display = (
-        "id",
-        "extraction",
-        "status",
-    )
+    list_display = ("id", "extraction", "status", "is_loaded")
     list_filter = ("status",)
     autocomplete_fields = ["extraction"]
     search_fields = ["extraction"]
