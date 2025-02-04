@@ -14,4 +14,3 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import_hazard_data()
-    

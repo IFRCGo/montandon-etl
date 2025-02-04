@@ -12,9 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def fetch_detail(self, parent_id, detail_url, **kwargs):
-    print(detail_url)
-    url = f'https://sentry.pdc.org/hp_srv/services/hazard/{detail_url}/exposure'
+def fetch_exposure_details(self, parent_id, detail_url, **kwargs):
+    url = f"https://sentry.pdc.org/hp_srv/services/hazard/{detail_url}/exposure"
     instance_id = kwargs.get("instance_id", None)
     if not instance_id:
         pdc_instance = ExtractionData.objects.create(
@@ -30,7 +29,11 @@ def fetch_detail(self, parent_id, detail_url, **kwargs):
 
     pdc_extraction = Extraction(
         url=url,
-        headers={"Authorization": "Bearer {}".format("eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ")}
+        headers={
+            "Authorization": "Bearer {}".format(
+                "eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ"
+            )
+        },
     )
     response = None
     try:
@@ -53,6 +56,40 @@ def fetch_detail(self, parent_id, detail_url, **kwargs):
         )
         return pdc_instance.id
 
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=5)
+def get_list_of_exposure(self, file, **kwargs):
+    timestamp = []
+    finaldata={}
+    for j in file[:4]:
+        url = f"https://sentry.pdc.org/hp_srv/services/hazard/{j['uuid']}/exposure"
+        r = requests.get(
+            url=url,
+            headers={
+                "Authorization": "Bearer {}".format(
+                    "eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ"
+                )
+            },
+        )
+        if r.status_code == 200:
+           
+
+            for i in r.json():
+                url = f"https://sentry.pdc.org/hp_srv/services/hazard/{j['uuid']}/exposure/{i}"
+                r = requests.get(
+                    url=url,
+                    headers={
+                        "Authorization": "Bearer {}".format(
+                            "eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ"
+                        )
+                    },
+                )
+                timestamp.append({i:r.json()})
+                finaldata[j['uuid']]= timestamp
+        f = open("data.json",'w')
+        f.write(str(finaldata))
+        f.close()
+    return finaldata
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def import_hazard_data(self, **kwargs):
@@ -82,7 +119,11 @@ def import_hazard_data(self, **kwargs):
     # Extract the data from api.
     pdc_extraction = Extraction(
         url=pdc_url,
-        headers={"Authorization": "Bearer {}".format("eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ")},    
+        headers={
+            "Authorization": "Bearer {}".format(
+                "eyJraWQiOiIyMDE4LTA4LTA5fGFwcHMucGRjLm9yZyIsImFsZyI6IlJTNTEyIn0.eyJqdGkiOiI3MjdlOTExZC0xNzI5LTRkOTAtYTc5OS04OWRhMzNhMzAwOGYiLCJpc3MiOiJodHRwczovL2FwcHMucGRjLm9yZy9qd3Qvandrcy5qc29uIiwiaWF0IjoxNjM5MDk5NDQ0LCJuYmYiOjE2MzkwOTk0NDQsInN1YiI6ImFwcHMucGRjLm9yZyIsImV4cCI6NDEwMjQ0NDgwMCwidXNlclJvbGVzIjpbIkxPR0lOIl0sInVzZXJHcm91cElkIjoiMSIsInRva2VuVHlwZSI6ImxvbmcifQ.VmwvfjkCYGOv-WLOFQJ1x4cIWnFW8infqte_qnVZOT0jXagX2_LPE_tagm9RnDW6vJSqGg4CexNR-WTEOSQN32ZW1UZ31PHYKtO2jbDZt2u6RZVkLPjuwdxomumTEdXWKs-MTlSwWNm0NelGMjwq2PrNeYjjv1No0FIJeJ3hhKAFpf3D27uhEJSwUxKcjdtC-ilpVvDO1eKlKWFwj8d3N6iqBVrxrhNBFYMmDGwFFPx7UZravaQVzdqvzv9OvSIMXH_l--LhimRSOKYfh6tH5P0o45iXEYSuWMZXWnG7akbMvckAnXzPCTjsDKc0o3Vi1k6PPyJllxMbg-ZUjM95rQ"
+            )
+        },
     )
     response = None
     try:
@@ -102,11 +143,16 @@ def import_hazard_data(self, **kwargs):
             validate_source_func=None,
             instance_id=pdc_instance.id,
         )
-        print(pdc_instance.resp_code)
         if pdc_instance.resp_code == 200:
             response_data = json.loads(pdc_instance.resp_data.read())
-            for feature in response_data:
-                fetch_detail(pdc_instance, feature["uuid"])
+            data = get_list_of_exposure(response_data)
+            print(data)
+                
+                
+                # pdc_instance.metadata = {"exposure": data, "hazard_uuid": feature["uuid"]}
+                # pdc_instance.save()
+
+                # fetch_exposure_details(pdc_instance)
 
         logger.info(f"PDC data imported sucessfully")
         return pdc_instance.id
