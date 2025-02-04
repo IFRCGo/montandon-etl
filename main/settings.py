@@ -34,7 +34,10 @@ env = environ.Env(
     CELERY_REDIS_URL=str,
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
     DJANGO_STATIC_URL=(str, "/static/"),
+    EMDAT_AUTHORIZATION_KEY=str,
 )
+
+EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -171,6 +174,10 @@ CELERY_BEAT_SCHEDULE = {
     "import_glide_data": {
         "task": "apps.etl.tasks.extract_glide_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
+    "import_emdat_data": {
+        "task": "apps.etl.tasks.extract_emdat_data",
+        "schedule": crontab(minute=0, hour=6),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",

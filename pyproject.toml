@@ -19,6 +19,7 @@ dependencies = [
     "pystac-monty",
     "requests>=2.32.3",
     "geopandas",
+    "fiona>=1.10.1",
 ]
 
 [tool.uv.sources]

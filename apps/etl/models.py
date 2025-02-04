@@ -36,6 +36,7 @@ class HazardType(models.TextChoices):
     TORNADO = "TO", "Tornado"
     VIOLENT_WIND = "VW", "Violent Wind"
     WAVE_SURGE = "WV", "Wave/Surge"
+    OTHER = "OT", "Other"
 
 
 class ExtractionData(Resource):
@@ -57,7 +58,7 @@ class ExtractionData(Resource):
     class Source(models.IntegerChoices):
         GDACS = 1, _("GDACS")
         PDC = 2, _("PDC")
-        GLIDE = 3, _("GLIDE")
+        GLIDE = 3, _("Glide")
         IBTRACS = 4, _("NOAA-IBTrACS")
         EMDAT = 5, _("EM-DAT")
         GIDD = 6, _("IDMC-GIDD")
