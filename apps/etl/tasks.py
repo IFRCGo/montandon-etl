@@ -13,6 +13,7 @@ from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import (  # noqa: F401
     import_hazard_data as import_glide_data,
 )
+from apps.etl.extraction.sources.global_flood_database.extract import GFDExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.models import ExtractionData, HazardType  # noqa: F401
 from apps.etl.transform.sources.gdacs import (  # noqa: F401
@@ -27,6 +28,7 @@ from apps.etl.transform.sources.idu import IDUTransformHandler  # noqa: F401
 
 IDUExtraction.handle_extraction
 GIDDExtraction.handle_extraction
+GFDExtraction.handle_extraction
 
 BaseTransformerHandler.handle_transformation
 
