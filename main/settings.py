@@ -75,6 +75,8 @@ env = environ.Env(
     GFD_SERVICE_ACCOUNT=str,
     IFRC_DATA_URL=str,
     DESINVENTAR_DATA_URL=str,
+    PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
+    PDC_AUTHORIZATION_KEY=str,
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GEOCODER_URL=str,
@@ -95,6 +97,10 @@ EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 IDMC_DATA_URL = env("IDMC_DATA_URL")
+
+PDC_BASE_URL = env("PDC_BASE_URL")
+
+PDC_AUTHORIZATION_KEY = env("PDC_AUTHORIZATION_KEY")
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 

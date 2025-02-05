@@ -62,6 +62,10 @@ def extract_desinventar_data():
 def extract_emdat_data():
     call_command("extract_emdat_data")
 
+@shared_task
+def extract_pdc_data():
+    call_command("extract_pdc_data")
+
 
 @shared_task
 def extract_gidd_data():

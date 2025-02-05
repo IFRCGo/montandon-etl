@@ -79,3 +79,19 @@ def store_extraction_data(
             file_name=file_name,
         )
     return gdacs_instance
+
+
+def store_pdc_exposure_data(response, source=None, validate_source_func=None, instance_id=None, parent_id=None):
+    file_extension = "json"
+    file_name = f"{instance_id}pdc.{file_extension}"
+    data = json.dumps(response).encode("utf-8")
+
+    instance = ExtractionData.objects.create(
+        parent_id=parent_id, source=source, attempt_no=1, resp_code=200, status=ExtractionData.Status.SUCCESS
+    )
+
+    content_file = ContentFile(data)
+    content_file.name = file_name
+    instance.resp_data.save(content_file.name, content_file)
+
+    return instance
