@@ -28,6 +28,19 @@
     ```bash
        docker-compose exec web python manage.py extract_emdat_data
     ```
+- Command to import IDU data.
+    ```bash
+       docker-compose exec web python manage.py extract_idu_data
+    ```
+- Command to import GIDD data.
+    ```bash
+       docker-compose exec web python manage.py extract_gidd_data
+    ```
+- Command to import Global Flood Database data.
+    - We need to add a json file containing credential for earthengine inside `apps/etl/extraction/sources/gfd/`
+    ```bash
+       docker-compose exec web python manage.py extract_emdat_data
+    ```
 - To view the imported data in the admin panel you need to create yourself as a superuser:
     ```bash
        docker-compose exec web python manage.py createsuperuser

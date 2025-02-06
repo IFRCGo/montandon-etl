@@ -14,10 +14,7 @@ import os
 from pathlib import Path
 
 import environ
-from azure.identity import DefaultAzureCredential
 from celery.schedules import crontab
-
-from main import sentry
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,74 +22,40 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
-    DJANGO_ALLOWED_HOSTS=(list, ["*"]),
-    DJANGO_APP_ENVIRONMENT=(str, "PROD"),
-    DJANGO_APP_TYPE=str,  # web/worker
-    DJANGO_TIME_ZONE=(str, "UTC"),
+    DJANGO_ALLOWED_HOST=(list, ["*"]),
     # Database
     DB_NAME=str,
     DB_USER=str,
     DB_PASSWORD=str,
     DB_HOST=str,
     DB_PORT=int,
+    DJANGO_TIME_ZONE=(str, "UTC"),
     # Redis
     CELERY_REDIS_URL=str,
-    # Storage
-    # -- Static, Media configs
-    DJANGO_STATIC_URL=(str, "/static/"),
-    DJANGO_MEDIA_URL=(str, "/media/"),
-    # -- File System
     DJANGO_STATIC_ROOT=(str, os.path.join(BASE_DIR, "assets/static")),  # Where to store
-    DJANGO_MEDIA_ROOT=(str, os.path.join(BASE_DIR, "assets/media")),  # Where to store
-    # -- Azure blob storage (NOTE: High priority then S3)
-    AZURE_STORAGE_ENABLE=(bool, False),
-    AZURE_STORAGE_MEDIA_CONTAINER=str,  # media
-    AZURE_STORAGE_STATIC_CONTAINER=str,  # static
-    AZURE_STORAGE_CONNECTION_STRING=(str, None),
-    AZURE_STORAGE_ACCOUNT_NAME=str,
-    AZURE_STORAGE_ACCOUNT_KEY=(str, None),
-    AZURE_STORAGE_TOKEN_CREDENTIAL=(str, None),
-    AZURE_STORAGE_MANAGED_IDENTITY=(bool, False),
-    # -- S3
-    AWS_S3_BUCKET_ENABLE=(bool, False),
-    AWS_S3_ENDPOINT_URL=str,
-    AWS_S3_ACCESS_KEY_ID=str,
-    AWS_S3_SECRET_ACCESS_KEY=str,
-    AWS_S3_REGION=str,
-    AWS_S3_MEDIA_BUCKET_NAME=str,
-    AWS_S3_STATIC_BUCKET_NAME=str,
-    # Sentry
-    SENTRY_DSN=(str, None),
-    SENTRY_DEBUG=(bool, False),
-    SENTRY_TRACES_SAMPLE_RATE=(float, 0.2),
-    SENTRY_PROFILE_SAMPLE_RATE=(float, 0.2),
-    # ETL Source configs
+    DJANGO_STATIC_URL=(str, "/static/"),
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
-    IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
-    # ETL Load configs
-    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
+    IDU_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
 )
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
-IDMC_DATA_URL = env("IDMC_DATA_URL")
-
-EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+IDU_DATA_URL = env("IDU_DATA_URL")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-DJANGO_APP_ENVIRONMENT = env("DJANGO_APP_ENVIRONMENT")
-DJANGO_APP_TYPE = env("DJANGO_APP_TYPE")
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = env("DJANGO_DEBUG")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DJANGO_DEBUG")
 
-ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOST")
 
 # Redis
 CELERY_REDIS_URL = env("CELERY_REDIS_URL")
@@ -108,16 +71,12 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # Application definition
 
 INSTALLED_APPS = [
-    # Core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # External
-    "django_celery_beat",
-    # Internal
     "apps.common",
     "apps.etl",
 ]
@@ -198,114 +157,20 @@ USE_I18N = True
 
 USE_TZ = True
 
+
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
-# TODO: Use custom config for static files
-STATICFILES_DIRS = [
-    str(BASE_DIR.joinpath("apps/static")),
-]
+# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-LOCAL_CACHE_DATA_DIR = "/local-cache-data"
 STATIC_URL = env("DJANGO_STATIC_URL")
-MEDIA_URL = env("DJANGO_MEDIA_URL")
 
-if env("AZURE_STORAGE_ENABLE"):
-
-    AZURE_STORAGE_CONFIG_OPTIONS = {
-        "connection_string": env("AZURE_STORAGE_CONNECTION_STRING"),
-        "overwrite_files": False,
-    }
-
-    if not env("AZURE_STORAGE_CONNECTION_STRING"):
-        AZURE_STORAGE_CONFIG_OPTIONS.update(
-            {
-                "account_name": env("AZURE_STORAGE_ACCOUNT_NAME"),
-                "account_key": env("AZURE_STORAGE_ACCOUNT_KEY"),
-                "token_credential": env("AZURE_STORAGE_TOKEN_CREDENTIAL"),
-            }
-        )
-
-        if env("AZURE_STORAGE_MANAGED_IDENTITY"):
-            AZURE_STORAGE_CONFIG_OPTIONS["token_credential"] = DefaultAzureCredential()
-
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.azure_storage.AzureStorage",
-            "OPTIONS": {
-                **AZURE_STORAGE_CONFIG_OPTIONS,
-                "azure_container": env("AZURE_STORAGE_MEDIA_CONTAINER"),
-            },
-        },
-        "staticfiles": {
-            "BACKEND": "storages.backends.azure_storage.AzureStorage",
-            "OPTIONS": {
-                **AZURE_STORAGE_CONFIG_OPTIONS,
-                "azure_container": env("AZURE_STORAGE_STATIC_CONTAINER"),
-                "overwrite_files": True,
-            },
-        },
-    }
-
-elif env("AWS_S3_BUCKET_ENABLE"):
-    AWS_S3_ENDPOINT_URL = env("AWS_S3_ENDPOINT_URL")
-
-    AWS_S3_ACCESS_KEY_ID = env("AWS_S3_ACCESS_KEY_ID")
-    AWS_S3_SECRET_ACCESS_KEY = env("AWS_S3_SECRET_ACCESS_KEY")
-    AWS_S3_REGION_NAME = env("AWS_S3_REGION")
-
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-            "OPTIONS": {
-                "bucket_name": env("AWS_S3_MEDIA_BUCKET_NAME"),
-                "location": "media/",
-                "file_overwrite": False,
-            },
-        },
-        "staticfiles": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-            "OPTIONS": {
-                "bucket_name": env("AWS_S3_STATIC_BUCKET_NAME"),
-                "querystring_auth": False,
-                "location": "static/",
-                "file_overwrite": True,
-            },
-        },
-    }
-
-else:
-    STATIC_ROOT = env("DJANGO_STATIC_ROOT")
-    MEDIA_ROOT = env("DJANGO_MEDIA_ROOT")
-
-
-# Sentry Config
-SENTRY_DSN = env("SENTRY_DSN")
-SENTRY_ENABLED = False
-if SENTRY_DSN:
-    SENTRY_ENABLED = True
-    SENTRY_CONFIG = {
-        "app_type": DJANGO_APP_TYPE,
-        "dsn": SENTRY_DSN,
-        "send_default_pii": True,
-        # "release": env("APP_RELEASE"),  # TODO:
-        "environment": DJANGO_APP_ENVIRONMENT,
-        "traces_sample_rate": env("SENTRY_TRACES_SAMPLE_RATE"),
-        "profiles_sample_rate": env("SENTRY_PROFILE_SAMPLE_RATE"),
-        "debug": env("SENTRY_DEBUG"),
-        "tags": {
-            "site": ",".join(set(ALLOWED_HOSTS)),
-        },
-    }
-    sentry.init_sentry(**SENTRY_CONFIG)
-
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
@@ -322,10 +187,6 @@ CELERY_BEAT_SCHEDULE = {
     },
     "import_gidd_data": {
         "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
-    },
-    "import_usgs_data": {
-        "task": "apps.etl.tasks.extract_usgs_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {

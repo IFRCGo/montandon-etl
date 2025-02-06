@@ -1,26 +1,30 @@
+import hashlib
 import json
 import logging
-import requests
+import os
 from typing import Any, Callable
-from datetime import datetime, timedelta
-from django.conf import settings
 
-from apps.etl.extraction.sources.base.utils import (
-    hash_file_content,
-    manage_duplicate_file_content,
-)
+import ee
+import requests
+
+from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from main.celery import app
 
 logger = logging.getLogger(__name__)
 
-import ee
-import os
 
 DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/assets/GLOBAL_FLOOD_DB/MODIS_EVENTS/V1"
 
+
 class GFDExtraction(BaseExtraction):
 
+    @classmethod
+    def hash_json_content(cls, json_data):
+        """Hashes a JSON object using SHA256."""
+        json_string = json.dumps(json_data, sort_keys=True)  # Ensure consistent ordering
+        return hashlib.sha256(json_string.encode()).hexdigest()
 
     @classmethod
     def store_extraction_data(
@@ -35,7 +39,7 @@ class GFDExtraction(BaseExtraction):
         """
         file_extension = "json"
         file_name = f"{source}.{file_extension}"
-        resp_data_content = response
+        resp_data_content = json.dumps(response)
 
         # save the additional response data after the data is fetched from api.
         extraction_instance = ExtractionData.objects.get(id=instance_id)
@@ -50,9 +54,7 @@ class GFDExtraction(BaseExtraction):
                 extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
             # manage duplicate file content.
-            resp_data_content = str(resp_data_content).encode("utf-8")
-            hash_content = hash_file_content(resp_data_content)
-
+            hash_content = cls.hash_json_content(resp_data_content)
             manage_duplicate_file_content(
                 source=extraction_instance.source,
                 hash_content=hash_content,
@@ -85,13 +87,11 @@ class GFDExtraction(BaseExtraction):
     def get_flood_data(cls, collection, batch_size=1000):
         """Retrieve flood metadata in batches to avoid memory issues."""
         total_size = collection.size().getInfo()
-        # print(f"Total flood events: {total_size}")
 
         all_data = []
         for i in range(0, total_size, batch_size):
             batch = collection.toList(batch_size, i).getInfo()
             all_data.extend([feature for feature in batch])
-            # print(f"Fetched {len(all_data)}/{total_size} records")
 
         return all_data
 
@@ -103,14 +103,11 @@ class GFDExtraction(BaseExtraction):
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        # print("Starting data extraction")
         instance = cls._create_extraction_instance(url=url, source=source)
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
-
             response = cls.extract_data(start_date, end_date)
-
             response_data = cls._save_response_data(instance, response)
             # Check if response contains data
             if response_data:
@@ -125,7 +122,6 @@ class GFDExtraction(BaseExtraction):
                 )
                 logger.warning("No hazard data found in response")
 
-            # print("Data extraction done")
             return instance.id
 
         except requests.exceptions.RequestException:
@@ -163,27 +159,10 @@ class GFDExtraction(BaseExtraction):
         if start_date and end_date:
             gfd_data = gfd_data.filterDate(str(start_date), str(end_date))
 
-
         flood_data = cls.get_flood_data(gfd_data, batch_size=500)
-        print(f"Extracted {len(flood_data)} flood events.")
-
-        # Check if there are flood events in this time range
-        count = gfd_data.size().getInfo()
-        print(f"Number of flood events found: {count}")
-
-
         return flood_data
 
     @staticmethod
     @app.task
     def task(start_date=None, end_date=None):
-        return GFDExtraction().handle_extraction(
-            DATA_URL,
-            ExtractionData.Source.GIDD,
-            start_date,
-            end_date
-        )
-
-
-
-
+        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GIDD, start_date, end_date)

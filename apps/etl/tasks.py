@@ -9,11 +9,11 @@ from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
     fetch_event_data,
     fetch_gdacs_geometry_data,
 )
+from apps.etl.extraction.sources.gfd.extract import GFDExtraction
 from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import (  # noqa: F401
     import_hazard_data as import_glide_data,
 )
-from apps.etl.extraction.sources.global_flood_database.extract import GFDExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.models import ExtractionData, HazardType  # noqa: F401
 from apps.etl.transform.sources.gdacs import (  # noqa: F401
@@ -21,6 +21,7 @@ from apps.etl.transform.sources.gdacs import (  # noqa: F401
     transform_geo_data,
     transform_impact_data,
 )
+from apps.etl.transform.sources.gfd import GFDTransformHandler  # noqa: F401
 from apps.etl.transform.sources.gidd import GIDDTransformHandler  # noqa: F401
 from apps.etl.transform.sources.glide import transform_glide_event_data  # noqa: F401
 from apps.etl.transform.sources.handler import BaseTransformerHandler
@@ -56,6 +57,11 @@ def extract_emdat_data():
 @shared_task
 def extract_gidd_data():
     call_command("extract_gidd_data")
+
+
+@shared_task
+def extract_gfd_data():
+    call_command("extract_gfd_data")
 
 
 @shared_task
