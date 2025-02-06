@@ -36,14 +36,14 @@ env = environ.Env(
     DJANGO_STATIC_URL=(str, "/static/"),
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
-    IDU_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
 )
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
-IDU_DATA_URL = env("IDU_DATA_URL")
+IDMC_DATA_URL = env("IDMC_DATA_URL")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -184,6 +184,10 @@ CELERY_BEAT_SCHEDULE = {
     "import_emdat_data": {
         "task": "apps.etl.tasks.extract_emdat_data",
         "schedule": crontab(minute=0, hour=6),  # This task execute daily at 12 AM (UTC)
+    },
+    "import_gidd_data": {
+        "task": "apps.etl.tasks.extract_gidd_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",

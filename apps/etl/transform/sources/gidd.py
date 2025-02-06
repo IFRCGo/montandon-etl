@@ -1,0 +1,22 @@
+from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
+
+from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.handler import BaseTransformerHandler
+from main.celery import app
+
+
+class GIDDTransformHandler(BaseTransformerHandler):
+    transformer = GIDDTransformer
+    transformer_schema = GIDDDataSource
+
+    @classmethod
+    def get_schema_data(cls, extraction_obj: ExtractionData):
+        with extraction_obj.resp_data.open() as file_data:
+            data = file_data.read()
+
+        return cls.transformer_schema(source_url=extraction_obj.url, data=data)
+
+    @staticmethod
+    @app.task
+    def task(extraction_id):
+        return GIDDTransformHandler().handle_transformation(extraction_id)
