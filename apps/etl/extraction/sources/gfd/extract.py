@@ -1,11 +1,13 @@
+import base64
 import hashlib
 import json
 import logging
-import os
+import tempfile
 from typing import Any, Callable
 
 import ee
 import requests
+from django.conf import settings
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
@@ -21,9 +23,23 @@ DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-lega
 class GFDExtraction(BaseExtraction):
 
     @classmethod
+    def decode_json(cls, encoded_str):
+        """Decodes a Base64 string back to a JSON object."""
+        decoded_data = base64.urlsafe_b64decode(encoded_str.encode()).decode()
+        return json.loads(decoded_data)
+
+    @classmethod
+    def get_json_credentials(cls, content):
+        with tempfile.NamedTemporaryFile(delete=False, mode="w") as temp_file:
+            json_string = json.dumps(content, sort_keys=True)
+            temp_file.write(json_string)
+            temp_path = temp_file.name
+        return temp_path
+
+    @classmethod
     def hash_json_content(cls, json_data):
         """Hashes a JSON object using SHA256."""
-        json_string = json.dumps(json_data, sort_keys=True)  # Ensure consistent ordering
+        json_string = json.dumps(json_data, sort_keys=True)
         return hashlib.sha256(json_string.encode()).hexdigest()
 
     @classmethod
@@ -138,18 +154,14 @@ class GFDExtraction(BaseExtraction):
     @classmethod
     def extract_data(cls, start_date=None, end_date=None):
         # Set up authentication
-        # TODO Remove this autherntication and use official authentication
-        service_account = "rup-rajbanshi@gidd-1671534293682.iam.gserviceaccount.com"
+        service_account = settings.GFD_SERVICE_ACCOUNT
 
-        # Get the script's directory
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-        # Construct the JSON file path
-        # TODO Add json key file official
-        json_key_path = os.path.join(BASE_DIR, "gidd-1671534293682-dab333fe24ec.json")
+        # # Decode the earthengine credential
+        decoded_json = cls.decode_json(settings.GFD_CREDENTIAL)
+        credential_file_path = cls.get_json_credentials(decoded_json)
 
         # Authenticate
-        credentials = ee.ServiceAccountCredentials(service_account, json_key_path)
+        credentials = ee.ServiceAccountCredentials(service_account, credential_file_path)
         ee.Initialize(credentials)
 
         # Load Global Flood Database (GFD)
