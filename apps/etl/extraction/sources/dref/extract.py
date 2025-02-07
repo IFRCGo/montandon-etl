@@ -17,7 +17,7 @@ from apps.etl.extraction.sources.base.utils import (
 
 logger = logging.getLogger(__name__)
 
-DATA_URL = f"{settings.IFRC_DATA_URL}/api/v2/appeal/"
+DATA_URL = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=2,3"
 PARAMS = {
     "limit": 50,
     "offset": 0,
@@ -36,9 +36,8 @@ class DREFExtraction(BaseExtraction):
         Compute the hash of a file using the specified algorithm.
         :return: Hexadecimal hash of the file
         """
-        print("content tye", type(content))
-        # content = json.dumps(content, sort_keys=True)
-        # content = content.encode("utf-8")
+        content = json.dumps(content, sort_keys=True)
+        content = content.encode("utf-8")
         return hashlib.sha256(content).hexdigest()
 
     @classmethod
@@ -52,7 +51,6 @@ class DREFExtraction(BaseExtraction):
         """
         Save extracted data into data base. Checks for duplicate conent using hashing.
         """
-        print("Inside store data")
         file_extension = "json"
         file_name = f"{source}.{file_extension}"
         resp_data = response
@@ -88,22 +86,18 @@ class DREFExtraction(BaseExtraction):
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        print("Starting DREF data extraction")
         instance = cls._create_extraction_instance(url=url, source=source)
 
-        all_data = {}
+        all_data = []
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
             while True:
-                print("Extracting")
                 response = requests.get(url, params=params, headers=headers, timeout=30)
                 response.raise_for_status()
                 instance.resp_code = response.status_code
                 data_json = response.json()
-                if not all_data:
-                    all_data = data_json
-                all_data["results"].append(data_json.get("results", []))
+                all_data.extend(data_json.get("results", []))
                 # Check if there's a next page
                 if not data_json.get("next"):
                     break
