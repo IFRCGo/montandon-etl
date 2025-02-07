@@ -1,3 +1,5 @@
+from main.celery import app
+
 from .handler import BaseTransformerHandler
 
 
@@ -7,8 +9,7 @@ class PDCTransformHandler(BaseTransformerHandler):
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
-        with extraction_obj.resp_data.open() as file_data:
-            data = file_data.read()
+        data = extraction_obj.resp_data.file.url
 
         return cls.transformer_schema(source_url=extraction_obj.url, data=data)
 
