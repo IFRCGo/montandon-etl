@@ -5,6 +5,8 @@ from apps.etl.models import ExtractionData
 from main.celery import app
 
 DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/"
+HEADERS = {"accept": "application/json"}
+PARAMS = {"client_id": settings.IDMC_CLIENT_ID}
 
 
 class GIDDExtraction(BaseExtraction):
@@ -15,4 +17,9 @@ class GIDDExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task():
-        return GIDDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GIDD)
+        return GIDDExtraction().handle_extraction(
+            DATA_URL,
+            PARAMS,
+            HEADERS,
+            ExtractionData.Source.GIDD
+        )

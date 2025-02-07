@@ -70,15 +70,19 @@ env = environ.Env(
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
-    # ETL Load configs
-    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
     GFD_SERVICE_ACCOUNT=str,
+    IFRC_DATA_URL=str,
+
+    # ETL Load configs
+    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
 )
 
 GFD_SERVICE_ACCOUNT = env("GFD_SERVICE_ACCOUNT")
 
 GFD_CREDENTIAL = env("GFD_CREDENTIAL")
+
+IFRC_DATA_URL = env("IFRC_DATA_URL")
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
