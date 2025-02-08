@@ -1,0 +1,24 @@
+{{- if .Values.worker.enabled }}
+{{- if .Values.worker.flower.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "montandon-etl.fullname" . }}-celery-flower
+  labels:
+    app: {{ include "montandon-etl.fullname" . }}
+    component: celery-flower
+    environment: {{ .Values.environment }}
+    release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "montandon-etl.fullname" . }}
+    component: worker-flower
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+
+{{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if .Values.api.enabled -}}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "montandon-etl.fullname" . }}-api
+  labels:
+    app: {{ include "montandon-etl.fullname" . }}
+    component: api
+    environment: {{ .Values.environment }}
+    release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "montandon-etl.fullname" . }}
+    component: api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: {{ .Values.api.containerPort }}
+
+{{- end }}
