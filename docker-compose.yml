@@ -1,3 +1,4 @@
+
 x-server: &base_server_setup
   restart: unless-stopped
   image: etl-montandon/server
@@ -8,7 +9,7 @@ x-server: &base_server_setup
   tty: true
   env_file:
     - .env
-  environment:
+  environment: &base_server_environments
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?err}
       DB_NAME: ${DB_NAME:-postgres}
@@ -17,10 +18,12 @@ x-server: &base_server_setup
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
       CELERY_REDIS_URL: ${CELERY_REDIS_URL:-redis://redis:6379/0}
-      DJANGO_CACHE_REDIS_URL: ${DJANGO_CACHE_REDIS_URL:-redis://redis:6379/1}
-
+      # Sources
+      EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
+      IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
   volumes:
     - .:/code
+    - ipython_data_local:/root/.ipython/profile_default   # persist ipython data, including ipython history
   depends_on:
     - db
     - redis
@@ -44,22 +47,31 @@ services:
   web:
     <<: *base_server_setup
     command: bash -c "/code/scripts/run_develop.sh"
+    environment:
+      <<: *base_server_environments
+      DJANGO_APP_TYPE: "web"
     ports:
       - 8000:8000
-
     depends_on:
       - db
       - redis
 
   celery-beat:
     <<: *base_server_setup
+    environment:
+      <<: *base_server_environments
+      DJANGO_APP_TYPE: "worker"
     command: bash -c "/code/scripts/run_worker_beat.sh"
 
   worker:
     <<: *base_server_setup
+    environment:
+      <<: *base_server_environments
+      DJANGO_APP_TYPE: "worker"
     # command: celery -A main worker --loglevel=info
     command: bash -c "/code/scripts/run_worker.sh"
 
 volumes:
   postgres-data:
   redis-data:
+  ipython_data_local:
