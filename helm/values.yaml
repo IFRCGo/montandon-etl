@@ -1,0 +1,193 @@
+environment: prod
+
+image:
+  name: SET-BY-CICD-IMAGE
+  tag: SET-BY-CICD-TAG
+
+ingress:
+  enabled: false
+  host:
+  className:
+  tls:
+    enabled: false
+    secretName:
+
+redis:
+  enabled: true
+  architecture: standalone
+  fullnameOverride: montandon-etl-redis
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: .5Gi
+      storageClass:
+
+# https://artifacthub.io/packages/helm/bitnami/minio
+# extraEnvVars: https://github.com/bitnami/containers/blob/main/bitnami/minio/README.md#environment-variables
+minio:
+  enabled: false
+  disableWebUI: true
+  mode: standalone
+  fullnameOverride: montandon-etl-minio
+  global:
+    defaultStorageClass:
+  apiIngress:
+    enabled: true
+    ingressClassName:  # NOTE: Define me when used
+    hostname:  # NOTE: Define me when used
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+  auth:
+    forceNewKeys: True
+    rootUser: montandon-etl
+    rootPassword:  # NOTE: Define me when used
+  persistence:
+    enabled: true
+    size: 1Gi
+  defaultBuckets: montandon-etl-data,montandon-etl-static  # XXX: Don't change this
+  provisioning:
+    enabled: true
+    resourcesPreset: "nano"
+    cleanupAfterFinished:
+      enabled: true
+    extraCommands:
+      - "mc anonymous set download provisioning/montandon-etl-static"
+
+postgresql:
+  enabled: false
+  fullnameOverride: ""
+  architecture: standalone
+  auth:
+    postgresPassword: ""  # user is "postgres"
+    database: ""
+  primary:
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 8Gi
+
+api:
+  enabled: true
+  replicaCount: 1
+  containerPort: 80
+  resources:
+    requests:
+      cpu: "2"
+      memory: 0.5Gi
+    limits:
+      cpu: "2"
+      memory: 1Gi
+
+worker:
+  enabled: true
+  beat:
+    resources:
+      requests:
+        cpu: "1"
+        memory: 0.5Gi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  flower:
+    enabled: false
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 0.5Gi
+      limits:
+        cpu: "1"
+        memory: 1Gi
+  queues:
+    # NOTE: Make sure keys are lowercase
+    default:
+      enabled: true
+      replicaCount: 2
+      celeryArgs:
+        - "-Q"
+        - "celery"
+        - "--concurrency"
+        - "4"
+        - "--max-tasks-per-child"
+        - "10"
+      resources:
+        requests:
+          cpu: "1"
+          memory: 1Gi
+        limits:
+          cpu: "1"
+          memory: 2Gi
+
+argoHooks:
+  # NOTE: Make sure keys are lowercase
+  db-migrate:
+    enabled: true
+    hook: PostSync
+    preserveHistory: true
+    command: ["./manage.py", "migrate"]
+    requestsCpu: 0.1
+    requestsMemory: 1G
+    limitsCpu: 4
+    limitsMemory: 2G
+  collect-static:
+    enabled: true
+    hook: PostSync
+    command: ["./manage.py", "collectstatic", "--noinput"]
+
+env:
+  # DJANGO_APP_ENVIRONMENT: using .environment
+  DJANGO_DEBUG: false
+  DJANGO_TIME_ZONE: UTC
+  # App Domain
+  DJANGO_ALLOWED_HOSTS: "*"
+  # Azure configs
+  AZURE_STORAGE_ENABLE: false
+  AZURE_STORAGE_ACCOUNT_NAME:
+  AZURE_STORAGE_MEDIA_CONTAINER:
+  AZURE_STORAGE_STATIC_CONTAINER:
+# NOTE: Used to pass additional configs to api/worker containers
+# NOTE: Not used by azure vault
+envAdditional:
+  # USE_S3_BUCKET: "true"
+
+secretsName: ""
+secrets:
+  DJANGO_SECRET_KEY:
+  # Database
+  DB_NAME:
+  DB_USER:
+  DB_PASSWORD:
+  DB_HOST:
+  DB_PORT:
+  # Sentry
+  SENTRY_DSN:
+  # Redis (Provide: if not redis.enabled)
+  # - Celery
+  CELERY_REDIS_URL:
+  # Sources
+  EMDAT_AUTHORIZATION_KEY:
+  IDMC_CLIENT_ID:
+# NOTE: Used to pass additional secrets to api/worker containers
+# NOTE: Not used by azure vault
+secretsAdditional:
+  # AWS_S3_ACCESS_KEY_ID: "VERY-SENSITIVE-KEY-ID"
+
+# Azure configurations
+azure:
+  aksSecretsProviderAvailable: false
+  keyvault:
+    name: ""
+    clientId: ""
+    tenantId: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  # Required when using workload identity to access Azure Key Vault Secrets
+  create: false
+  automount: true
+  annotations:
+    azure.workload.identity/client-id : "<workload_identity_client_id>"
+  labels:
+    azure.workload.identity/use: "true"
+  name: ""
