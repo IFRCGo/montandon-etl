@@ -34,7 +34,7 @@ spec:
       containers:
         - name: api
           image: "{{ .Values.image.name }}:{{ .Values.image.tag }}"
-          command: ["/code/deploy/run_web.sh"]
+          command: ["/code/scripts/run_web.sh"]
           ports:
             - name: http
               containerPort: {{ .Values.api.containerPort }}
