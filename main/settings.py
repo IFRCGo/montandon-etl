@@ -104,12 +104,16 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # Application definition
 
 INSTALLED_APPS = [
+    # Core
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # External
+    "django_celery_beat",
+    # Internal
     "apps.common",
     "apps.etl",
 ]
@@ -295,6 +299,8 @@ if SENTRY_DSN:
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
