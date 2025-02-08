@@ -1,0 +1,12 @@
+services:
+  web:
+    image: $DOCKER_IMAGE_BACKEND
+    build: !reset null
+    env_file: !reset null
+    environment:
+      CI: "true"
+    volumes:
+      - ./coverage/:/code/coverage/
+
+  celery-beat: !reset null
+  worker:  !reset null
