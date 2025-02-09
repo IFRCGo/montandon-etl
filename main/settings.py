@@ -201,6 +201,7 @@ STATICFILES_DIRS = [
     str(BASE_DIR.joinpath("apps/static")),
 ]
 
+LOCAL_CACHE_DATA_DIR = "/local-cache-data"
 STATIC_URL = env("DJANGO_STATIC_URL")
 MEDIA_URL = env("DJANGO_MEDIA_URL")
 

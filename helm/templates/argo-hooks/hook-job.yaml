@@ -41,6 +41,14 @@ spec:
                 name: {{ template "montandon-etl.secretname" $ }}
             - configMapRef:
                 name: {{ template "montandon-etl.fullname" $ }}-api-configmap
+          volumeMounts:
+            - mountPath: "/local-cache-data"
+              name: local-cache-volume
+
+      volumes:
+        - name: local-cache-volume
+          persistentVolumeClaim:
+            claimName: {{ template "montandon-etl.fullname" $ }}-local-cache
 
       {{- if $.Values.serviceAccount.create }}
       serviceAccountName: {{ include "montandon-etl.serviceAccountName" $ }}

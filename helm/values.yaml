@@ -68,6 +68,11 @@ postgresql:
       storageClass: ""
       size: 8Gi
 
+# NOTE: Shared volume as local cache: Files required by transformers
+localCacheVolume:
+  storageClass:
+  size: 2Gi
+
 api:
   enabled: true
   replicaCount: 1
@@ -134,6 +139,10 @@ argoHooks:
     enabled: true
     hook: PostSync
     command: ["./manage.py", "collectstatic", "--noinput"]
+  local-cache-pull:
+    enabled: true
+    hook: PostSync
+    command: ["./manage.py", "local_cache_pull"]
 
 env:
   # DJANGO_APP_ENVIRONMENT: using .environment
