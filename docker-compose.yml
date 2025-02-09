@@ -18,9 +18,11 @@ x-server: &base_server_setup
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
       CELERY_REDIS_URL: ${CELERY_REDIS_URL:-redis://redis:6379/0}
-      # Sources
+      # ETL Sources
       EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
       IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
+      # ETL Load
+      EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
   volumes:
     - .:/code
     - ipython_data_local:/root/.ipython/profile_default   # persist ipython data, including ipython history
