@@ -50,12 +50,14 @@ spec:
                 name: {{ template "montandon-etl.secretname" . }}
             - configMapRef:
                 name: {{ template "montandon-etl.fullname" . }}-api-configmap
-          {{- if .Values.azure.aksSecretsProviderAvailable }}
           volumeMounts:
+            - mountPath: "/local-cache-data"
+              name: local-cache-volume
+            {{- if .Values.azure.aksSecretsProviderAvailable }}
             - name: {{ include "montandon-etl.secretname" . }}
               mountPath: /mnt/secrets-store
               readOnly: true
-          {{- end }}
+            {{- end }}
 
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -66,14 +68,17 @@ spec:
       serviceAccountName: {{ include "montandon-etl.serviceAccountName" . }}
       {{- end }}
 
-      {{- if .Values.azure.aksSecretsProviderAvailable }}
       volumes:
+        - name: local-cache-volume
+          persistentVolumeClaim:
+            claimName: {{ template "montandon-etl.fullname" . }}-local-cache
+        {{- if .Values.azure.aksSecretsProviderAvailable }}
         - name: {{ include "montandon-etl.secretname" . }}
           csi:
             driver: secrets-store.csi.k8s.io
             readOnly: true
             volumeAttributes:
               secretProviderClass: {{ include "montandon-etl.fullname" . }}-secret-provider
-      {{- end }}
+        {{- end }}
 
 {{- end }}
