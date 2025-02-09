@@ -12,6 +12,9 @@ data:
   DJANGO_TIME_ZONE: {{ default "UTC" .Values.env.DJANGO_TIME_ZONE | quote }}
   DJANGO_ALLOWED_HOSTS: {{ required "env.DJANGO_ALLOWED_HOSTS" .Values.env.DJANGO_ALLOWED_HOSTS | quote }}
 
+  # ETL Load config
+  EOAPI_DOMAIN: {{ required "env.EOAPI_DOMAIN" .Values.env.EOAPI_DOMAIN | quote }}
+
   {{- if .Values.env.AZURE_STORAGE_ENABLE }}
   # Azure configs
   AZURE_STORAGE_ENABLE: "true"

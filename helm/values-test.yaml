@@ -16,6 +16,8 @@ env:
   DJANGO_TIME_ZONE: UTC
   # App Domain
   DJANGO_ALLOWED_HOSTS: "*"
+  # ETL Load config
+  EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun

@@ -66,10 +66,12 @@ env = environ.Env(
     SENTRY_DEBUG=(bool, False),
     SENTRY_TRACES_SAMPLE_RATE=(float, 0.2),
     SENTRY_PROFILE_SAMPLE_RATE=(float, 0.2),
-    # Source configs
+    # ETL Source configs
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    # ETL Load configs
+    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
 )
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
@@ -77,6 +79,8 @@ EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 IDMC_DATA_URL = env("IDMC_DATA_URL")
+
+EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 

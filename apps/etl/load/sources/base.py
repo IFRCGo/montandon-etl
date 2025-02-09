@@ -1,5 +1,8 @@
+import urllib.parse
+
 import requests
 from celery.utils.log import get_task_logger
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.etl.models import PyStacLoadData
@@ -10,8 +13,10 @@ logger = get_task_logger(__name__)
 
 def send_post_request_to_stac_api(result, collection_id):
     try:
-        # url = f"http://montandon-eoapi-stage.ifrc.org/stac/collections/{collection_id}/items"
-        url = f"https://montandon-eoapi-1.ifrc-go.dev.togglecorp.com/stac/collections/{collection_id}/items"
+        url = urllib.parse.urljoin(
+            settings.EOAPI_DOMAIN,
+            f"/stac/collections/{collection_id}/items",
+        )
 
         response = requests.post(url, json=result, headers={"Content-Type": "application/json"})
         response.raise_for_status()
