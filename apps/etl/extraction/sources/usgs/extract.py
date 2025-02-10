@@ -99,7 +99,9 @@ def import_hazard_data(self, **kwargs):
             instance_id=usgs_instance.id,
         )
         if usgs_instance.resp_code == 200:
-            response_data = json.loads(usgs_instance.resp_data.read())
+            with usgs_instance.resp_data.open() as file_data:
+                response_data = file_data.read()
+
             for feature in response_data["features"]:
                 chain(
                     fetch_detail.s(usgs_instance, feature["properties"]["detail"]),
