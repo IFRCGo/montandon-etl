@@ -189,6 +189,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.etl.tasks.extract_gidd_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
+    "import_usgs_data": {
+        "task": "apps.etl.tasks.extract_usgs_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
         "schedule": crontab(minute=0, hour=0),  # TODO Set time to run this job
