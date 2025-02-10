@@ -1,7 +1,8 @@
 FROM python:3.12-slim-bullseye AS base
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.5.29 /uv /uvx /bin/
 
-LABEL maintainer="Togglecorp Dev"
+LABEL maintainer="Montandon Dev"
+LABEL org.opencontainers.image.source="https://github.com/IFRCGo/montandon-etl/"
 
 ENV PYTHONUNBUFFERED=1
 

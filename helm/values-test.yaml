@@ -1,0 +1,72 @@
+environment: test
+
+image:
+  name: test-image
+  tag: random-hash
+
+ingress:
+  enabled: true
+  host: test.com
+  className: "nginx"
+
+env:
+  # DJANGO_APP_ENVIRONMENT: using .environment
+  # APP_RELEASE: using .image.tag
+  DJANGO_DEBUG: false
+  DJANGO_TIME_ZONE: UTC
+  # App Domain
+  DJANGO_ALLOWED_HOSTS: "*"
+  # ETL Load config
+  EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
+envAdditional:
+  ENABLE_MAGIC: "true"
+  MAGIC_TYPE: fun
+
+secretsName: ""
+secrets:
+  DJANGO_SECRET_KEY: dummy-secret-key
+  # Database
+  DB_NAME: dummy
+  DB_USER: dummy
+  DB_PASSWORD: dummy
+  DB_HOST: dummy
+  DB_PORT: 5432
+  # Sentry
+  SENTRY_DSN: dummy.com/dummy-id
+  # Sources
+  EMDAT_AUTHORIZATION_KEY: dummy-key
+  IDMC_CLIENT_ID: dummy-client-id
+secretsAdditional:
+  ENABLE_MAGIC_SECRET: "true"
+  MAGIC_KEY: to-much-fun
+
+argoHooks:
+  db-migrate:
+    preserveHistory: false
+  custom-python-script-01:
+    enabled: true
+    hook: PostSync
+    command:
+      - ./manage.py
+      - shell
+      - -c
+      - |
+        from django.contrib.auth import get_user_model;
+        from django.db import transaction;
+
+        User = get_user_model();
+
+        @transaction.atomic
+        def create_initial_users(user_data):
+            user, _ = User.objects.update_or_create(
+                email=email,
+                defaults={
+                  "first_name": "Hi"
+                  "last_name": "there"
+                  "is_superuser": False,
+                  "is_staff": False,
+                  "password": "not-working-password-hash",
+                },
+            )
+            print(f"Successfully created/update user {email=}");
+        create_initial_users(user_data);

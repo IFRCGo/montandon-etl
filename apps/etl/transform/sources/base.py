@@ -15,8 +15,6 @@ collection_and_item_type_map = {
     "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
 }
 
-geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
-
 
 @shared_task
 def transform_data(source, transformer, data_source, extraction_id, data):
@@ -31,6 +29,9 @@ def transform_data(source, transformer, data_source, extraction_id, data):
 
     # initialize bulk manager to create the PyStacLoadData in bulk.
     bulk_mgr = BulkCreateManager(chunk_size=1000)
+
+    # XXX: Local file is used
+    geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
 
     try:
         # Get transformer for each source and transform it to stac item..

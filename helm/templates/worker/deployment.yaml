@@ -1,0 +1,84 @@
+{{- if .Values.worker.enabled }}
+
+{{- range $queue_name, $config := .Values.worker.queues }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "montandon-etl.fullname" $ }}-worker-{{ $queue_name }}
+  labels:
+    app: {{ include "montandon-etl.fullname" $ }}
+    component: worker
+    queue: {{ $queue_name }}
+    environment: {{ $.Values.environment }}
+    release: {{ $.Release.Name }}
+  annotations:
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: {{ $config.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "montandon-etl.fullname" $ }}
+      component: worker
+      queue: {{ $queue_name }}
+  template:
+    metadata:
+      {{- if not $.Values.azure.aksSecretsProviderAvailable }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/config/secret.yaml") $ | sha256sum }}
+        checksum/configmap: {{ include (print $.Template.BasePath "/config/configmap.yaml") $ | sha256sum }}
+      {{- end }}
+      labels:
+        app: {{ include "montandon-etl.fullname" $ }}
+        component: worker
+        queue: {{ $queue_name }}
+        {{- if $.Values.serviceAccount.create }}
+        azure.workload.identity/use: "true"
+        {{- end }}
+    spec:
+      containers:
+        - name: worker
+          image: "{{ $.Values.image.name }}:{{ $.Values.image.tag }}"
+          command:
+            - "celery"
+            - "-A"
+            - "main"
+            - "worker"
+            - "-l"
+            - "INFO"
+            {{- toYaml $config.celeryArgs | nindent 12 }}
+          # TODO: livenessProbe
+          resources:
+            {{- toYaml $config.resources | nindent 12 }}
+          env:
+            - name: DJANGO_APP_TYPE
+              value: worker
+            - name: CELERY_ARGS
+              value: {{ required "worker.queues.*.celeryArgs" $config.celeryArgs | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ template "montandon-etl.secretname" $ }}
+            - configMapRef:
+                name: {{ template "montandon-etl.fullname" $ }}-api-configmap
+          volumeMounts:
+            - mountPath: "/local-cache-data"
+              name: local-cache-volume
+
+      volumes:
+        - name: local-cache-volume
+          persistentVolumeClaim:
+            claimName: {{ template "montandon-etl.fullname" $ }}-local-cache
+
+      {{- if $.Values.serviceAccount.create }}
+      serviceAccountName: {{ include "montandon-etl.serviceAccountName" $ }}
+      {{- end }}
+
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+{{- end }}
+
+{{- end }}
