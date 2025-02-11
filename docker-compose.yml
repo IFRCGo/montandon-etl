@@ -21,6 +21,8 @@ x-server: &base_server_setup
       # ETL Sources
       EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
       IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
+      GFD_CREDENTIAL: ${GFD_CREDENTIAL?error}
+      GFD_SERVICE_ACCOUNT: ${GFD_SERVICE_ACCOUNT?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
   volumes:

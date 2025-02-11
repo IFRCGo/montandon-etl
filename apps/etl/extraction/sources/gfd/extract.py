@@ -51,7 +51,7 @@ class GFDExtraction(BaseExtraction):
         instance_id: int = None,
     ):
         """
-        Save extracted data into data base. Checks for duplicate conent using hashing.
+        Save extracted data into database. Checks for duplicate content using hashing.
         """
         file_extension = "json"
         file_name = f"{source}.{file_extension}"
@@ -60,7 +60,7 @@ class GFDExtraction(BaseExtraction):
         # save the additional response data after the data is fetched from api.
         extraction_instance = ExtractionData.objects.get(id=instance_id)
         extraction_instance.resp_data_type = "application/json"
-        extraction_instance.save()
+        extraction_instance.save(update_fields=["resp_data_type"])
 
         # Validate the non empty response data.
         if resp_data_content:

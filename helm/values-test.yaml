@@ -36,6 +36,8 @@ secrets:
   # Sources
   EMDAT_AUTHORIZATION_KEY: dummy-key
   IDMC_CLIENT_ID: dummy-client-id
+  GFD_CREDENTIAL: dummy-gfd-cred
+  GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
 secretsAdditional:
   ENABLE_MAGIC_SECRET: "true"
   MAGIC_KEY: to-much-fun
