@@ -1,3 +1,8 @@
+import json
+
+from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
+
+from apps.etl.models import ExtractionData
 from main.celery import app
 
 from .handler import BaseTransformerHandler
@@ -9,11 +14,22 @@ class PDCTransformHandler(BaseTransformerHandler):
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
-        data = extraction_obj.resp_data.file.url
+        source_url = extraction_obj.url
+        print("---------->", extraction_obj)
+        data = {
+            "hazards_file_path": extraction_obj.parent.resp_data.path,
+            "exposure_timestamp": extraction_obj.metadata["exposure_id"],
+            "uuid": extraction_obj.metadata["uuid"],
+            "exposure_detail_file_path": extraction_obj.resp_data.path,
+            "geojson_file_path": "",
+        }
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data)
+        return cls.transformer_schema(source_url=source_url, data=json.dumps(data))
 
     @staticmethod
     @app.task
     def task(extraction_id):
         return PDCTransformHandler().handle_transformation(extraction_id)
+
+
+# from apps.etl.extraction.sources.pdc.extract import get_hazard_details

@@ -11,6 +11,7 @@ from apps.etl.extraction.sources.base.utils import (
     store_pdc_exposure_data,
 )
 from apps.etl.models import ExtractionData, HazardType
+from apps.etl.transform.sources.pdc import PDCTransformHandler
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ HAZARD_TYPE_MAP = {
     "EARTHQUAKE": HazardType.EARTHQUAKE,
     "EXTREMETEMPERATURE": HazardType.EXTREME_TEMPERATURE,
     "FLOOD": HazardType.FLOOD,
-    "HIGHSURF": HazardType.OTHER,
+    # "HIGHSURF": HazardType.OTHER,
     "HIGHWIND": HazardType.WIND,
     "LANDSLIDE": HazardType.LANDSLIDE,
     "SEVEREWEATHER": HazardType.OTHER,
@@ -35,24 +36,39 @@ HAZARD_TYPE_MAP = {
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def get_hazard_details(self, hazard_detail, **kwargs):
-    r = requests.get(
-        f"{settings.PDC_BASE_URL}/hazard/{hazard_detail['uuid']}/exposure",
-        headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
-    )
-    exposure = {}
-    for exposure_id in r.json():
-        print(f"Progress: {exposure_id}")
-        detail_url = f"{settings.PDC_BASE_URL}/hazard/{hazard_detail['uuid']}/exposure/{exposure_id}"
-        detail_response = requests.get(
-            url=detail_url,
+def get_hazard_details(self, extraction_id, **kwargs):
+    instance_id = ExtractionData.objects.get(id=extraction_id)
+    response_data = json.loads(instance_id.resp_data.read())
+    for hazard in response_data:
+        if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
+            continue
+        r = requests.get(
+            f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure",
             headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
         )
-        print(detail_response.text)
-        if detail_response.status_code == 200:
-            # exposure.update({exposure_id: detail_response.json()})
-            exposure[exposure_id] = detail_response.json()
-    return {**hazard_detail, "exposure": exposure}
+        for exposure_id in r.json():
+            if ExtractionData.objects.filter(
+                metadata__exposure_id=exposure_id,
+                source=ExtractionData.Source.PDC,
+                status=ExtractionData.Status.SUCCESS,
+                metadata__uuid=hazard["uuid"],
+            ).exists():
+                continue
+            detail_url = f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure/{exposure_id}"
+            detail_response = requests.get(
+                url=detail_url,
+                headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
+            )
+            exposure_detail = store_pdc_exposure_data(
+                response=detail_response.json(),
+                source=ExtractionData.Source.PDC,
+                validate_source_func=None,
+                parent_id=instance_id.id,
+                hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
+                metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
+            )
+            PDCTransformHandler.task(exposure_detail)
+    return None
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -103,22 +119,6 @@ def import_hazard_data(self, **kwargs):
             validate_source_func=None,
             instance_id=pdc_instance.id,
         )
-        if pdc_instance.resp_code == 200:
-            response_data = json.loads(pdc_instance.resp_data.read())
-            for hazard in response_data:
-                if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
-                    continue
-                hazard_detail = get_hazard_details(hazard_detail=hazard)
-                store_pdc_exposure_data(
-                    response=hazard_detail,
-                    source=ExtractionData.Source.PDC,
-                    validate_source_func=None,
-                    parent_id=pdc_instance.id,
-                    instance_id=pdc_instance.id,
-                    hazard_type=HAZARD_TYPE_MAP[hazard["type_ID"]],
-                )
-
-            logger.info("PDC data imported sucessfully")
         return pdc_instance.id
 
     logger.info("PDC data import failed")

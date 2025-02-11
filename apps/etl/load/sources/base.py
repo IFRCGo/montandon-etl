@@ -20,6 +20,7 @@ def send_post_request_to_stac_api(result, collection_id):
 
         response = requests.post(url, json=result, headers={"Content-Type": "application/json"})
         response.raise_for_status()
+        print(response)
         return response
     except requests.exceptions.RequestException as e:
         print(f"Error posting data for {collection_id}: {e}")
@@ -34,6 +35,7 @@ def load_data(django_command: BaseCommand | None = None):
     bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=1000)
     for item in transformed_items.iterator():
         # TODO Remove this after sucessfull testing
+        # import uuid
         # item.item["id"] = f"{item.item['collection']}-{uuid.uuid4()}"
 
         response = send_post_request_to_stac_api(item.item, f"{item.collection_id}")
