@@ -3,7 +3,6 @@ import logging
 from typing import Any, Callable
 
 import requests
-from django.conf import settings
 
 from apps.etl.extraction.sources.base.utils import (
     hash_file_content,

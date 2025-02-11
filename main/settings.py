@@ -342,6 +342,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.etl.etl_tasks.ext_and_transform_gfd_latest_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
+    "import_ifrc_event_data": {
+        "task": "apps.etl.etl_tasks.ext_and_transform_ifrcevent_latest_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
         "schedule": crontab(minute=0, hour=0),  # TODO Set time to run this job

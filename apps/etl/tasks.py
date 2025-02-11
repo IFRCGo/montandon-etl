@@ -15,6 +15,7 @@ from apps.etl.extraction.sources.glide.extract import (  # noqa: F401
     import_hazard_data as import_glide_data,
 )
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
+from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
 from apps.etl.models import ExtractionData, HazardType  # noqa: F401
 from apps.etl.transform.sources.gdacs import (  # noqa: F401
     transform_event_data,
@@ -26,10 +27,14 @@ from apps.etl.transform.sources.gidd import GIDDTransformHandler  # noqa: F401
 from apps.etl.transform.sources.glide import transform_glide_event_data  # noqa: F401
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.transform.sources.idu import IDUTransformHandler  # noqa: F401
+from apps.etl.transform.sources.ifrc_event import (  # noqa: F401
+    IFRCEventTransformHandler,
+)
 
 IDUExtraction.handle_extraction
 GIDDExtraction.handle_extraction
 GFDExtraction.handle_extraction
+IFRCEventExtraction.handle_extraction
 
 BaseTransformerHandler.handle_transformation
 

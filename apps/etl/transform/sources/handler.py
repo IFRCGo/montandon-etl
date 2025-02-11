@@ -16,6 +16,9 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "gfd-events": PyStacLoadData.ItemType.EVENT,
     "gfd-impacts": PyStacLoadData.ItemType.IMPACT,
     "gfd-hazards": PyStacLoadData.ItemType.HAZARD,
+    "ifrcevent-events": PyStacLoadData.ItemType.EVENT,
+    "ifrcevent-impacts": PyStacLoadData.ItemType.IMPACT,
+    "ifrcevent-hazards": PyStacLoadData.ItemType.HAZARD,
 }
 
 

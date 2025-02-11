@@ -62,3 +62,4 @@ def load_data(django_command: BaseCommand | None = None):
     bulk_mgr.done()
 
     logger.info("Loading data sucessfull")
+    print("Loading data sucessfull")

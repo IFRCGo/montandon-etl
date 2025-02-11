@@ -1,35 +1,26 @@
+import hashlib
 import json
 import logging
+from typing import Any, Callable
+
 import requests
 
-from typing import Any, Callable
-from django.conf import settings
-from django.core.files.base import ContentFile
-import hashlib
-
 from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from main.celery import app
-from apps.etl.extraction.sources.base.utils import (
-    hash_file_content,
-    manage_duplicate_file_content
-)
 
 logger = logging.getLogger(__name__)
 
-DATA_URL = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=2,3"
-PARAMS = {
-    "limit": 50,
-    "offset": 0,
-    "ordering": "-id",
-    "format": "json"
-}
+
 HEADERS = {"accept": "application/json"}
 
-class DREFExtraction(BaseExtraction):
+
+class IFRCEventExtraction(BaseExtraction):
     """
-    Handles data extraction from the DREF API.
+    Handles data extraction from the IFRCEvent API.
     """
+
     @classmethod
     def hash_file_content(cls, content):
         """
@@ -86,6 +77,8 @@ class DREFExtraction(BaseExtraction):
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
+        print("Starting data extraction")
+
         instance = cls._create_extraction_instance(url=url, source=source)
 
         all_data = []
@@ -102,15 +95,12 @@ class DREFExtraction(BaseExtraction):
                 if not data_json.get("next"):
                     break
                 # Update offset for next request
-                PARAMS["offset"] += PARAMS["limit"]
+                params["offset"] += params["limit"]
 
             if response.status_code == 200 or response.status_code == 204:
                 # response_data = cls._save_response_data(instance, all_data)
                 response_data = cls.store_extraction_data(
-                    instance_id= instance.id,
-                    source=ExtractionData.Source.DREF,
-                    response=all_data,
-                    validate_source_func=None
+                    instance_id=instance.id, source=ExtractionData.Source.DREF, response=all_data, validate_source_func=None
                 )
                 # Check if response contains data
                 if response_data:
@@ -139,10 +129,5 @@ class DREFExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task():
-        return DREFExtraction().handle_extraction(
-            DATA_URL,
-            PARAMS,
-            HEADERS,
-            ExtractionData.Source.DREF
-        )
+    def task(DATA_URL, PARAMS):
+        return IFRCEventExtraction().handle_extraction(DATA_URL, PARAMS, HEADERS, ExtractionData.Source.DREF)

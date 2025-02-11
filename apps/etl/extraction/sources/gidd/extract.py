@@ -17,9 +17,4 @@ class GIDDExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task():
-        return GIDDExtraction().handle_extraction(
-            DATA_URL,
-            PARAMS,
-            HEADERS,
-            ExtractionData.Source.GIDD
-        )
+        return GIDDExtraction().handle_extraction(DATA_URL, PARAMS, HEADERS, ExtractionData.Source.GIDD)
