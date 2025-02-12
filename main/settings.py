@@ -80,8 +80,10 @@ env = environ.Env(
     PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
     PDC_AUTHORIZATION_KEY=str,
     # ETL Load configs
-    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GEOCODER_URL=str,
+    ARC_DOMAIN=str,
+    ARC_USERNAME=str,
+    ARC_PASSWORD=str,
 )
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
@@ -105,6 +107,10 @@ PDC_BASE_URL = env("PDC_BASE_URL")
 PDC_AUTHORIZATION_KEY = env("PDC_AUTHORIZATION_KEY")
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+
+ARC_DOMAIN = env("ARC_DOMAIN")
+ARC_USERNAME = env("ARC_USERNAME")
+ARC_PASSWORD = env("ARC_PASSWORD")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -367,6 +373,10 @@ CELERY_BEAT_SCHEDULE = {
     "import_ifrc_event_data": {
         "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
         "schedule": crontab(minute=0, hour=8),
+    },
+    "import_pdc_data": {
+        "task": "apps.etl.tasks.extract_pdc_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",

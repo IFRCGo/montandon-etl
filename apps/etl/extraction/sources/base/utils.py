@@ -1,6 +1,8 @@
 import hashlib
 import json
+import os
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 
 from apps.etl.models import ExtractionData
@@ -103,3 +105,15 @@ def store_pdc_exposure_data(
     instance.resp_data.save(content_file.name, content_file)
 
     return instance
+
+
+def store_geojson_file(response, source=None, validate_source_func=None, instance_id=None, hazard_type=None, metadata=None):
+    file_extension = "geojson"
+    file_name = f"{instance_id}pdc.{file_extension}"
+    instance = ExtractionData.objects.get(id=instance_id.id)
+    file_path = os.path.join(settings.MEDIA_ROOT, "source_raw_data", file_name)
+    with open(file_path, "w") as f:
+        json.dump(response, f)
+    instance.metadata["geojson_file_path"] = file_path
+    instance.save()
+    return instance.id

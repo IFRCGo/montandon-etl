@@ -168,6 +168,10 @@ env:
   # ETL Load config
   EOAPI_DOMAIN:
   DESINVENTAR_DATA_URL:
+  PDC_BASE_URL:
+  PDC_AUTHORIZATION_KEY:
+  ARC_DOMAIN:
+  ARC_USERNAME:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:

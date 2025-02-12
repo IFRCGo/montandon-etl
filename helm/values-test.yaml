@@ -41,6 +41,12 @@ secrets:
   GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
   IFRC_DATA_URL: dummy-url
   GEOCODER_URL: dummy-url
+  PDC_AUTHORIZATION_KEY: dummy-key
+  PDC_BASE_URL: https://pdc.dummy.com
+  ARC_DOMAIN: https://arc.dummy.com
+  ARC_USERNAME: dummy-username
+  ARC_PASSWORD: dummy-password
+  
 secretsAdditional:
   ENABLE_MAGIC_SECRET: "true"
   MAGIC_KEY: to-much-fun

@@ -8,10 +8,12 @@ from django.conf import settings
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import (
     store_extraction_data,
+    store_geojson_file,
     store_pdc_exposure_data,
 )
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
+from apps.etl.utils import AccessTokenManager
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,6 @@ HAZARD_TYPE_MAP = {
     "EARTHQUAKE": HazardType.EARTHQUAKE,
     "EXTREMETEMPERATURE": HazardType.EXTREME_TEMPERATURE,
     "FLOOD": HazardType.FLOOD,
-    # "HIGHSURF": HazardType.OTHER,
     "HIGHWIND": HazardType.WIND,
     "LANDSLIDE": HazardType.LANDSLIDE,
     "SEVEREWEATHER": HazardType.OTHER,
@@ -39,36 +40,41 @@ HAZARD_TYPE_MAP = {
 def get_hazard_details(self, extraction_id, **kwargs):
     instance_id = ExtractionData.objects.get(id=extraction_id)
     response_data = json.loads(instance_id.resp_data.read())
+    geo = AccessTokenManager(requests.Session())
     for hazard in response_data:
-        if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
-            continue
-        r = requests.get(
-            f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure",
-            headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
-        )
-        for exposure_id in r.json():
-            if ExtractionData.objects.filter(
-                metadata__exposure_id=exposure_id,
-                source=ExtractionData.Source.PDC,
-                status=ExtractionData.Status.SUCCESS,
-                metadata__uuid=hazard["uuid"],
-            ).exists():
+        try:
+            geo_json_file = geo.get_polygon(hazard["uuid"])
+            store_geojson_file(geo_json_file, instance_id=instance_id)
+            if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
                 continue
-            detail_url = f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure/{exposure_id}"
-            detail_response = requests.get(
-                url=detail_url,
+            r = requests.get(
+                f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure",
                 headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
             )
-            exposure_detail = store_pdc_exposure_data(
-                response=detail_response.json(),
-                source=ExtractionData.Source.PDC,
-                validate_source_func=None,
-                parent_id=instance_id.id,
-                hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
-                metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
-            )
-            PDCTransformHandler.task(exposure_detail)
-    return None
+            for exposure_id in r.json():
+                if ExtractionData.objects.filter(
+                    metadata__exposure_id=exposure_id,
+                    source=ExtractionData.Source.PDC,
+                    status=ExtractionData.Status.SUCCESS,
+                    metadata__uuid=hazard["uuid"],
+                ).exists():
+                    continue
+                detail_url = f"{settings.PDC_BASE_URL}/hazard/{hazard['uuid']}/exposure/{exposure_id}"
+                detail_response = requests.get(
+                    url=detail_url,
+                    headers={"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"},
+                )
+                exposure_detail = store_pdc_exposure_data(
+                    response=detail_response.json(),
+                    source=ExtractionData.Source.PDC,
+                    validate_source_func=None,
+                    parent_id=instance_id.id,
+                    hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
+                    metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
+                )
+                PDCTransformHandler.task(exposure_detail)
+        except Exception as exc:
+            self.retry(exc=exc, kwargs={"instance_id": instance_id.id, "retry_count": self.request.retries})
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)

@@ -20,7 +20,6 @@ def send_post_request_to_stac_api(result, collection_id):
 
         response = requests.post(url, json=result, headers={"Content-Type": "application/json"})
         response.raise_for_status()
-        print(response)
         return response
     except requests.exceptions.RequestException as e:
         print(f"Error posting data for {collection_id}: {e}")
