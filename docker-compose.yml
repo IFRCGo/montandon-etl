@@ -23,6 +23,7 @@ x-server: &base_server_setup
       IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
       GFD_CREDENTIAL: ${GFD_CREDENTIAL?error}
       GFD_SERVICE_ACCOUNT: ${GFD_SERVICE_ACCOUNT?error}
+      IFRC_DATA_URL: ${IFRC_DATA_URL?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
   volumes:

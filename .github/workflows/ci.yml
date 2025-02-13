@@ -24,6 +24,7 @@ env:
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
   EMDAT_AUTHORIZATION_KEY: dummy-value
   IDMC_CLIENT_ID: dummy-value
+  IFRC_DATA_URL: dummy-url
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
   GFD_CREDENTIAL: dummy-value
   GFD_SERVICE_ACCOUNT: dummy-value

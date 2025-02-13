@@ -40,7 +40,7 @@ class IFRCEventExtraction(BaseExtraction):
         instance_id: int = None,
     ):
         """
-        Save extracted data into data base. Checks for duplicate conent using hashing.
+        Save extracted data into database. Checks for duplicate content using hashing.
         """
         file_extension = "json"
         file_name = f"{source}.{file_extension}"
@@ -49,7 +49,7 @@ class IFRCEventExtraction(BaseExtraction):
         # save the additional response data after the data is fetched from api.
         extraction_instance = ExtractionData.objects.get(id=instance_id)
         extraction_instance.resp_data_type = "application/json"
-        extraction_instance.save()
+        extraction_instance.save(update_fields=["resp_data_type"])
 
         # Validate the non empty response data.
         if resp_data:
@@ -77,7 +77,6 @@ class IFRCEventExtraction(BaseExtraction):
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        print("Starting data extraction")
 
         instance = cls._create_extraction_instance(url=url, source=source)
 
@@ -98,7 +97,6 @@ class IFRCEventExtraction(BaseExtraction):
                 params["offset"] += params["limit"]
 
             if response.status_code == 200 or response.status_code == 204:
-                # response_data = cls._save_response_data(instance, all_data)
                 response_data = cls.store_extraction_data(
                     instance_id=instance.id, source=ExtractionData.Source.DREF, response=all_data, validate_source_func=None
                 )

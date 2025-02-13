@@ -73,7 +73,6 @@ env = environ.Env(
     GFD_CREDENTIAL=str,
     GFD_SERVICE_ACCOUNT=str,
     IFRC_DATA_URL=str,
-
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
 )
