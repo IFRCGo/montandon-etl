@@ -159,7 +159,7 @@ def transform_impact_data(event_data):
                 item_type=PyStacLoadData.ItemType.IMPACT,
                 collection_id=item.collection_id,
                 item=transformed_item_dict,
-                status=PyStacLoadData.LoadStatus.PENDING,
+                load_status=PyStacLoadData.LoadStatus.PENDING,
             )
         )
 

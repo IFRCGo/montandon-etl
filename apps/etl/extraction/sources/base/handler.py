@@ -3,7 +3,6 @@ import logging
 from typing import Any, Callable
 
 import requests
-from django.conf import settings
 
 from apps.etl.extraction.sources.base.utils import (
     hash_file_content,
@@ -13,9 +12,6 @@ from apps.etl.models import ExtractionData
 from main.celery import app
 
 logger = logging.getLogger(__name__)
-
-HEADERS = {"accept": "application/json"}
-PARAMS = {"client_id": settings.IDMC_CLIENT_ID}
 
 
 class BaseExtraction:
@@ -44,7 +40,7 @@ class BaseExtraction:
         extraction_instance.save()
 
         # Validate the non empty response data.
-        if resp_data_content and not response.status_code == 204:
+        if resp_data_content:
             # Source validation
             if validate_source_func:
                 extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
@@ -117,7 +113,7 @@ class BaseExtraction:
         return json.loads(response.content)
 
     @classmethod
-    def handle_extraction(cls, url: str, source: int) -> dict:
+    def handle_extraction(cls, url: str, params: dict, headers: dict, source: int) -> dict:
         """
         Process data extraction.
         Returns:
@@ -129,9 +125,10 @@ class BaseExtraction:
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            response = requests.get(url, params=PARAMS, headers=HEADERS, timeout=30)
+            response = requests.get(url, params, headers, timeout=30)
             response.raise_for_status()
             instance.resp_code = response.status_code
+            instance.save(update_validation=["resp_code"])
 
             if response.status_code == 200:
                 response_data = cls._save_response_data(instance, response)

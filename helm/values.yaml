@@ -181,6 +181,7 @@ secrets:
   IDMC_CLIENT_ID:
   GFD_CREDENDIAL:
   GFD_SERVICE_ACCOUNT:
+  IFRC_DATA_URL:
 # NOTE: Used to pass additional secrets to api/worker containers
 # NOTE: Not used by azure vault
 secretsAdditional:

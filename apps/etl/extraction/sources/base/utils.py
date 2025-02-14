@@ -1,4 +1,5 @@
 import hashlib
+import json
 
 from django.core.files.base import ContentFile
 
@@ -19,6 +20,9 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     if duplicate file content exists then do not create a new file, but point the url to
     the previous file.
     """
+    if not isinstance(response_data, bytes):
+        response_data = json.dumps(response_data, indent=2)
+
     duplicate_file_content = ExtractionData.objects.filter(source=source, file_hash=hash_content)
     if duplicate_file_content:
         instance.resp_data = duplicate_file_content.first().resp_data
