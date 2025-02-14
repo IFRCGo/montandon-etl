@@ -198,6 +198,11 @@ secrets:
   GFD_SERVICE_ACCOUNT:
   IFRC_DATA_URL:
   GEOCODER_URL:
+  PDC_BASE_URL:
+  PDC_AUTHORIZATION_KEY:
+  ARC_DOMAIN:
+  ARC_USERNAME:
+  ARC_PASSWORD:
 # NOTE: Used to pass additional secrets to api/worker containers
 # NOTE: Not used by azure vault
 secretsAdditional:
