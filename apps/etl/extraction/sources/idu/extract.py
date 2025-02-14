@@ -133,7 +133,6 @@ class IDUExtraction(Extraction):
             int: ID of the extraction instance
         """
         logger.info("Starting IDU data extraction")
-        print("Starting IDU data extraction")
         instance = IDUExtraction._create_extraction_instance(url=url)
 
         try:

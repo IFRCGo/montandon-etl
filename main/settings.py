@@ -72,7 +72,13 @@ env = environ.Env(
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
+    GFD_CREDENTIAL=str,
+    GFD_SERVICE_ACCOUNT=str,
 )
+
+GFD_SERVICE_ACCOUNT = env("GFD_SERVICE_ACCOUNT")
+
+GFD_CREDENTIAL = env("GFD_CREDENTIAL")
 
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 
@@ -326,6 +332,10 @@ CELERY_BEAT_SCHEDULE = {
     },
     "import_usgs_data": {
         "task": "apps.etl.tasks.extract_usgs_data",
+        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+    },
+    "import_gfd_data": {
+        "task": "apps.etl.etl_tasks.ext_and_transform_gfd_latest_data",
         "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {

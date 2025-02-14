@@ -28,6 +28,18 @@
     ```bash
        docker-compose exec web python manage.py extract_emdat_data
     ```
+- Command to import IDU data.
+    ```bash
+       docker-compose exec web python manage.py extract_idu_data
+    ```
+- Command to import GIDD data.
+    ```bash
+       docker-compose exec web python manage.py extract_gidd_data
+    ```
+- Command to import Global Flood Database data.
+    ```bash
+       docker-compose exec web python manage.py extract_gfd_data
+    ```
 - To view the imported data in the admin panel you need to create yourself as a superuser:
     ```bash
        docker-compose exec web python manage.py createsuperuser

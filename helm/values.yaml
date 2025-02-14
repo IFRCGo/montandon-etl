@@ -179,6 +179,8 @@ secrets:
   # ETL Sources
   EMDAT_AUTHORIZATION_KEY:
   IDMC_CLIENT_ID:
+  GFD_CREDENDIAL:
+  GFD_SERVICE_ACCOUNT:
 # NOTE: Used to pass additional secrets to api/worker containers
 # NOTE: Not used by azure vault
 secretsAdditional:

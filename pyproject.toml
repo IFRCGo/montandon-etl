@@ -26,6 +26,7 @@ dependencies = [
     "sentry-sdk",
     "ipython",
     "uwsgi",
+    "earthengine-api>=1.5.1",
 ]
 
 [tool.uv.sources]
