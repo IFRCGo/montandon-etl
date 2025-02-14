@@ -7,7 +7,7 @@ logger = get_task_logger(__name__)
 
 
 class Extraction:
-    def __init__(self, url: str, headers: str):
+    def __init__(self, url: str, headers: str = None):
         self.headers = headers
         self.url = url
 

@@ -72,7 +72,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                     hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                     metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
                 )
-                PDCTransformHandler.task(exposure_detail)
+                PDCTransformHandler.task(exposure_detail.id)
         except Exception as exc:
             self.retry(exc=exc, kwargs={"instance_id": instance_id.id, "retry_count": self.request.retries})
 

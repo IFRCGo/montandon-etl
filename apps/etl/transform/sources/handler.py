@@ -36,7 +36,7 @@ class BaseTransformerHandler(ABC):
     @classmethod
     def handle_transformation(cls, extraction_id):
         logger.info("Transformation started")
-        extraction_obj = ExtractionData.objects.filter(id=extraction_id.id).first()
+        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
@@ -69,7 +69,6 @@ class BaseTransformerHandler(ABC):
         transform_obj = Transform.objects.filter(id=transform_obj_id).first()
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
-            print(item.collection_id)
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())

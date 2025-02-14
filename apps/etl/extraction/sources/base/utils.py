@@ -48,15 +48,15 @@ def store_extraction_data(
     resp_data = response.pop("resp_data")
 
     # save the additional response data after the data is fetched from api.
-    gdacs_instance = ExtractionData.objects.get(id=instance_id)
+    extraction_instance = ExtractionData.objects.get(id=instance_id)
     for key, value in response.items():
-        setattr(gdacs_instance, key, value)
-    gdacs_instance.save()
+        setattr(extraction_instance, key, value)
+    extraction_instance.save()
 
     # save parent id if it is child extraction object
     if parent_id:
-        gdacs_instance.parent_id = parent_id
-        gdacs_instance.save(update_fields=["parent_id"])
+        extraction_instance.parent_id = parent_id
+        extraction_instance.save(update_fields=["parent_id"])
 
     # Validate the non empty response data.
     if resp_data and not response["resp_code"] == 204:
@@ -65,22 +65,22 @@ def store_extraction_data(
         # if the validate function requires hazard type as argument pass it as argument else don't.
         if validate_source_func:
             if requires_hazard_type:
-                gdacs_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-                gdacs_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
+                extraction_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
+                extraction_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
             else:
-                gdacs_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-                gdacs_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
+                extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
+                extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
         manage_duplicate_file_content(
             source=source,
             hash_content=hash_content,
-            instance=gdacs_instance,
+            instance=extraction_instance,
             response_data=resp_data_content,
             file_name=file_name,
         )
-    return gdacs_instance
+    return extraction_instance
 
 
 def store_pdc_exposure_data(
