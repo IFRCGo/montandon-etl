@@ -65,15 +65,17 @@ def extract_gidd_data():
 
 
 @shared_task
-def extract_gfd_data():
+def extract_usgs_data():
+    call_command("extract_usgs_data")
+
+
+@shared_task
+def extract_historical_data():
+    call_command("extract_idu_data")
     call_command("extract_gfd_data")
+    call_command("extract_ifrc_event_data.py")
 
 
 @shared_task
 def load_data():
     call_command("load_data_to_stac")
-
-
-@shared_task
-def extract_usgs_data():
-    call_command("extract_usgs_data")

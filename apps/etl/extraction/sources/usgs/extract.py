@@ -56,7 +56,7 @@ def import_hazard_data(self, **kwargs):
     logger.info(f"Importing {HazardType.EARTHQUAKE} data")
     usgs_url = (
         "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson"
-        if ExtractionData.objects.filter(source=ExtractionData.Source.USGS).exists()
+        if ExtractionData.objects.filter(source=ExtractionData.Source.USGS, status=ExtractionData.Status.SUCCESS).exists()
         else "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson"
     )
 

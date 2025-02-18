@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def transform_event_data(event_extraction_data):
-    logger.info("Trandformation started for event data")
+    logger.info("Transformation started for event data")
 
     gdacs_instance = ExtractionData.objects.get(id=event_extraction_data["extraction_id"])
     data = read_file_data(gdacs_instance.resp_data)

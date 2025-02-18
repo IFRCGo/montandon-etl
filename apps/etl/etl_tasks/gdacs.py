@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import requests
 from celery import chain, shared_task
@@ -29,10 +29,24 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     """
     logger.info(f"Importing {hazard_type} data")
 
-    today = datetime.now().date()
-    yesterday = today - timedelta(days=1)
-    gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
-    # gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL&fromDate=2025-01-06&toDate=2025-01-08&alertlevel=Green;Orange;Red" # noqa: E501
+    to_date = datetime.now().date()
+
+    ext_object = (
+        Extraction.objects.filter(
+            source=ExtractionData.Source.GDACS,
+            status=ExtractionData.Status.SUCCESS,
+            resp_data__isnull=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    if ext_object:
+        gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={ext_object.created_at.date()}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
+    else:
+        gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
+
+    # gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate=2025-01-08&toDate=2025-01-09&alertlevel=Green;Orange;Red" # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
