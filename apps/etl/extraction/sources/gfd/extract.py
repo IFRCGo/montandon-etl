@@ -172,9 +172,9 @@ class GFDExtraction(BaseExtraction):
             gfd_data = gfd_data.filterDate(str(start_date), str(end_date))
 
         flood_data = cls.get_flood_data(gfd_data, batch_size=500)
-        return flood_data
+        return flood_data[:10]
 
     @staticmethod
     @app.task
     def task(start_date=None, end_date=None):
-        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GIDD, start_date, end_date)
+        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GFD, start_date, end_date)

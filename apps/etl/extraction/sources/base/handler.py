@@ -125,10 +125,10 @@ class BaseExtraction:
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            response = requests.get(url, params, headers, timeout=30)
+            response = requests.get(url, params=params, headers=headers, timeout=30)
             response.raise_for_status()
             instance.resp_code = response.status_code
-            instance.save(update_validation=["resp_code"])
+            instance.save(update_fields=["resp_code"])
 
             if response.status_code == 200:
                 response_data = cls._save_response_data(instance, response)
