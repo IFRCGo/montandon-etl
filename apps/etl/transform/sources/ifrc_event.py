@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
 
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 class IFRCEventTransformHandler(BaseTransformerHandler):
     transformer = IFRCEventTransformer
     transformer_schema = IFRCEventDataSource
-    geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
+    geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):

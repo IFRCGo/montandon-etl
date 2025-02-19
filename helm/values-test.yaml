@@ -40,6 +40,7 @@ secrets:
   GFD_CREDENTIAL: dummy-gfd-cred
   GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
   IFRC_DATA_URL: dummy-url
+  GEOCODER_URL: dummy-url
 secretsAdditional:
   ENABLE_MAGIC_SECRET: "true"
   MAGIC_KEY: to-much-fun

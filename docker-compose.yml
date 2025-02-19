@@ -25,6 +25,7 @@ x-server: &base_server_setup
       GFD_SERVICE_ACCOUNT: ${GFD_SERVICE_ACCOUNT?error}
       IFRC_DATA_URL: ${IFRC_DATA_URL?error}
       DESINVENTAR_DATA_URL: ${DESINVENTAR_DATA_URL?error}
+      GEOCODER_URL: ${GEOCODER_URL?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
       DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
