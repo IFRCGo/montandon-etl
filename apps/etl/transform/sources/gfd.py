@@ -1,3 +1,5 @@
+import json
+
 from pystac_monty.sources.gfd import GFDDataSource, GFDTransformer
 
 from apps.etl.models import ExtractionData
@@ -13,6 +15,8 @@ class GFDTransformHandler(BaseTransformerHandler):
     def get_schema_data(cls, extraction_obj: ExtractionData):
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
+            data = data.decode("utf-8")
+            data = json.loads(data)
 
         return cls.transformer_schema(source_url=extraction_obj.url, data=data)
 

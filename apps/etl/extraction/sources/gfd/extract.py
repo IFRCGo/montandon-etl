@@ -177,4 +177,4 @@ class GFDExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task(start_date=None, end_date=None):
-        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GIDD, start_date, end_date)
+        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GFD, start_date, end_date)

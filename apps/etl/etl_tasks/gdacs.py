@@ -22,17 +22,55 @@ from apps.etl.transform.sources.gdacs import (
 logger = logging.getLogger(__name__)
 
 
+def ext_and_transform_gdacs_latest_data(hazard_type: str, hazard_type_str: str):
+    ext_object = (
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.GDACS,
+            hazard_type=hazard_type,
+            status=ExtractionData.Status.SUCCESS,
+            resp_data__isnull=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    if ext_object:
+        # if old data exists , pull the latest data.
+        from_date = ext_object.created_at.date()
+        to_date = datetime.now().date()
+        ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
+    else:
+        # pull old data
+        ext_and_transform_gdacs_historical_data(hazard_type, hazard_type_str)
+
+
+def ext_and_transform_gdacs_historical_data(hazard_type: str, hazard_type_str: str):
+    # Start from 2000
+    start_year = 2000
+    end_year = datetime.now().year
+
+    current_date = datetime(start_year, 1, 1)
+    end_date = datetime(end_year, 12, 31)
+
+    while current_date <= end_date:
+        month_start = current_date.strftime("%Y-%m-%d")
+        month_end = (current_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+        month_end = month_end.strftime("%Y-%m-%d")
+
+        ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, month_start, month_end)
+
+        current_date += timedelta(days=31)
+        current_date = current_date.replace(day=1)
+
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
+def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, from_date: str, to_date: str, **kwargs):
     """
     Import hazard data from gdacs api
     """
     logger.info(f"Importing {hazard_type} data")
 
-    today = datetime.now().date()
-    yesterday = today - timedelta(days=1)
-    gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={yesterday}&toDate={today}&alertlevel=Green;Orange;Red"  # noqa: E501
-    # gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist=FL&fromDate=2025-01-06&toDate=2025-01-08&alertlevel=Green;Orange;Red" # noqa: E501
+    gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
