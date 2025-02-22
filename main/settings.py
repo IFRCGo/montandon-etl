@@ -66,6 +66,7 @@ env = environ.Env(
     SENTRY_DEBUG=(bool, False),
     SENTRY_TRACES_SAMPLE_RATE=(float, 0.2),
     SENTRY_PROFILE_SAMPLE_RATE=(float, 0.2),
+    SENTRY_MONITOR_CELERY_BEAT_TASKS=(bool, True),
     # ETL Source configs
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
@@ -290,6 +291,7 @@ else:
 # Sentry Config
 SENTRY_DSN = env("SENTRY_DSN")
 SENTRY_ENABLED = False
+SENTRY_MONITOR_CELERY_BEAT_TASKS = env("SENTRY_MONITOR_CELERY_BEAT_TASKS")
 if SENTRY_DSN:
     SENTRY_ENABLED = True
     SENTRY_CONFIG = {
