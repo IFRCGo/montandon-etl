@@ -26,6 +26,7 @@ env:
   IDMC_CLIENT_ID: dummy-value
   IFRC_DATA_URL: dummy-url
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
+  DESINVENTAR_DATA_URL: https://desinventar.dummy.com
   GFD_CREDENTIAL: dummy-value
   GFD_SERVICE_ACCOUNT: dummy-value
 

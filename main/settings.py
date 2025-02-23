@@ -74,9 +74,12 @@ env = environ.Env(
     GFD_CREDENTIAL=str,
     GFD_SERVICE_ACCOUNT=str,
     IFRC_DATA_URL=str,
+    DESINVENTAR_DATA_URL=str,
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
 )
+
+DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 
 GFD_SERVICE_ACCOUNT = env("GFD_SERVICE_ACCOUNT")
 
@@ -320,7 +323,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# TODO Need to adjust time
+
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
         "task": "apps.etl.tasks.extract_gdacs_data",
