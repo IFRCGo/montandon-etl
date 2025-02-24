@@ -38,6 +38,8 @@ def init_sentry(app_type, tags={}, **config):
         ignore_errors=IGNORED_ERRORS,
         integrations=integrations,
     )
+    app_type = settings.SENTRY_ADDITIONAL_CONFIG["app_type"]
+    tags = settings.SENTRY_ADDITIONAL_CONFIG["tags"]
     with sentry_sdk.configure_scope() as scope:
         scope.set_tag("app_type", app_type)
         for tag, value in tags.items():
