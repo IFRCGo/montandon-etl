@@ -15,13 +15,12 @@ collection_and_item_type_map = {
     "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
 }
 
-# XXX: Local file is used
-GEOCODER = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
-
 
 @shared_task
 def transform_data(source, transformer, data_source, extraction_id, data):
     logger.info(f"Transformation started for {source} data")
+
+    geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
     ext_instance = ExtractionData.objects.get(id=extraction_id)
 
     # create transform object
@@ -35,7 +34,7 @@ def transform_data(source, transformer, data_source, extraction_id, data):
 
     try:
         # Get transformer for each source and transform it to stac item..
-        transformer = transformer(data=data_source(source_url=ext_instance.url, data=data), geocoder=GEOCODER)
+        transformer = transformer(data=data_source(source_url=ext_instance.url, data=data), geocoder=geocoder)
         transformed_items = transformer.make_items()
 
         # update transformation status to success
