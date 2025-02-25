@@ -26,7 +26,7 @@ env = environ.Env(
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["*"]),
-    DJANGO_APP_ENVIRONMENT=(str, "PROD"),
+    DJANGO_APP_ENVIRONMENT=(str, "development"),
     DJANGO_APP_TYPE=str,  # web/worker
     DJANGO_TIME_ZONE=(str, "UTC"),
     # Database
@@ -309,7 +309,7 @@ if SENTRY_DSN:
         },
         "app_type": DJANGO_APP_TYPE,
     }
-    sentry.init_sentry(**SENTRY_CONFIG)
+    sentry.init_sentry()
 
 
 # Default primary key field type
@@ -320,42 +320,42 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# TODO Add Desinventar job
+# TODO Need to adjust time
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
         "task": "apps.etl.tasks.extract_gdacs_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=15, hour=6),
     },
     "import_glide_data": {
         "task": "apps.etl.tasks.extract_glide_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=30, hour=6),
     },
     "import_emdat_data": {
         "task": "apps.etl.tasks.extract_emdat_data",
-        "schedule": crontab(minute=0, hour=6),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=45, hour=6),
     },
     "import_gidd_data": {
         "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=0, hour=7),
     },
     "import_usgs_data": {
         "task": "apps.etl.tasks.extract_usgs_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=15, hour=7),
     },
     "import_gfd_data": {
         "task": "apps.etl.etl_tasks.gfd.ext_and_transform_gfd_latest_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=30, hour=7),
     },
     "import_idu_data": {
         "task": "apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=45, hour=7),
     },
     "import_ifrc_event_data": {
         "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
-        "schedule": crontab(minute=0, hour=0),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=0, hour=8),
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
-        "schedule": crontab(minute=0, hour=0),  # TODO Set time to run this job
+        "schedule": crontab(minute=0, hour=12),
     },
 }

@@ -26,6 +26,7 @@ x-server: &base_server_setup
       IFRC_DATA_URL: ${IFRC_DATA_URL?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
+      DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
   volumes:
     - .:/code
     - ipython_data_local:/root/.ipython/profile_default   # persist ipython data, including ipython history
