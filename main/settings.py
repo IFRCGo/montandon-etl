@@ -66,6 +66,7 @@ env = environ.Env(
     SENTRY_DEBUG=(bool, False),
     SENTRY_TRACES_SAMPLE_RATE=(float, 0.2),
     SENTRY_PROFILE_SAMPLE_RATE=(float, 0.2),
+    SENTRY_MONITOR_CELERY_BEAT_TASKS=(bool, True),
     # ETL Source configs
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
@@ -290,10 +291,10 @@ else:
 # Sentry Config
 SENTRY_DSN = env("SENTRY_DSN")
 SENTRY_ENABLED = False
+SENTRY_MONITOR_CELERY_BEAT_TASKS = env("SENTRY_MONITOR_CELERY_BEAT_TASKS")
 if SENTRY_DSN:
     SENTRY_ENABLED = True
     SENTRY_CONFIG = {
-        "app_type": DJANGO_APP_TYPE,
         "dsn": SENTRY_DSN,
         "send_default_pii": True,
         # "release": env("APP_RELEASE"),  # TODO:
@@ -301,9 +302,12 @@ if SENTRY_DSN:
         "traces_sample_rate": env("SENTRY_TRACES_SAMPLE_RATE"),
         "profiles_sample_rate": env("SENTRY_PROFILE_SAMPLE_RATE"),
         "debug": env("SENTRY_DEBUG"),
+    }
+    SENTRY_ADDITIONAL_CONFIG = {
         "tags": {
             "site": ",".join(set(ALLOWED_HOSTS)),
         },
+        "app_type": DJANGO_APP_TYPE,
     }
     sentry.init_sentry(**SENTRY_CONFIG)
 
