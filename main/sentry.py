@@ -27,14 +27,14 @@ for _logger in IGNORED_LOGGERS:
 
 @signals.beat_init.connect
 @signals.celeryd_init.connect
-def init_sentry(app_type, tags={}, **config):
+def init_sentry(**kwargs):
     integrations = [
         DjangoIntegration(),
         RedisIntegration(),
         CeleryIntegration(monitor_beat_tasks=settings.SENTRY_MONITOR_CELERY_BEAT_TASKS),
     ]
     sentry_sdk.init(
-        **config,
+        settings.SENTRY_CONFIG,
         ignore_errors=IGNORED_ERRORS,
         integrations=integrations,
     )
