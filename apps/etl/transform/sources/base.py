@@ -2,9 +2,9 @@ import logging
 import uuid
 
 from celery import shared_task
-from pystac_monty.geocoding import GAULGeocoder
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,11 @@ collection_and_item_type_map = {
 
 @shared_task
 def transform_data(source, transformer, data_source, extraction_id, data):
+
     logger.info(f"Transformation started for {source} data")
 
-    geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
+    geocoder = BaseTransformerHandler().get_geocoder
+
     ext_instance = ExtractionData.objects.get(id=extraction_id)
 
     # create transform object

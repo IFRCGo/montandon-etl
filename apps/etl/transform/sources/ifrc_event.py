@@ -1,6 +1,5 @@
 import logging
 
-from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
 
 from apps.etl.models import ExtractionData, Transform
@@ -13,7 +12,6 @@ logger = logging.getLogger(__name__)
 class IFRCEventTransformHandler(BaseTransformerHandler):
     transformer = IFRCEventTransformer
     transformer_schema = IFRCEventDataSource
-    geocoder = GAULGeocoder(gpkg_path="/code/gaul2014_2015.gpkg")
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
@@ -37,7 +35,7 @@ class IFRCEventTransformHandler(BaseTransformerHandler):
 
         try:
             schema = cls.get_schema_data(extraction_obj)
-            transformer = cls.transformer(data=schema, geocoder=cls.geocoder)
+            transformer = cls.transformer(data=schema, geocoder=BaseTransformerHandler().get_geocoder)
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS

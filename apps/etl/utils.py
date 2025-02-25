@@ -2,6 +2,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+LOCAL_CACHE_DATA_DIR_MAP = {
+    "gaul_geocoder": "gaul2014_2015.gpkg",
+}
+
 
 def read_file_data(file):
     """

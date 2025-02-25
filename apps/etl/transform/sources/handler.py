@@ -1,8 +1,14 @@
 import logging
+import os
 import uuid
 from abc import ABC
+from functools import cached_property
+
+from django.conf import settings
+from pystac_monty.geocoding import GAULGeocoder
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.utils import LOCAL_CACHE_DATA_DIR_MAP
 from main.celery import app
 from main.managers import BulkCreateManager
 
@@ -22,6 +28,13 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 
 
 class BaseTransformerHandler(ABC):
+
+    @cached_property
+    def get_geocoder(self):
+        if os.path.exists(settings.LOCAL_CACHE_DATA_DIR):
+            return GAULGeocoder(gpkg_path=f"{settings.LOCAL_CACHE_DATA_DIR}/{LOCAL_CACHE_DATA_DIR_MAP["gaul_geocoder"]}")
+        else:
+            raise FileNotFoundError()
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
