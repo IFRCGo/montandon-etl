@@ -21,6 +21,6 @@ dependencies:
     repository: https://charts.bitnami.com/bitnami
   - name: geocoding-helm
     alias: geocoding
-    version: 0.0.1-1c6f06d
+    version: 0.0.1-c9dd1963
     condition: geocoding.enabled
     repository: oci://ghcr.io/ifrcgo/geocoding-service
