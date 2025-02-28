@@ -1,140 +1,66 @@
 import logging
-from pathlib import Path
+import tempfile
 
-from geopandas import gpd
-from lxml import etree
+from pystac_monty.sources.desinventar import (
+    DesinventarDataSource,
+    DesinventarTransformer,
+)
+
+from apps.etl.models import ExtractionData, Transform
+from apps.etl.transform.sources.handler import BaseTransformerHandler
+from main.celery import app
 
 logger = logging.getLogger(__name__)
 
 
-def get_list_item_safe(list, index, default_value=None):
-    try:
-        return list[index]
-    except IndexError:
-        return default_value
+class DesinventarTransformHandler(BaseTransformerHandler):
+    transformer = DesinventarTransformer
+    transformer_schema = DesinventarDataSource
 
+    @classmethod
+    def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str):
+        with extraction_obj.resp_data.open("rb") as f:
+            file_content = f.read()
+        tmp_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        tmp_zip_file.write(file_content)
 
-def transform_country_data(country_code: str, iso3: str):
-    logger.info(f"Desinventar: Transform started for {country_code}")
-    print(f"Desinventar: Transform started for {country_code}")
+        return cls.transformer_schema(
+            tmp_zip_file=tmp_zip_file,
+            source_url=f"https://www.desinventar.net/DesInventar/download/DI_export_{country_code}.zip",
+            country_code=country_code,
+            iso3=iso3,
+        )
 
-    # TODO: this should come from utils
-    output_dir = "/tmp/desinventar/{country_code}"
-    xml_file_path = f"{output_dir}/DI_export_{country_code}.xml"
+    @classmethod
+    def handle_transformation(cls, extraction_id, country_code, iso3):
+        logger.info("Transformation started")
+        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
 
-    if Path(xml_file_path).exists():
-        tree = etree.parse(xml_file_path)
-        root = tree.getroot()
+        transform_obj = Transform.objects.create(
+            extraction=extraction_obj,
+            status=Transform.Status.PENDING,
+        )
 
-        # Admin level mappings
-        level_maps = root.xpath("//level_maps/TR")
-        geo_data = {}
+        try:
+            schema = cls.get_schema_data(extraction_obj, country_code, iso3)
+            transformer = cls.transformer(data_source=schema)
+            transformed_items = transformer.get_items()
 
-        for level_row in level_maps:
-            file_path = get_list_item_safe(level_row.xpath("filename/text()"), 0)
-            level = get_list_item_safe(level_row.xpath("map_level/text()"), 0)
-            property_code = get_list_item_safe(level_row.xpath("lev_code/text()"), 0)
+            transform_obj.status = Transform.Status.SUCCESS
+            transform_obj.save(update_fields=["status"])
 
-            if file_path is not None:
-                file_name = Path(str(file_path)).name
-                current_file_path = f"{output_dir}/{file_name}"
-                # TODO: check if file exists
-                if Path(current_file_path).exists():
-                    shapefile_data = gpd.read_file(current_file_path)
-                else:
-                    shapefile_data = None
-            else:
-                shapefile_data = None
+            cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
 
-            geo_data[f"level{level}"] = {"level": level, "property_code": property_code, "shapefile_data": shapefile_data}
+            logger.info("Transformation ended")
 
-        # TODO: only extract necessary fields
-        columns = {
-            "serial": "serial",
-            "muertos": "deaths",
-            "hay_muertos": "flag_deaths",
-            "heridos": "injured",
-            "hay_heridos": "flag_injured",
-            "desaparece": "missing",
-            "hay_deasparece": "flag_missing",
-            "vivdest": "houses_destroyed",
-            "hay_vivdest": "flag_houses_destroyed",
-            "vivafec": "houses_damaged",
-            "hay_vivafec": "flag_houses_damaged",
-            "damnificados": "directly_affected",
-            "hay_damnificados": "flag_directly_affected",
-            "afectados": "indirectly_affected",
-            "hay_afectados": "flag_indirectly_affected",
-            "reubicados": "relocated",
-            "hay_reubicados": "flag_relocated",
-            "evacuados": "evacuated",
-            "hay_evacuados": "flag_evacuated",
-            "valorus": "losses_in_dollar",
-            "valorloc": "losses_local_currency",
-            "nescuelas": "education_centers",
-            "nhospitales": "hospitals",
-            "nhectareas": "damages_in_crops_ha",
-            "cabezas": "lost_cattle",
-            "kmvias": "damages_in_roads_mts",
-            "level0": "level0",
-            "level1": "level1",
-            "level2": "level2",
-            "name0": "name0",
-            "name1": "name1",
-            "name2": "name2",
-            "latitude": "latitude",
-            "longitude": "longitude",
-            "evento": "event",
-            "glide": "glide",
-            "lugar": "location",
-            "magnitud2": "haz_maxvalue",
-            "duracion": "duration",
-            "fechano": "year",
-            "fechames": "month",
-            "fechadia": "day",
-        }
+        except Exception as e:
+            logger.error("Transformation failed", exc_info=True, extra={"extraction_id": extraction_obj.id})
+            transform_obj.status = Transform.Status.FAILED
+            transform_obj.save(update_fields=["status"])
+            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
+            raise e
 
-        # TODO: calculate it dynamically
-        applicable_geo_levels = ["level2", "level1", "level0"]
-
-        events = root.xpath("//fichas/TR")
-        data = []
-        for event_row in events:
-            row_data = {}
-
-            for desinventar_key, mapped_key in columns.items():
-                values = event_row.xpath(f"{desinventar_key}/text()")
-                row_data[mapped_key] = get_list_item_safe(values, 0)
-
-            for level in applicable_geo_levels:
-                if row_data[level]:
-                    gfd = geo_data[level]["shapefile_data"]
-
-                    if gfd is not None:
-                        code = geo_data[level]["property_code"]
-                        filtered_gdf = gfd[gfd[code] == row_data[level]]
-
-                        # Use a tolerance value for simplification (smaller values will keep more detail)
-                        filtered_gdf["geometry"] = filtered_gdf["geometry"].apply(
-                            lambda geom: geom.simplify(tolerance=0.01, preserve_topology=True)
-                        )
-
-                        row_data["geometry"] = filtered_gdf.to_json()
-
-                    row_data["desinventar_country_code"] = country_code
-                    row_data["iso3"] = iso3
-
-                    break
-
-            data.append(row_data)
-
-        # print(json.dumps(data, indent=4))
-
-        logger.info(f"Desinventar: Transform successful for {country_code}")
-        print(f"Desinventar: Transform successful for {country_code}")
-    else:
-        logger.info(f"Desinventar: Cannot find required file for the transformation for {country_code}")
-        print(f"Desinventar: Cannot find required file for the transformation for {country_code}")
-
-    logger.info(f"Desinventar: Transform ended for {country_code}")
-    print(f"Desinventar: Transform ended for {country_code}")
+    @staticmethod
+    @app.task
+    def task(extraction_id, country_code, iso3):
+        return DesinventarTransformHandler().handle_transformation(extraction_id, country_code, iso3)

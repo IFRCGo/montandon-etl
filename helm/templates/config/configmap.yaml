@@ -14,6 +14,7 @@ data:
 
   # ETL Load config
   EOAPI_DOMAIN: {{ required "env.EOAPI_DOMAIN" .Values.env.EOAPI_DOMAIN | quote }}
+  DESINVENTAR_DATA_URL: {{ required "env.DESINVENTAR_DATA_URL" .Values.env.DESINVENTAR_DATA_URL | quote }}
 
   {{- if .Values.env.AZURE_STORAGE_ENABLE }}
   # Azure configs

@@ -157,6 +157,7 @@ env:
   AZURE_STORAGE_STATIC_CONTAINER:
   # ETL Load config
   EOAPI_DOMAIN:
+  DESINVENTAR_DATA_URL:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:

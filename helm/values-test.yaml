@@ -18,6 +18,7 @@ env:
   DJANGO_ALLOWED_HOSTS: "*"
   # ETL Load config
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
+  DESINVENTAR_DATA_URL: https://desinventar.dummy.com
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun
