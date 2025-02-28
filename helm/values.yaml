@@ -68,6 +68,16 @@ postgresql:
       storageClass: ""
       size: 8Gi
 
+# https://github.com/IFRCGo/geocoding-service/blob/main/helm/values.yaml
+geocoding:
+  enabled: true
+  fullnameOverride: geocoder
+  server:
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 3Gi
+
 # NOTE: Shared volume as local cache: Files required by transformers
 localCacheVolume:
   storageClass:

@@ -19,3 +19,8 @@ dependencies:
     version: 14.10.5
     condition: minio.enabled
     repository: https://charts.bitnami.com/bitnami
+  - name: geocoding-helm
+    alias: geocoding
+    version: 0.0.1-a697a1c
+    condition: geocoding.enabled
+    repository: oci://ghcr.io/ifrcgo/geocoding-service
