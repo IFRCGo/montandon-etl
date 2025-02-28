@@ -10,6 +10,6 @@ dependencies:
   version: 14.10.5
 - name: geocoding-helm
   repository: oci://ghcr.io/ifrcgo/geocoding-service
-  version: 0.0.1-a697a1c
-digest: sha256:9eded9d407a842afda43a2b4c40553c8aa42b257d0192dc4302545f0193d1849
-generated: "2025-02-28T11:50:09.751744781+05:45"
+  version: 0.0.1-1c6f06d
+digest: sha256:e7e07b23388f5db323f45fd775e47e668546e0ab555f0855effcf01325a0e1c2
+generated: "2025-02-28T16:52:25.624529892+05:45"
