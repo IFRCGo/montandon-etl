@@ -19,6 +19,10 @@ env:
   # ETL Load config
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
   DESINVENTAR_DATA_URL: https://desinventar.dummy.com
+  IFRC_DATA_URL: dummy-url
+  PDC_BASE_URL: https://pdc.dummy.com
+  ARC_DOMAIN: https://arc.dummy.com
+  GEOCODER_URL: dummy-url
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun
@@ -39,11 +43,7 @@ secrets:
   IDMC_CLIENT_ID: dummy-client-id
   GFD_CREDENTIAL: dummy-gfd-cred
   GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
-  IFRC_DATA_URL: dummy-url
-  GEOCODER_URL: dummy-url
   PDC_AUTHORIZATION_KEY: dummy-key
-  PDC_BASE_URL: https://pdc.dummy.com
-  ARC_DOMAIN: https://arc.dummy.com
   ARC_USERNAME: dummy-username
   ARC_PASSWORD: dummy-password
   

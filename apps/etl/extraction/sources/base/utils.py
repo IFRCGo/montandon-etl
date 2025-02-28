@@ -66,7 +66,9 @@ def store_extraction_data(
         if validate_source_func:
             if requires_hazard_type:
                 extraction_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data_content, hazard_type)["validation_error"]
+                extraction_instance.content_validation = validate_source_func(resp_data_content, hazard_type)[
+                    "validation_error"
+                ]
             else:
                 extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
                 extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]

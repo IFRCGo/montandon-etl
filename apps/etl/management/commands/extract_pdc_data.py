@@ -11,5 +11,4 @@ class Command(BaseCommand):
     help = "Import data from pdc api"
 
     def handle(self, *args, **options):
-        # extract_and_transform_pdc_data.delay()
-        extract_and_transform_pdc_data()
+        extract_and_transform_pdc_data.delay()
