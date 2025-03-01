@@ -26,6 +26,11 @@ x-server: &base_server_setup
       IFRC_DATA_URL: ${IFRC_DATA_URL?error}
       DESINVENTAR_DATA_URL: ${DESINVENTAR_DATA_URL?error}
       GEOCODER_URL: ${GEOCODER_URL?error}
+      PDC_AUTHORIZATION_KEY: ${PDC_AUTHORIZATION_KEY?error}
+      PDC_BASE_URL: ${PDC_BASE_URL?error}
+      ARC_DOMAIN: ${ARC_DOMAIN?error}
+      ARC_USERNAME: ${ARC_USERNAME?error}
+      ARC_PASSWORD: ${ARC_PASSWORD?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
       DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}

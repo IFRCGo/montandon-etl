@@ -71,13 +71,19 @@ env = environ.Env(
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    # ETL Load configs
+    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
     GFD_SERVICE_ACCOUNT=str,
     IFRC_DATA_URL=str,
     DESINVENTAR_DATA_URL=str,
+    PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
+    PDC_AUTHORIZATION_KEY=str,
     # ETL Load configs
-    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GEOCODER_URL=str,
+    ARC_DOMAIN=str,
+    ARC_USERNAME=str,
+    ARC_PASSWORD=str,
 )
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
@@ -96,7 +102,15 @@ IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 IDMC_DATA_URL = env("IDMC_DATA_URL")
 
+PDC_BASE_URL = env("PDC_BASE_URL")
+
+PDC_AUTHORIZATION_KEY = env("PDC_AUTHORIZATION_KEY")
+
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+
+ARC_DOMAIN = env("ARC_DOMAIN")
+ARC_USERNAME = env("ARC_USERNAME")
+ARC_PASSWORD = env("ARC_PASSWORD")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -330,7 +344,7 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
         "task": "apps.etl.tasks.extract_gdacs_data",
-        "schedule": crontab(minute=15, hour=6),
+        "schedule": crontab(minute=0, hour=6),
     },
     "import_glide_data": {
         "task": "apps.etl.tasks.extract_glide_data",
@@ -338,27 +352,31 @@ CELERY_BEAT_SCHEDULE = {
     },
     "import_emdat_data": {
         "task": "apps.etl.tasks.extract_emdat_data",
-        "schedule": crontab(minute=45, hour=6),
+        "schedule": crontab(minute=0, hour=7),
     },
     "import_gidd_data": {
         "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=0, hour=7),
+        "schedule": crontab(minute=30, hour=7),
     },
     "import_usgs_data": {
         "task": "apps.etl.tasks.extract_usgs_data",
-        "schedule": crontab(minute=15, hour=7),
+        "schedule": crontab(minute=0, hour=8),
     },
     "import_gfd_data": {
         "task": "apps.etl.etl_tasks.gfd.ext_and_transform_gfd_latest_data",
-        "schedule": crontab(minute=30, hour=7),
+        "schedule": crontab(minute=30, hour=8),
     },
     "import_idu_data": {
         "task": "apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        "schedule": crontab(minute=45, hour=7),
+        "schedule": crontab(minute=0, hour=9),
     },
     "import_ifrc_event_data": {
         "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
-        "schedule": crontab(minute=0, hour=8),
+        "schedule": crontab(minute=30, hour=9),
+    },
+    "import_pdc_data": {
+        "task": "apps.etl.tasks.extract_pdc_data",
+        "schedule": crontab(minute=0, hour=10),  # This task execute daily at 12 AM (UTC)
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",

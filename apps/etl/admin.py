@@ -23,7 +23,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
         "hazard_type",
         "created_at",
     )
-    list_filter = ("status",)
+    list_filter = ("status", "source")
     autocomplete_fields = ["parent"]
     search_fields = ["parent"]
 

@@ -4,6 +4,7 @@ from django.core.management import call_command
 from apps.etl.etl_tasks.emdat import extract_and_transform_emdat_data  # noqa: F401
 from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_data  # noqa: F401
 from apps.etl.etl_tasks.glide import import_glide_hazard_data  # noqa: F401
+from apps.etl.etl_tasks.pdc import extract_and_transform_pdc_data  # noqa: F401
 from apps.etl.extraction.sources.desinventar.extract import DesinventarExtraction
 from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
     fetch_event_data,
@@ -61,6 +62,11 @@ def extract_desinventar_data():
 @shared_task
 def extract_emdat_data():
     call_command("extract_emdat_data")
+
+
+@shared_task
+def extract_pdc_data():
+    call_command("extract_pdc_data")
 
 
 @shared_task

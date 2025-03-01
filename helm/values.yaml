@@ -168,6 +168,11 @@ env:
   # ETL Load config
   EOAPI_DOMAIN:
   DESINVENTAR_DATA_URL:
+  PDC_BASE_URL:
+  ARC_DOMAIN:
+  IFRC_DATA_URL:
+  GEOCODER_URL:
+  PDC_BASE_URL:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:
@@ -190,10 +195,11 @@ secrets:
   # ETL Sources
   EMDAT_AUTHORIZATION_KEY:
   IDMC_CLIENT_ID:
-  GFD_CREDENDIAL:
+  GFD_CREDENTIAL:
   GFD_SERVICE_ACCOUNT:
-  IFRC_DATA_URL:
-  GEOCODER_URL:
+  PDC_AUTHORIZATION_KEY:
+  ARC_USERNAME:
+  ARC_PASSWORD:
 # NOTE: Used to pass additional secrets to api/worker containers
 # NOTE: Not used by azure vault
 secretsAdditional:
