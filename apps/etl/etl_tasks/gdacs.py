@@ -23,25 +23,29 @@ logger = logging.getLogger(__name__)
 
 
 def ext_and_transform_gdacs_latest_data(hazard_type: str, hazard_type_str: str):
-    ext_object = (
-        ExtractionData.objects.filter(
-            source=ExtractionData.Source.GDACS,
-            hazard_type=hazard_type,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data__isnull=False,
-        )
-        .order_by("-created_at")
-        .first()
-    )
+    # ext_object = (
+    #     ExtractionData.objects.filter(
+    #         source=ExtractionData.Source.GDACS,
+    #         hazard_type=hazard_type,
+    #         status=ExtractionData.Status.SUCCESS,
+    #         resp_data__isnull=False,
+    #     )
+    #     .order_by("-created_at")
+    #     .first()
+    # )
 
-    if ext_object:
-        # if old data exists , pull the latest data.
-        from_date = ext_object.created_at.date()
-        to_date = datetime.now().date()
-        ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
-    else:
-        # pull old data
-        ext_and_transform_gdacs_historical_data(hazard_type, hazard_type_str)
+    # if ext_object:
+    #     # if old data exists , pull the latest data.
+    #     from_date = ext_object.created_at.date()
+    #     to_date = datetime.now().date()
+    #     ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
+    # else:
+    #     # pull old data
+    #     ext_and_transform_gdacs_historical_data.delay(hazard_type, hazard_type_str)
+
+    from_date = datetime.today() - timedelta(days=1)
+    to_date = datetime.now().date()
+    ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
 
 
 def ext_and_transform_gdacs_historical_data(hazard_type: str, hazard_type_str: str):

@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import datetime
 
 import requests
 from celery import shared_task
@@ -8,6 +7,9 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 
 from apps.etl.models import ExtractionData, HazardType
+
+# from datetime import datetime
+
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +96,8 @@ def import_hazard_data(**kwargs):
     HEADERS = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
 
     # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
-    variables = {"limit": -1, "include_hist": True}
+    # variables = {"limit": -1, "include_hist": True}
+    variables = {"from": 2025, "to": 2026}
 
     # Create new extraction object for each extraction
     emdat_instance = ExtractionData.objects.create(
@@ -108,23 +111,23 @@ def import_hazard_data(**kwargs):
 
     try:
         # Get latest emdat extraction object so that we do not need to fetch historical data
-        latest_extraction = (
-            ExtractionData.objects.filter(
-                source=ExtractionData.Source.EMDAT, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
-            )
-            .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_DATA)
-            .order_by("-created_at")
-            .first()
-        )
-        if latest_extraction:
-            to_year = datetime.now().year
-            from_year = int(to_year) - 1
-            with latest_extraction.resp_data.open() as data_file:
-                data = data_file.read()
+        # latest_extraction = (
+        #     ExtractionData.objects.filter(
+        #         source=ExtractionData.Source.EMDAT, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
+        #     )
+        #     .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_DATA)
+        #     .order_by("-created_at")
+        #     .first()
+        # )
+        # if latest_extraction:
+        #     to_year = datetime.now().year
+        #     from_year = int(to_year) - 1
+        #     with latest_extraction.resp_data.open() as data_file:
+        #         data = data_file.read()
 
-            data_json = json.loads(data)
-            if data_json["data"]["public_emdat"]:
-                variables = {"limit": -1, "from": from_year, "to": to_year}
+        #     data_json = json.loads(data)
+        #     if data_json["data"]["public_emdat"]:
+        #         variables = {"limit": -1, "from": from_year, "to": to_year}
 
         # Set extraction status to progress
         emdat_instance.status = ExtractionData.Status.IN_PROGRESS

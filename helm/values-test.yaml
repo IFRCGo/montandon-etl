@@ -22,7 +22,6 @@ env:
   IFRC_DATA_URL: dummy-url
   PDC_BASE_URL: https://pdc.dummy.com
   ARC_DOMAIN: https://arc.dummy.com
-  GEOCODER_URL: dummy-url
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun
