@@ -22,45 +22,51 @@ from apps.etl.transform.sources.gdacs import (
 logger = logging.getLogger(__name__)
 
 
-def ext_and_transform_gdacs_latest_data(hazard_type: str, hazard_type_str: str):
-    ext_object = (
-        ExtractionData.objects.filter(
-            source=ExtractionData.Source.GDACS,
-            hazard_type=hazard_type,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data__isnull=False,
-        )
-        .order_by("-created_at")
-        .first()
-    )
+def ext_and_transform_gdacs_latest_data():
 
-    if ext_object:
-        # if old data exists , pull the latest data.
-        from_date = ext_object.created_at.date()
+    def _ext_and_transform_data(hazard_type: str, hazard_type_str: str):
+        ext_object = (
+            ExtractionData.objects.filter(
+                source=ExtractionData.Source.GDACS,
+                hazard_type=hazard_type,
+                status=ExtractionData.Status.SUCCESS,
+                resp_data__isnull=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if ext_object:
+            from_date = ext_object.created_at.date()
+        else:
+            # Fetch data up to one week at the begining.
+            from_date = datetime.today() - timedelta(days=7)
+
         to_date = datetime.now().date()
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
-    else:
-        # pull old data
-        ext_and_transform_gdacs_historical_data(hazard_type, hazard_type_str)
+
+    _ext_and_transform_data("EQ", HazardType.EARTHQUAKE)
+    _ext_and_transform_data("TC", HazardType.CYCLONE)
+    _ext_and_transform_data("FL", HazardType.FLOOD)
+    _ext_and_transform_data("DR", HazardType.DROUGHT)
+    _ext_and_transform_data("WF", HazardType.WILDFIRE)
+    _ext_and_transform_data("VO", HazardType.VOLCANO)
+    _ext_and_transform_data("TS", HazardType.TSUNAMI)
 
 
 def ext_and_transform_gdacs_historical_data(hazard_type: str, hazard_type_str: str):
-    # Start from 2000
-    start_year = 2000
-    end_year = datetime.now().year
+    # Start from 2000-01-01
+    start_date = datetime(2000, 1, 1)
+    end_date = datetime(datetime.now().year, datetime.now().month, datetime.now().day)
 
-    current_date = datetime(start_year, 1, 1)
-    end_date = datetime(end_year, 12, 31)
-
-    while current_date <= end_date:
-        month_start = current_date.strftime("%Y-%m-%d")
-        month_end = (current_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+    while start_date <= end_date:
+        month_start = start_date.strftime("%Y-%m-%d")
+        month_end = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
         month_end = month_end.strftime("%Y-%m-%d")
 
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, month_start, month_end)
 
-        current_date += timedelta(days=31)
-        current_date = current_date.replace(day=1)
+        start_date += timedelta(days=31)
+        start_date = start_date.replace(day=1)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)

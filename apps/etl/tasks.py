@@ -3,6 +3,7 @@ from django.core.management import call_command
 
 from apps.etl.etl_tasks.emdat import extract_and_transform_emdat_data  # noqa: F401
 from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_data  # noqa: F401
+from apps.etl.etl_tasks.gfd import ext_and_transform_gfd_latest_data  # noqa: F401
 from apps.etl.etl_tasks.glide import import_glide_hazard_data  # noqa: F401
 from apps.etl.etl_tasks.pdc import extract_and_transform_pdc_data  # noqa: F401
 from apps.etl.extraction.sources.desinventar.extract import DesinventarExtraction
