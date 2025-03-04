@@ -343,43 +343,43 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
-        "task": "apps.etl.tasks.extract_gdacs_data",
-        "schedule": crontab(minute=0, hour=6),
+        "task": "apps.etl_tasks.ext_and_transform_gdacs_latest_data",
+        "schedule": crontab(minute=0, hour=11),
     },
     "import_glide_data": {
-        "task": "apps.etl.tasks.extract_glide_data",
-        "schedule": crontab(minute=30, hour=6),
+        "task": "apps.etl_tasks.ext_and_transform_glide_latest_data",
+        "schedule": crontab(minute=30, hour=11),
     },
     "import_emdat_data": {
-        "task": "apps.etl.tasks.extract_emdat_data",
-        "schedule": crontab(minute=0, hour=7),
-    },
-    "import_gidd_data": {
-        "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=30, hour=7),
-    },
-    "import_usgs_data": {
-        "task": "apps.etl.tasks.extract_usgs_data",
-        "schedule": crontab(minute=0, hour=8),
+        "task": "apps.etl_tasks.ext_and_transform_emdat_latest_data",
+        "schedule": crontab(minute=0, hour=12),
     },
     "import_gfd_data": {
         "task": "apps.etl.etl_tasks.gfd.ext_and_transform_gfd_latest_data",
-        "schedule": crontab(minute=30, hour=8),
+        "schedule": crontab(minute=30, hour=12),
     },
     "import_idu_data": {
         "task": "apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        "schedule": crontab(minute=0, hour=9),
+        "schedule": crontab(minute=0, hour=13),
     },
     "import_ifrc_event_data": {
         "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
-        "schedule": crontab(minute=30, hour=9),
+        "schedule": crontab(minute=30, hour=13),
     },
     "import_pdc_data": {
         "task": "apps.etl.tasks.extract_pdc_data",
-        "schedule": crontab(minute=0, hour=10),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=0, hour=14),
+    },
+    "import_gidd_data": {
+        "task": "apps.etl.tasks.extract_gidd_data",
+        "schedule": crontab(minute=30, hour=14),
+    },
+    "import_usgs_data": {
+        "task": "apps.etl.tasks.extract_usgs_data",
+        "schedule": crontab(minute=0, hour=15),
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
-        "schedule": crontab(minute=0, hour=12),
+        "schedule": crontab(minute=0, hour=16),
     },
 }
