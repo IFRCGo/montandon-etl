@@ -3,7 +3,6 @@ import logging
 from django.core.management.base import BaseCommand
 
 from apps.etl.etl_tasks.glide import ext_and_transform_glide_historical_data
-
 from apps.etl.models import HazardType
 
 logger = logging.getLogger(__name__)

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 ITEM_TYPE_COLLECTION_ID_MAP = {
     "idmc-idu-events": PyStacLoadData.ItemType.EVENT,
     "idmc-idu-impacts": PyStacLoadData.ItemType.IMPACT,
-    "idmc-events": PyStacLoadData.ItemType.EVENT,
+    "idmc-gidd-events": PyStacLoadData.ItemType.EVENT,
     "idmc-gidd-impacts": PyStacLoadData.ItemType.IMPACT,
     "gfd-events": PyStacLoadData.ItemType.EVENT,
     "gfd-impacts": PyStacLoadData.ItemType.IMPACT,
