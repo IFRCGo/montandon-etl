@@ -23,6 +23,10 @@ from apps.etl.etl_tasks.ifrc_event import (  # noqa: F401
     ext_and_transform_ifrcevent_latest_data,
 )
 from apps.etl.etl_tasks.pdc import extract_and_transform_pdc_data  # noqa: F401
+from apps.etl.etl_tasks.usgs import (  # noqa: F401
+    ext_and_transform_usgs_historical_data,
+    ext_and_transform_usgs_latest_data,
+)
 from apps.etl.extraction.sources.desinventar.extract import DesinventarExtraction
 from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
     fetch_event_data,
