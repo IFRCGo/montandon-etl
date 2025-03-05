@@ -20,6 +20,11 @@ glide_item_type_map = {
 def transform_glide_event_data(extraction_id):
     logger.info("Transformation started for glide data")
     glide_instance = ExtractionData.objects.get(id=extraction_id)
+
+    if not glide_instance.resp_data:
+        logger.info("Transformation ended due to no data")
+        return
+
     data = read_file_data(glide_instance.resp_data)
 
     transform_obj = Transform.objects.create(

@@ -30,7 +30,7 @@ def ext_and_transform_gfd_latest_data():
     if ext_object:
         start_date = ext_object.created_at.date()
     else:
-        start_date = end_date - timedelta(days=1)
+        start_date = end_date - timedelta(days=7)
 
     chain(
         GFDExtraction.task.s(start_date, end_date),

@@ -14,10 +14,12 @@ DATA_URL = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
 @shared_task
 def ext_and_transform_ifrcevent_latest_data():
     END_DATE = datetime.now().date()
-    START_DATE = END_DATE - timedelta(days=1)
+    START_DATE = END_DATE - timedelta(days=7)
 
     ext_object = (
-        ExtractionData.objects.filter(source=ExtractionData.Source.DREF, status=ExtractionData.Status.SUCCESS)
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.DREF, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
+        )
         .order_by("-created_at")
         .first()
     )

@@ -37,6 +37,9 @@ class BaseTransformerHandler(ABC):
     def handle_transformation(cls, extraction_id):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
+        if not extraction_obj.resp_data:
+            logger.info("Transformation ended due to no data")
+            return
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,

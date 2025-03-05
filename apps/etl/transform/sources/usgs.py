@@ -21,6 +21,11 @@ usgs_item_type_map = {
 def transform_usgs_event_data(extraction_id):
     logger.info("Transformation started for usgs data")
     usgs_instance = ExtractionData.objects.get(id=extraction_id)
+
+    if not usgs_instance.resp_data:
+        logger.info("Transformation ended due to no data")
+        return
+
     data = read_file_data(usgs_instance.resp_data)
 
     transform_obj = Transform.objects.create(

@@ -360,26 +360,26 @@ CELERY_BEAT_SCHEDULE = {
     },
     "import_idu_data": {
         "task": "apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        "schedule": crontab(minute=0, hour=13),
+        "schedule": crontab(minute=50, hour=6),
     },
     "import_ifrc_event_data": {
-        "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
-        "schedule": crontab(minute=30, hour=13),
+        "task": "apps.etl.etl_tasks.ifrc_event.ext_and_transform_ifrcevent_latest_data",
+        "schedule": crontab(minute=0, hour=7),
     },
     "import_pdc_data": {
         "task": "apps.etl.tasks.extract_pdc_data",
-        "schedule": crontab(minute=0, hour=14),
+        "schedule": crontab(minute=30, hour=7),
     },
     "import_gidd_data": {
         "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=30, hour=14),
+        "schedule": crontab(minute=0, hour=8),
     },
     "import_usgs_data": {
         "task": "apps.etl.tasks.extract_usgs_data",
-        "schedule": crontab(minute=0, hour=15),
+        "schedule": crontab(minute=30, hour=8),
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
-        "schedule": crontab(minute=0, hour=16),
+        "schedule": crontab(minute=0, hour=9),
     },
 }
