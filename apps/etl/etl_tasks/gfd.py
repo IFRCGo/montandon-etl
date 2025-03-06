@@ -15,6 +15,7 @@ def ext_and_transform_gfd_historical_data():
     ).apply_async()
 
 
+# TODO Remove if not required.
 @shared_task
 def ext_and_transform_gfd_latest_data():
     ext_object = (

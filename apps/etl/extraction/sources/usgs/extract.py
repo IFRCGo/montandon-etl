@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import requests
 from celery import chain, shared_task
@@ -10,6 +11,18 @@ from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.usgs import transform_usgs_event_data
 
 logger = logging.getLogger(__name__)
+
+
+def process_in_batches(extraction_id, features, batch_size=50):
+    for i in range(0, len(features), batch_size):
+        features_batch = features[i : i + batch_size]  # noqa
+        for feature in features_batch:
+            chain(
+                fetch_detail.s(extraction_id, feature["properties"]["detail"]),
+                transform_usgs_event_data.s(),
+            ).apply_async()
+        print("Wait 1 min to process next batch")
+        time.sleep(60)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -98,11 +111,7 @@ def ext_and_transform_data(self, url, **kwargs):
                 response_data = file_data.read()
                 response_data = json.loads(response_data.decode("utf-8"))
 
-            for feature in response_data["features"]:
-                chain(
-                    fetch_detail.s(usgs_instance.id, feature["properties"]["detail"]),
-                    transform_usgs_event_data.s(),
-                ).apply_async()
+            process_in_batches(extraction_id=usgs_instance.id, features=response_data["features"])
 
         logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
         return usgs_instance.id
