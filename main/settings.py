@@ -80,6 +80,7 @@ env = environ.Env(
     GDACS_START_DATE=(str, "2025-01-01"),
     EMDAT_START_YEAR=(str, "2024"),
     GFD_START_DATE=(str, "2025-01-01"),
+
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
