@@ -28,6 +28,10 @@ x-server: &base_server_setup
       GEOCODER_URL: ${GEOCODER_URL?error}
       PDC_AUTHORIZATION_KEY: ${PDC_AUTHORIZATION_KEY?error}
       PDC_BASE_URL: ${PDC_BASE_URL?error}
+      GLIDE_URL: ${GLIDE_URL?error}
+      GDACS_URL: ${GDACS_URL?error}
+      EMDAT_URL: ${EMDAT_URL?error}
+
       ARC_DOMAIN: ${ARC_DOMAIN?error}
       ARC_USERNAME: ${ARC_USERNAME?error}
       ARC_PASSWORD: ${ARC_PASSWORD?error}

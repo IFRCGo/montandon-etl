@@ -8,7 +8,6 @@ from django.conf import settings
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import (
     store_extraction_data,
-    store_geojson_file,
     store_pdc_exposure_data,
 )
 from apps.etl.models import ExtractionData, HazardType
@@ -44,7 +43,16 @@ def get_hazard_details(self, extraction_id, **kwargs):
     for hazard in response_data:
         try:
             geo_json_file = geo.get_polygon(hazard["uuid"])
-            store_geojson_file(geo_json_file, instance_id=instance_id)
+
+            geo_json_data = store_pdc_exposure_data(
+                response=geo_json_file,
+                source=ExtractionData.Source.PDC,
+                validate_source_func=None,
+                parent_id=instance_id.id,
+                hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
+                metadata={},
+            )
+
             if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
                 continue
             r = requests.get(
@@ -72,7 +80,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                     hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                     metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
                 )
-                PDCTransformHandler.task(exposure_detail.id)
+                PDCTransformHandler.task(exposure_detail.id, geo_json_data.id)
         except Exception as exc:
             self.retry(exc=exc, kwargs={"instance_id": instance_id.id, "retry_count": self.request.retries})
 
@@ -105,7 +113,7 @@ def import_hazard_data(self, **kwargs):
     # Extract the data from api.
     pdc_extraction = Extraction(
         url=pdc_url,
-        headers={"Authorization": "Bearer {}".format(settings.PDC_AUTHORIZATION_KEY)},
+        headers={"Authorization": "Bearer {}".format(settings.PDC_AUTHORIZATION_KEY)},  # NOTE: Does this key expire??
     )
     response = None
     try:

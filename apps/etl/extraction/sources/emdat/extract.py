@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def extract_emdat_latest_data():
     to_year = datetime.now().year
-    from_year = int(to_year) - 1
+    from_year = int(settings.EMDAT_START_YEAR)
     # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
     variables = {"limit": -1, "from": from_year, "to": to_year}
     return import_hazard_data(variables)

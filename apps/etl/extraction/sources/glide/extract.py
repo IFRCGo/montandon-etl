@@ -1,8 +1,9 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import requests
 from celery import shared_task
+from django.conf import settings
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -26,18 +27,17 @@ def extract_glide_latest_data(hazard_type, hazard_type_str):
     if ext_object:
         from_date = ext_object.created_at.date()
     else:
-        # Fetch data up to one week at the begining.
-        from_date = datetime.today() - timedelta(days=7)
+        from_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
 
     to_date = datetime.today().date()
-    url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&tomonth={to_date.month}&today={to_date.day}&events={hazard_type}"  # noqa: E501
     return import_glide_hazard_data(hazard_type, hazard_type_str, url)
 
 
 @shared_task
 def extract_glide_historical_data(hazard_type, hazard_type_str):
     to_date = datetime.today().date()
-    url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
     return import_glide_hazard_data(hazard_type, hazard_type_str, url)
 
 

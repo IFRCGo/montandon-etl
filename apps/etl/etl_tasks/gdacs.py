@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import requests
 from celery import chain, shared_task
+from django.conf import settings
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -40,7 +41,7 @@ def ext_and_transform_gdacs_latest_data():
             from_date = ext_object.created_at.date()
         else:
             # Fetch data up to one week at the begining.
-            from_date = datetime.today() - timedelta(days=7)
+            from_date = datetime.strptime(settings.GDACS_START_DATE, "%Y-%m-%d").date()
 
         to_date = datetime.now().date()
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
@@ -77,7 +78,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
     """
     logger.info(f"Importing {hazard_type} data")
 
-    gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
+    gdacs_url = f"{settings.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)

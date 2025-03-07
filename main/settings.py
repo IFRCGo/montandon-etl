@@ -71,6 +71,11 @@ env = environ.Env(
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    # Default start date for latest data extraction
+    GLIDE_START_DATE=(str, "2025-01-01"),
+    IFRCEVENT_START_DATE=(str, "2025-01-01"),
+    GDACS_START_DATE=(str, "2025-01-01"),
+    EMDAT_START_YEAR=(str, "2024"),
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
@@ -79,12 +84,26 @@ env = environ.Env(
     DESINVENTAR_DATA_URL=str,
     PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
     PDC_AUTHORIZATION_KEY=str,
+    GLIDE_URL=str,
+    GDACS_URL=str,
     # ETL Load configs
     GEOCODER_URL=str,
     ARC_DOMAIN=str,
     ARC_USERNAME=str,
     ARC_PASSWORD=str,
 )
+
+GLIDE_URL = env("GLIDE_URL")
+
+GDACS_URL = env("GDACS_URL")
+
+GLIDE_START_DATE = env("GLIDE_START_DATE")
+
+GDACS_START_DATE = env("GDACS_START_DATE")
+
+IFRCEVENT_START_DATE = env("IFRCEVENT_START_DATE")
+
+EMDAT_START_YEAR = env("EMDAT_START_YEAR")
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 

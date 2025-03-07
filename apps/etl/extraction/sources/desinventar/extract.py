@@ -61,7 +61,7 @@ class DesinventarExtraction(BaseExtraction):
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            response = requests.get(url, params=params, headers=headers, timeout=30)
+            response = requests.get(url, params=params, headers=headers, timeout=180)
             response.raise_for_status()
             instance.resp_code = response.status_code
 
