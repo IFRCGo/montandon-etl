@@ -54,7 +54,7 @@ def _ext_and_transform_glide_latest_data(hazard_type, hazard_type_str):
         from_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
 
     to_date = datetime.today().date()
-    url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&tomonth={to_date.month}&today={to_date.day}&events={hazard_type}"  # noqa: E501
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&tomonth={to_date.month}&today={to_date.day}&events={hazard_type}"  # noqa: E501
 
     chain(GlideExtraction.task.s(url), GlideTransformHandler.task.s()).apply_async()
 
@@ -62,7 +62,7 @@ def _ext_and_transform_glide_latest_data(hazard_type, hazard_type_str):
 @shared_task
 def _ext_and_transform_glide_historical_data(hazard_type, hazard_type_str):
     to_date = datetime.today().date()
-    url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?toyear={to_date.year}&tomonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?toyear={to_date.year}&tomonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
     chain(GlideExtraction.task.s(url), GlideTransformHandler.task.s()).apply_async()
 
 
