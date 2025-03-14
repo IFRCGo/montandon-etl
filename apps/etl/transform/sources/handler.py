@@ -28,6 +28,8 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "pdc-events": PyStacLoadData.ItemType.EVENT,
     "pdc-hazards": PyStacLoadData.ItemType.HAZARD,
     "pdc-impacts": PyStacLoadData.ItemType.IMPACT,
+    "glide-events": PyStacLoadData.ItemType.EVENT,
+    "glide-hazards": PyStacLoadData.ItemType.HAZARD,
 }
 
 
