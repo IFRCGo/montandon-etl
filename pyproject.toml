@@ -30,6 +30,7 @@ dependencies = [
     # Dev
     "django-stubs",
     "celery-types",
+    "django-health-check",
 ]
 
 [tool.uv.sources]

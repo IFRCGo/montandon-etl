@@ -174,6 +174,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # External
     "django_celery_beat",
+    # - Health-check
+    "health_check",  # required
+    "health_check.db",
+    "health_check.cache",
+    "health_check.storage",
+    "health_check.contrib.migrations",
+    "health_check.contrib.redis",  # requires Redis broker
     # Internal
     "apps.common",
     "apps.etl",
@@ -362,6 +369,10 @@ if SENTRY_DSN:
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# HEALTH-CHECK
+REDIS_URL = CELERY_REDIS_URL
+HEALTHCHECK_CACHE_KEY = "MONTY_ETL_HEALTHCHECK_KEY"
 
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
