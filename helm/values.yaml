@@ -176,6 +176,7 @@ env:
   ARC_DOMAIN:
   IFRC_DATA_URL:
   EMDAT_URL:
+  IBTRACS_DATA_URL:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:
