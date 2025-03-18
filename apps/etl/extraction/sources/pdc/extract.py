@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 
 import requests
 from celery import shared_task
@@ -107,6 +108,7 @@ def import_hazard_data(self, **kwargs):
             hazard_type="",
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
     )
 

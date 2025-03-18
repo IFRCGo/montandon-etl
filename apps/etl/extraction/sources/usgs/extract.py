@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import uuid
 
 import requests
 from celery import chain, shared_task
@@ -37,6 +38,7 @@ def fetch_detail(self, parent_id, detail_url, **kwargs):
             attempt_no=0,
             resp_code=0,
             hazard_type=HazardType.EARTHQUAKE,
+            trace_id=str(uuid.uuid4()),
         )
     else:
         usgs_instance = ExtractionData.objects.get(id=instance_id)
@@ -83,6 +85,7 @@ def ext_and_transform_data(self, url, **kwargs):
             hazard_type=HazardType.EARTHQUAKE,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
     )
 

@@ -21,6 +21,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
         "resp_data_type",
         "source_validation_status",
         "hazard_type",
+        "trace_id",
         "created_at",
     )
     list_filter = ("status", "source")
@@ -36,7 +37,7 @@ class TransformAdmin(admin.ModelAdmin):
             return [field.name for field in self.model._meta.fields]
         return []
 
-    list_display = ("id", "extraction", "status", "is_loaded")
+    list_display = ("id", "extraction", "status", "trace_id", "is_loaded")
     list_filter = ("status",)
     autocomplete_fields = ["extraction"]
     search_fields = ["extraction"]
@@ -56,6 +57,7 @@ class PyStacLoadDataAdmin(admin.ModelAdmin):
         "item_type",
         "load_status",
         "collection_id",
+        "trace_id",
     )
     list_filter = ("load_status",)
     autocomplete_fields = ["transform_id"]

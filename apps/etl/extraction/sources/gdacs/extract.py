@@ -1,6 +1,7 @@
 import json
 import logging
 import typing
+import uuid
 
 import numpy as np
 import pandas as pd
@@ -142,6 +143,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
             attempt_no=0,
             resp_code=0,
             hazard_type=hazard_type,
+            trace_id=str(uuid.uuid4()),
         )
     else:
         gdacs_instance = ExtractionData.objects.get(id=instance_id)
@@ -190,6 +192,7 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
             hazard_type=hazard_type,
         )
     else:
@@ -233,6 +236,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
             hazard_type=hazard_type,
         )
     else:

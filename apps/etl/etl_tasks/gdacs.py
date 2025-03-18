@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta
 
 import requests
@@ -90,6 +91,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
             source=ExtractionData.Source.GDACS,
             status=ExtractionData.Status.PENDING,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
+            trace_id=str(uuid.uuid4()),
             hazard_type=hazard_type_str,
             attempt_no=0,
             resp_code=0,

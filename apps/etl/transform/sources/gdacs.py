@@ -32,6 +32,7 @@ def transform_event_data(event_extraction_data):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
+        trace_id=gdacs_instance.trace_id,
     )
 
     try:
@@ -89,6 +90,7 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
+        trace_id=gdacs_instance.trace_id,
     )
 
     try:
@@ -137,6 +139,7 @@ def transform_impact_data(event_data):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
+        trace_id=gdacs_instance.trace_id,
     )
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)

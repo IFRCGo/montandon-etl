@@ -51,6 +51,7 @@ def transform_data(source, transformer, data_source, extraction_id, data):
     transform_obj = Transform.objects.create(
         extraction=ext_instance,
         status=Transform.Status.PENDING,
+        trace_id=ext_instance.trace_id,
     )
 
     # initialize bulk manager to create the PyStacLoadData in bulk.

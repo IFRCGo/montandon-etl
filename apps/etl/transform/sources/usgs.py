@@ -33,6 +33,7 @@ def transform_usgs_event_data(extraction_id):
     transform_obj = Transform.objects.create(
         extraction=usgs_instance,
         status=Transform.Status.PENDING,
+        trace_id=usgs_instance.trace_id,
     )
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)

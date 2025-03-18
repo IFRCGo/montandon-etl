@@ -1,5 +1,6 @@
 import hashlib
 import json
+import uuid
 
 from django.core.files.base import ContentFile
 
@@ -98,6 +99,7 @@ def store_pdc_exposure_data(
         status=ExtractionData.Status.SUCCESS,
         hazard_type=hazard_type,
         metadata=metadata,
+        trace_id=str(uuid.uuid4()),
     )
 
     content_file = ContentFile(data)
