@@ -134,7 +134,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
                 episode_id = feature["properties"]["episodeid"]
                 footprint_url = feature["properties"]["url"]["geometry"]
                 if hazard_type == HazardType.CYCLONE and event_id and episode_id:
-                    footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+                    footprint_url = f"{settings.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
                 event_workflow = chain(
                     fetch_event_data.s(

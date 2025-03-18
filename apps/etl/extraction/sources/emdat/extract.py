@@ -105,7 +105,7 @@ def import_hazard_data(variables, **kwargs):
         }
         """
 
-    EMDAT_URL = "https://api.emdat.be/v1"
+    EMDAT_URL = f"{settings.EMDAT_URL}"
     HEADERS = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
 
     # Create new extraction object for each extraction

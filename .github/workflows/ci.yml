@@ -34,6 +34,8 @@ env:
   PDC_BASE_URL: https://pdc.dummy.com
   GLIDE_URL: https://glide.dummy.com
   GDACS_URL: https://gdacs.dummy.com
+  USGS_DATA_URL: https://usgs.dummy.com
+  EMDAT_URL: https://emdat.dummy.com
   PDC_AUTHORIZATION_KEY: dummy-value
   ARC_DOMAIN: https://arc.dummy.com
   ARC_USERNAME: dummy-username

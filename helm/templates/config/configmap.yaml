@@ -18,6 +18,7 @@ data:
   PDC_BASE_URL: {{ required "env.PDC_BASE_URL" .Values.env.PDC_BASE_URL | quote }}
   GLIDE_URL: {{ required "env.GLIDE_URL" .Values.env.GLIDE_URL | quote }}
   GDACS_URL: {{ required "env.GDACS_URL" .Values.env.GDACS_URL | quote }}
+  EMDAT_URL: {{ required "env.EMDAT_URL" .Values.env.EMDAT_URL | quote }}
   ARC_DOMAIN: {{ required "env.ARC_DOMAIN" .Values.env.ARC_DOMAIN | quote }}
   IFRC_DATA_URL: {{ required "env.IFRC_DATA_URL" .Values.env.IFRC_DATA_URL | quote }}
 
