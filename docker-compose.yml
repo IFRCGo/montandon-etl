@@ -28,6 +28,7 @@ x-server: &base_server_setup
       GEOCODER_URL: ${GEOCODER_URL?error}
       PDC_AUTHORIZATION_KEY: ${PDC_AUTHORIZATION_KEY?error}
       PDC_BASE_URL: ${PDC_BASE_URL?error}
+      USGS_DATA_URL: ${USGS_DATA_URL?error}
       GLIDE_URL: ${GLIDE_URL?error}
       GDACS_URL: ${GDACS_URL?error}
       EMDAT_URL: ${EMDAT_URL?error}

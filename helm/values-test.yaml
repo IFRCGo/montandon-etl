@@ -24,6 +24,9 @@ env:
   GLIDE_URL: https://glide.dummy.com
   GDACS_URL: https://gdacs.dummy.com
   ARC_DOMAIN: https://arc.dummy.com
+  USGS_DATA_URL: https://usgs.dummy.com
+  EMDAT_URL: https://emdat.dummy.com
+
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun

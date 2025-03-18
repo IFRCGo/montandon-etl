@@ -71,6 +71,7 @@ env = environ.Env(
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    USGS_DATA_URL=(str, "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary"),
     # Default start date for latest data extraction
     GLIDE_START_DATE=(str, "2025-01-01"),
     IFRCEVENT_START_DATE=(str, "2025-01-01"),
@@ -120,6 +121,7 @@ EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 IDMC_DATA_URL = env("IDMC_DATA_URL")
+USGS_DATA_URL = env("USGS_DATA_URL")
 
 PDC_BASE_URL = env("PDC_BASE_URL")
 
