@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from celery import chain, shared_task
 from django.conf import settings
@@ -13,17 +13,18 @@ DATA_URL = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
 
 @shared_task
 def ext_and_transform_ifrcevent_latest_data():
-    END_DATE = datetime.now().date()
-    START_DATE = END_DATE - timedelta(days=1)
-
     ext_object = (
-        ExtractionData.objects.filter(source=ExtractionData.Source.DREF, status=ExtractionData.Status.SUCCESS)
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.DREF, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
+        )
         .order_by("-created_at")
         .first()
     )
 
     if ext_object:
         START_DATE = ext_object.created_at.date()
+    else:
+        START_DATE = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
 
     LATEST_DATA_PARAMS = {
         "disaster_start_date__gte": START_DATE,

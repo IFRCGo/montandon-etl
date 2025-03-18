@@ -26,11 +26,10 @@ def transform_emdat_data(extraction_id, **kwargs):
     Transform extracted data from emdat graphql api to STAC item .
     """
     ext_instance = ExtractionData.objects.filter(id=extraction_id).first()
-    if ext_instance and ext_instance.source_validation_status == ExtractionData.ValidationStatus.NO_DATA:
-        logger.warning(
-            "No data available",
-        )
+    if not ext_instance.resp_data:
+        logger.info("Transformation ended due to no data")
         return
+
     data = read_file_data(ext_instance.resp_data)
     json_data = json.loads(data)
 

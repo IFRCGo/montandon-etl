@@ -1,4 +1,4 @@
-from celery import shared_task
+from celery import chain, shared_task
 
 from apps.etl.extraction.sources.pdc.extract import (
     get_hazard_details,
@@ -8,5 +8,4 @@ from apps.etl.extraction.sources.pdc.extract import (
 
 @shared_task
 def extract_and_transform_pdc_data():
-    extraction_id = import_hazard_data()
-    get_hazard_details(extraction_id)
+    chain(import_hazard_data.s(), get_hazard_details.s()).apply_async()

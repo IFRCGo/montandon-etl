@@ -29,7 +29,7 @@ def load_data(django_command: BaseCommand | None = None):
     """Load data into STAC"""
     logger.info("Loading data into Stac")
 
-    transformed_items = PyStacLoadData.objects.exclude(load_status=PyStacLoadData.LoadStatus.SUCCESS)
+    transformed_items = PyStacLoadData.objects.filter(load_status=PyStacLoadData.LoadStatus.PENDING)
 
     bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=1000)
     for item in transformed_items.iterator():

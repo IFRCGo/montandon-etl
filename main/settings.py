@@ -71,6 +71,13 @@ env = environ.Env(
     EMDAT_AUTHORIZATION_KEY=str,
     IDMC_CLIENT_ID=str,
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    USGS_DATA_URL=(str, "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary"),
+    # Default start date for latest data extraction
+    GLIDE_START_DATE=(str, "2025-01-01"),
+    IFRCEVENT_START_DATE=(str, "2025-01-01"),
+    GDACS_START_DATE=(str, "2025-01-01"),
+    EMDAT_START_YEAR=(str, "2024"),
+    GFD_START_DATE=(str, "2025-01-01"),
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
@@ -79,12 +86,30 @@ env = environ.Env(
     DESINVENTAR_DATA_URL=str,
     PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
     PDC_AUTHORIZATION_KEY=str,
+    GLIDE_URL=str,
+    GDACS_URL=str,
+    EMDAT_URL=str,
     # ETL Load configs
     GEOCODER_URL=str,
     ARC_DOMAIN=str,
     ARC_USERNAME=str,
     ARC_PASSWORD=str,
 )
+EMDAT_URL = env("EMDAT_URL")
+
+GLIDE_URL = env("GLIDE_URL")
+
+GDACS_URL = env("GDACS_URL")
+
+GLIDE_START_DATE = env("GLIDE_START_DATE")
+
+GDACS_START_DATE = env("GDACS_START_DATE")
+
+IFRCEVENT_START_DATE = env("IFRCEVENT_START_DATE")
+
+GFD_START_DATE = env("GFD_START_DATE")
+
+EMDAT_START_YEAR = env("EMDAT_START_YEAR")
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 
@@ -101,6 +126,8 @@ EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
 
 IDMC_DATA_URL = env("IDMC_DATA_URL")
+
+USGS_DATA_URL = env("USGS_DATA_URL")
 
 PDC_BASE_URL = env("PDC_BASE_URL")
 
@@ -343,43 +370,39 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 CELERY_BEAT_SCHEDULE = {
     "import_gdacs_data": {
-        "task": "apps.etl.tasks.extract_gdacs_data",
-        "schedule": crontab(minute=0, hour=6),
+        "task": "apps.etl.etl_tasks.gdacs.ext_and_transform_gdacs_latest_data",
+        "schedule": crontab(minute=0, hour=13),
     },
     "import_glide_data": {
-        "task": "apps.etl.tasks.extract_glide_data",
-        "schedule": crontab(minute=30, hour=6),
+        "task": "apps.etl.etl_tasks.glide.ext_and_transform_glide_latest_data",
+        "schedule": crontab(minute=0, hour=14),
     },
     "import_emdat_data": {
-        "task": "apps.etl.tasks.extract_emdat_data",
-        "schedule": crontab(minute=0, hour=7),
-    },
-    "import_gidd_data": {
-        "task": "apps.etl.tasks.extract_gidd_data",
-        "schedule": crontab(minute=30, hour=7),
-    },
-    "import_usgs_data": {
-        "task": "apps.etl.tasks.extract_usgs_data",
-        "schedule": crontab(minute=0, hour=8),
-    },
-    "import_gfd_data": {
-        "task": "apps.etl.etl_tasks.gfd.ext_and_transform_gfd_latest_data",
-        "schedule": crontab(minute=30, hour=8),
+        "task": "apps.etl.etl_tasks.emdat.ext_and_transform_emdat_latest_data",
+        "schedule": crontab(minute=0, hour=15),
     },
     "import_idu_data": {
         "task": "apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        "schedule": crontab(minute=0, hour=9),
+        "schedule": crontab(minute=0, hour=16),
     },
     "import_ifrc_event_data": {
-        "task": "apps.etl.etl_tasks.ifrc_events.ext_and_transform_ifrcevent_latest_data",
-        "schedule": crontab(minute=30, hour=9),
+        "task": "apps.etl.etl_tasks.ifrc_event.ext_and_transform_ifrcevent_latest_data",
+        "schedule": crontab(minute=0, hour=17),
+    },
+    "import_gidd_data": {
+        "task": "apps.etl.tasks.extract_gidd_data",
+        "schedule": crontab(minute=0, hour=18),
+    },
+    "import_usgs_data": {
+        "task": "apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
+        "schedule": crontab(minute=0, hour=19),
     },
     "import_pdc_data": {
         "task": "apps.etl.tasks.extract_pdc_data",
-        "schedule": crontab(minute=0, hour=10),  # This task execute daily at 12 AM (UTC)
+        "schedule": crontab(minute=30, hour=20),
     },
     "load_data_to_stac": {
         "task": "apps.etl.tasks.load_data",
-        "schedule": crontab(minute=0, hour=12),
+        "schedule": crontab(minute=0, hour=21),
     },
 }

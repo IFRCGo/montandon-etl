@@ -13,7 +13,22 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def import_hazard_data(**kwargs):
+def extract_emdat_latest_data():
+    to_year = datetime.now().year
+    from_year = int(settings.EMDAT_START_YEAR)
+    # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
+    variables = {"limit": -1, "from": from_year, "to": to_year}
+    return import_hazard_data(variables)
+
+
+@shared_task
+def extract_emdat_historical_data():
+    variables = {"limit": -1, "include_hist": True}
+    return import_hazard_data(variables)
+
+
+@shared_task
+def import_hazard_data(variables, **kwargs):
     """
     Import hazard data from glide api
     """
@@ -90,11 +105,8 @@ def import_hazard_data(**kwargs):
         }
         """
 
-    EMDAT_URL = "https://api.emdat.be/v1"
+    EMDAT_URL = f"{settings.EMDAT_URL}"
     HEADERS = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
-
-    # ref: https://files.emdat.be/docs/emdat_api_cookbook.pdfhttps://files.emdat.be/docs/emdat_api_cookbook.pdf
-    variables = {"limit": -1, "include_hist": True}
 
     # Create new extraction object for each extraction
     emdat_instance = ExtractionData.objects.create(
@@ -107,25 +119,6 @@ def import_hazard_data(**kwargs):
     )
 
     try:
-        # Get latest emdat extraction object so that we do not need to fetch historical data
-        latest_extraction = (
-            ExtractionData.objects.filter(
-                source=ExtractionData.Source.EMDAT, status=ExtractionData.Status.SUCCESS, resp_data__isnull=False
-            )
-            .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_DATA)
-            .order_by("-created_at")
-            .first()
-        )
-        if latest_extraction:
-            to_year = datetime.now().year
-            from_year = int(to_year) - 1
-            with latest_extraction.resp_data.open() as data_file:
-                data = data_file.read()
-
-            data_json = json.loads(data)
-            if data_json["data"]["public_emdat"]:
-                variables = {"limit": -1, "from": from_year, "to": to_year}
-
         # Set extraction status to progress
         emdat_instance.status = ExtractionData.Status.IN_PROGRESS
         emdat_instance.save(update_fields=["status"])

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 ITEM_TYPE_COLLECTION_ID_MAP = {
     "idmc-idu-events": PyStacLoadData.ItemType.EVENT,
     "idmc-idu-impacts": PyStacLoadData.ItemType.IMPACT,
-    "idmc-events": PyStacLoadData.ItemType.EVENT,
+    "idmc-gidd-events": PyStacLoadData.ItemType.EVENT,
     "idmc-gidd-impacts": PyStacLoadData.ItemType.IMPACT,
     "gfd-events": PyStacLoadData.ItemType.EVENT,
     "gfd-impacts": PyStacLoadData.ItemType.IMPACT,
@@ -37,6 +37,9 @@ class BaseTransformerHandler(ABC):
     def handle_transformation(cls, extraction_id):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
+        if not extraction_obj.resp_data:
+            logger.info("Transformation ended due to no data")
+            return
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,

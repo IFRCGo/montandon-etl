@@ -2,6 +2,8 @@ import logging
 import uuid
 
 from celery import shared_task
+from django.conf import settings
+from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
@@ -21,6 +23,11 @@ usgs_item_type_map = {
 def transform_usgs_event_data(extraction_id):
     logger.info("Transformation started for usgs data")
     usgs_instance = ExtractionData.objects.get(id=extraction_id)
+
+    if not usgs_instance.resp_data:
+        logger.info("Transformation ended due to no data")
+        return
+
     data = read_file_data(usgs_instance.resp_data)
 
     transform_obj = Transform.objects.create(
@@ -29,8 +36,9 @@ def transform_usgs_event_data(extraction_id):
     )
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)
+    geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
     try:
-        transformer = USGSTransformer(USGSDataSource(source_url=usgs_instance.url, data=data))
+        transformer = USGSTransformer(USGSDataSource(source_url=usgs_instance.url, data=data), geocoder=geocoder)
         transformed_event_items = transformer.make_items()
 
         transform_obj.status = Transform.Status.SUCCESS

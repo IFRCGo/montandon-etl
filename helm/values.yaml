@@ -118,7 +118,7 @@ worker:
     # NOTE: Make sure keys are lowercase
     default:
       enabled: true
-      replicaCount: 2
+      replicaCount: 10
       celeryArgs:
         - "-Q"
         - "celery"
@@ -169,8 +169,13 @@ env:
   EOAPI_DOMAIN:
   DESINVENTAR_DATA_URL:
   PDC_BASE_URL:
+  GLIDE_URL:
+  GDACS_URL:
+  USGS_DATA_URL:
+  EMDAT_URL:
   ARC_DOMAIN:
   IFRC_DATA_URL:
+  EMDAT_URL:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:

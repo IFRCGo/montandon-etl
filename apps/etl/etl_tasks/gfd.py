@@ -1,6 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from celery import chain, shared_task
+from django.conf import settings
 
 from apps.etl.extraction.sources.gfd.extract import GFDExtraction
 from apps.etl.models import ExtractionData
@@ -26,11 +27,10 @@ def ext_and_transform_gfd_latest_data():
     )
 
     end_date = datetime.now().date()
-
     if ext_object:
         start_date = ext_object.created_at.date()
     else:
-        start_date = end_date - timedelta(days=1)
+        start_date = datetime.strptime(settings.GFD_START_DATE, "%Y-%m-%d").date()
 
     chain(
         GFDExtraction.task.s(start_date, end_date),

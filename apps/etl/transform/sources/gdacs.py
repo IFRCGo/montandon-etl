@@ -22,6 +22,11 @@ def transform_event_data(event_extraction_data):
     logger.info("Transformation started for event data")
 
     gdacs_instance = ExtractionData.objects.get(id=event_extraction_data["extraction_id"])
+
+    if not gdacs_instance.resp_data:
+        logger.info("Transformation ended due to no data")
+        return
+
     data = read_file_data(gdacs_instance.resp_data)
 
     transform_obj = Transform.objects.create(

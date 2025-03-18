@@ -3,6 +3,7 @@ from datetime import datetime
 
 import requests
 from celery import shared_task
+from django.conf import settings
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -11,28 +12,41 @@ from apps.etl.models import ExtractionData
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
-    """
-    Import hazard data from glide api
-    """
-    logger.info(f"Importing {hazard_type} data")
-
-    to_date = datetime.now().date()
+@shared_task
+def extract_glide_latest_data(hazard_type, hazard_type_str):
     ext_object = (
         ExtractionData.objects.filter(
             source=ExtractionData.Source.GLIDE,
+            hazard_type=hazard_type,
             status=ExtractionData.Status.SUCCESS,
             resp_data__isnull=False,
         )
         .order_by("-created_at")
         .first()
     )
-    # glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear=2024&frommonth=10&fromday=01&toyear=2024&frommonth=12&to_date=31&events={hazard_type}"  # noqa: E501
     if ext_object:
-        glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?fromyear={ext_object.created_at.year}&frommonth={ext_object.created_at.month}&fromday={ext_object.created_at.day}&toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+        from_date = ext_object.created_at.date()
     else:
-        glide_url = f"https://www.glidenumber.net/glide/jsonglideset.jsp?toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+        from_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
+
+    to_date = datetime.today().date()
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&tomonth={to_date.month}&today={to_date.day}&events={hazard_type}"  # noqa: E501
+    return import_glide_hazard_data(hazard_type, hazard_type_str, url)
+
+
+@shared_task
+def extract_glide_historical_data(hazard_type, hazard_type_str):
+    to_date = datetime.today().date()
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?toyear={to_date.year}&frommonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
+    return import_glide_hazard_data(hazard_type, hazard_type_str, url)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, url: str, **kwargs):
+    """
+    Import hazard data from glide api
+    """
+    logger.info(f"Importing GDACS - {hazard_type} data")
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
@@ -52,7 +66,7 @@ def import_hazard_data(self, hazard_type: str, hazard_type_str: str, **kwargs):
     )
 
     # Extract the data from api.
-    glide_extraction = Extraction(url=glide_url)
+    glide_extraction = Extraction(url=url)
     response = None
     try:
         response = glide_extraction.pull_data(

@@ -1,10 +1,32 @@
 from celery import shared_task
 from django.core.management import call_command
 
-from apps.etl.etl_tasks.emdat import extract_and_transform_emdat_data  # noqa: F401
-from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_data  # noqa: F401
-from apps.etl.etl_tasks.glide import import_glide_hazard_data  # noqa: F401
+from apps.etl.etl_tasks.emdat import (  # noqa: F401
+    ext_and_transform_emdat_historical_data,
+    ext_and_transform_emdat_latest_data,
+)
+from apps.etl.etl_tasks.gdacs import (  # noqa: F401
+    ext_and_transform_gdacs_data,
+    ext_and_transform_gdacs_latest_data,
+)
+from apps.etl.etl_tasks.gfd import ext_and_transform_gfd_latest_data  # noqa: F401
+from apps.etl.etl_tasks.glide import (  # noqa: F401
+    ext_and_transform_data,
+    ext_and_transform_glide_latest_data,
+)
+from apps.etl.etl_tasks.idu import (  # noqa: F401
+    ext_and_transform_idu_historical_data,
+    ext_and_transform_idu_latest_data,
+)
+from apps.etl.etl_tasks.ifrc_event import (  # noqa: F401
+    ext_and_transform_ifrcevent_historical_data,
+    ext_and_transform_ifrcevent_latest_data,
+)
 from apps.etl.etl_tasks.pdc import extract_and_transform_pdc_data  # noqa: F401
+from apps.etl.etl_tasks.usgs import (  # noqa: F401
+    ext_and_transform_usgs_historical_data,
+    ext_and_transform_usgs_latest_data,
+)
 from apps.etl.extraction.sources.desinventar.extract import DesinventarExtraction
 from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
     fetch_event_data,
@@ -13,7 +35,7 @@ from apps.etl.extraction.sources.gdacs.extract import (  # noqa: F401
 from apps.etl.extraction.sources.gfd.extract import GFDExtraction
 from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import (  # noqa: F401
-    import_hazard_data as import_glide_data,
+    import_glide_hazard_data,
 )
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
@@ -45,26 +67,6 @@ BaseTransformerHandler.handle_transformation
 
 
 @shared_task
-def extract_gdacs_data():
-    call_command("extract_gdacs_data")
-
-
-@shared_task
-def extract_glide_data():
-    call_command("extract_glide_data")
-
-
-@shared_task
-def extract_desinventar_data():
-    call_command("extract_desinventar_data")
-
-
-@shared_task
-def extract_emdat_data():
-    call_command("extract_emdat_data")
-
-
-@shared_task
 def extract_pdc_data():
     call_command("extract_pdc_data")
 
@@ -77,14 +79,6 @@ def extract_gidd_data():
 @shared_task
 def extract_usgs_data():
     call_command("extract_usgs_data")
-
-
-@shared_task
-def extract_historical_data():
-    call_command("extract_idu_data")
-    call_command("extract_gfd_data")
-    call_command("extract_ifrc_event_data")
-    call_command("extract_desinventar_data")
 
 
 @shared_task

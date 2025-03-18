@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import requests
 from celery import chain, shared_task
+from django.conf import settings
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -22,45 +23,52 @@ from apps.etl.transform.sources.gdacs import (
 logger = logging.getLogger(__name__)
 
 
-def ext_and_transform_gdacs_latest_data(hazard_type: str, hazard_type_str: str):
-    ext_object = (
-        ExtractionData.objects.filter(
-            source=ExtractionData.Source.GDACS,
-            hazard_type=hazard_type,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data__isnull=False,
-        )
-        .order_by("-created_at")
-        .first()
-    )
+@shared_task
+def ext_and_transform_gdacs_latest_data():
 
-    if ext_object:
-        # if old data exists , pull the latest data.
-        from_date = ext_object.created_at.date()
+    def _ext_and_transform_data(hazard_type: str, hazard_type_str: str):
+        ext_object = (
+            ExtractionData.objects.filter(
+                source=ExtractionData.Source.GDACS,
+                hazard_type=hazard_type,
+                status=ExtractionData.Status.SUCCESS,
+                resp_data__isnull=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        if ext_object:
+            from_date = ext_object.created_at.date()
+        else:
+            # Fetch data up to one week at the begining.
+            from_date = datetime.strptime(settings.GDACS_START_DATE, "%Y-%m-%d").date()
+
         to_date = datetime.now().date()
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
-    else:
-        # pull old data
-        ext_and_transform_gdacs_historical_data(hazard_type, hazard_type_str)
+
+    _ext_and_transform_data("EQ", HazardType.EARTHQUAKE)
+    _ext_and_transform_data("TC", HazardType.CYCLONE)
+    _ext_and_transform_data("FL", HazardType.FLOOD)
+    _ext_and_transform_data("DR", HazardType.DROUGHT)
+    _ext_and_transform_data("WF", HazardType.WILDFIRE)
+    _ext_and_transform_data("VO", HazardType.VOLCANO)
+    _ext_and_transform_data("TS", HazardType.TSUNAMI)
 
 
 def ext_and_transform_gdacs_historical_data(hazard_type: str, hazard_type_str: str):
-    # Start from 2000
-    start_year = 2000
-    end_year = datetime.now().year
+    # Start from 2000-01-01
+    start_date = datetime(2000, 1, 1)
+    end_date = datetime(datetime.now().year, datetime.now().month, datetime.now().day)
 
-    current_date = datetime(start_year, 1, 1)
-    end_date = datetime(end_year, 12, 31)
-
-    while current_date <= end_date:
-        month_start = current_date.strftime("%Y-%m-%d")
-        month_end = (current_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
+    while start_date <= end_date:
+        month_start = start_date.strftime("%Y-%m-%d")
+        month_end = (start_date + timedelta(days=31)).replace(day=1) - timedelta(days=1)
         month_end = month_end.strftime("%Y-%m-%d")
 
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, month_start, month_end)
 
-        current_date += timedelta(days=31)
-        current_date = current_date.replace(day=1)
+        start_date += timedelta(days=31)
+        start_date = start_date.replace(day=1)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
@@ -70,7 +78,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
     """
     logger.info(f"Importing {hazard_type} data")
 
-    gdacs_url = f"https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
+    gdacs_url = f"{settings.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
@@ -126,7 +134,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
                 episode_id = feature["properties"]["episodeid"]
                 footprint_url = feature["properties"]["url"]["geometry"]
                 if hazard_type == HazardType.CYCLONE and event_id and episode_id:
-                    footprint_url = f"https://www.gdacs.org/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+                    footprint_url = f"{settings.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
                 event_workflow = chain(
                     fetch_event_data.s(

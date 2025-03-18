@@ -21,7 +21,12 @@ env:
   DESINVENTAR_DATA_URL: https://desinventar.dummy.com
   IFRC_DATA_URL: dummy-url
   PDC_BASE_URL: https://pdc.dummy.com
+  GLIDE_URL: https://glide.dummy.com
+  GDACS_URL: https://gdacs.dummy.com
   ARC_DOMAIN: https://arc.dummy.com
+  USGS_DATA_URL: https://usgs.dummy.com
+  EMDAT_URL: https://emdat.dummy.com
+
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun
