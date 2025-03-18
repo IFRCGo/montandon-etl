@@ -32,21 +32,6 @@ dependencies = [
 [tool.uv.sources]
 pystac-monty = { path = "libs/pystac-monty", editable = true }
 
-[tool.black]
-line-length = 125
-# NOTE: Update in .pre-commit-config.yaml as well
-extend-exclude = "(__pycache__|.*snap_test_.*\\.py|.+\\/.+\\/migrations\\/.*)"
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-skip = [
-    "**/__pycache__",
-    "**/snap_test_*.py",
-    ".venv/",
-    "**/migrations/*.py",
-]
-
 [tool.pyright]
 exclude = [
     "**/__pycache__",
@@ -58,3 +43,23 @@ reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
 venv = ".venv"
+
+[tool.ruff]
+line-length = 125
+extend-exclude = [
+    ".git",
+    ".pytest_cache",
+    ".venv",
+    "venv",
+    "**/migrations/*",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+ignore = ["C901", "E701", "E203"]
+extend-select = ["I", "E", "F", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"/**/tests/*_mock_data.py" = ["E501"]
+"**/snap_test_*.py" = ["E501"]
