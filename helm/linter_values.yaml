@@ -50,7 +50,7 @@ secrets:
   PDC_AUTHORIZATION_KEY: dummy-key
   ARC_USERNAME: dummy-username
   ARC_PASSWORD: dummy-password
-  
+
 secretsAdditional:
   ENABLE_MAGIC_SECRET: "true"
   MAGIC_KEY: to-much-fun

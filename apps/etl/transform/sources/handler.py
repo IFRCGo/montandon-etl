@@ -28,7 +28,6 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 
 
 class BaseTransformerHandler(ABC):
-
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
         raise NotImplementedError()
