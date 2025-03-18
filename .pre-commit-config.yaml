@@ -27,3 +27,21 @@ repos:
       # Formatter
       - id: ruff-format
         types_or: [python, pyi, jupyter, toml]
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.396
+    hooks:
+      - id: pyright
+        verbose: true  # FIXME: Remove me after fixing all issues
+        entry: bash -c 'pyright "$@" || true' --  # FIXME: Remove me after fixing all issues
+        additional_dependencies:
+          [
+            beartype,
+            einops,
+            jax,
+            jaxtyping,
+            optax,
+            pytest,
+            typing_extensions,
+            wadler_lindig,
+          ]

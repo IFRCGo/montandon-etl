@@ -27,6 +27,9 @@ dependencies = [
     "ipython",
     "uwsgi",
     "earthengine-api>=1.5.1",
+    # Dev
+    "django-stubs",
+    "celery-types",
 ]
 
 [tool.uv.sources]
@@ -39,6 +42,7 @@ exclude = [
     ".venv/",
     "**/migrations/*.py",
 ]
+extraPaths = ["libs/pystac-monty"]
 reportMissingImports = true
 reportMissingTypeStubs = false
 venvPath = "."
