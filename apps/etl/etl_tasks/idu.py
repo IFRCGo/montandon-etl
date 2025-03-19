@@ -14,17 +14,20 @@ LATEST_DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/idus/last-180-days/"
 
 @shared_task
 def extract_and_transform_idu_data(url):
+    """Extract and Transform IDU data"""
     chain(
-        IDUExtraction.handle_extraction.s(url=url),
+        IDUExtraction.task.s(url=url),
         IDUTransformHandler.task.s(),
     ).apply_async()
 
 
 @shared_task
 def ext_and_transform_idu_historical_data():
+    """Extract and Transform IDU historical data"""
     extract_and_transform_idu_data(HISTORICAL_DATA_URL)
 
 
 @shared_task
 def ext_and_transform_idu_latest_data():
+    """Extract and Transform IDU latest data"""
     extract_and_transform_idu_data(LATEST_DATA_URL)
