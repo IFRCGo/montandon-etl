@@ -49,7 +49,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                 response=geo_json_file,
                 source=ExtractionData.Source.PDC,
                 validate_source_func=None,
-                parent_id=instance_id.id,
+                parent_id=instance_id,
                 hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                 metadata={},
             )
@@ -77,7 +77,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                     response=detail_response.json(),
                     source=ExtractionData.Source.PDC,
                     validate_source_func=None,
-                    parent_id=instance_id.id,
+                    parent_id=instance_id,
                     hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                     metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
                 )
