@@ -222,7 +222,6 @@ def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type:
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
-
     # instance_id is passed in this func in kwargs during retry from self.retry() method.
     # It forbids creating new extraction object during retry.
     instance_id = kwargs.get("instance_id", None)

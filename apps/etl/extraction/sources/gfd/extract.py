@@ -21,7 +21,6 @@ DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-lega
 
 
 class GFDExtraction(BaseExtraction):
-
     @classmethod
     def decode_json(cls, encoded_str):
         """Decodes a Base64 string back to a JSON object."""

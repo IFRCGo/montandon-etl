@@ -267,7 +267,6 @@ STATIC_URL = env("DJANGO_STATIC_URL")
 MEDIA_URL = env("DJANGO_MEDIA_URL")
 
 if env("AZURE_STORAGE_ENABLE"):
-
     AZURE_STORAGE_CONFIG_OPTIONS = {
         "connection_string": env("AZURE_STORAGE_CONNECTION_STRING"),
         "overwrite_files": False,

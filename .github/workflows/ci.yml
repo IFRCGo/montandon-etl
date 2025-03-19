@@ -166,7 +166,7 @@ jobs:
           helm dependency build ./helm
 
       - name: 🐳 Helm lint
-        run: helm lint ./helm --values ./helm/values-test.yaml
+        run: helm lint ./helm --values ./helm/linter_values.yaml
 
       - name: 🐳 Helm template
-        run: helm template ./helm --values ./helm/values-test.yaml
+        run: helm template ./helm --values ./helm/linter_values.yaml

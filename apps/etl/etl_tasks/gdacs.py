@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def ext_and_transform_gdacs_latest_data():
-
     def _ext_and_transform_data(hazard_type: str, hazard_type_str: str):
         ext_object = (
             ExtractionData.objects.filter(
