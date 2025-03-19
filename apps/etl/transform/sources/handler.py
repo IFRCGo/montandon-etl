@@ -1,6 +1,9 @@
 import logging
 import uuid
 from abc import ABC
+from typing import Optional
+
+from pystac_monty.geocoding import MontyGeoCoder
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.celery import app
@@ -34,7 +37,7 @@ class BaseTransformerHandler(ABC):
         raise NotImplementedError()
 
     @classmethod
-    def handle_transformation(cls, extraction_id):
+    def handle_transformation(cls, extraction_id: int, geocoder: Optional[MontyGeoCoder] = None):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
         if not extraction_obj.resp_data:
@@ -48,7 +51,11 @@ class BaseTransformerHandler(ABC):
 
         try:
             schema = cls.get_schema_data(extraction_obj)
-            transformer = cls.transformer(schema)
+            if geocoder:
+                transformer = cls.transformer(schema, geocoder=geocoder)
+            else:
+                transformer = cls.transformer(schema)
+
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS
