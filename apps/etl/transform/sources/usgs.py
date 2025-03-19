@@ -1,73 +1,44 @@
-import logging
-import uuid
+import json
 
-from celery import shared_task
 from django.conf import settings
 from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Transform
-from apps.etl.utils import read_file_data
-from main.logging import log_extra
-from main.managers import BulkCreateManager
-
-logger = logging.getLogger(__name__)
-
-usgs_item_type_map = {
-    "usgs-events": PyStacLoadData.ItemType.EVENT,
-    "usgs-hazards": PyStacLoadData.ItemType.HAZARD,
-    "usgs-impacts": PyStacLoadData.ItemType.IMPACT,
-}
+from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.handler import BaseTransformerHandler
+from main.celery import app
 
 
-@shared_task
-def transform_usgs_event_data(extraction_id):
-    logger.info("Transformation started for usgs data")
-    usgs_instance = ExtractionData.objects.get(id=extraction_id)
+class USGSTransformHandler(BaseTransformerHandler):
+    """USGS Transformer handler"""
 
-    if not usgs_instance.resp_data:
-        logger.info("Transformation ended due to no data")
-        return
+    transformer = USGSTransformer
+    transformer_schema = USGSDataSource
 
-    data = read_file_data(usgs_instance.resp_data)
+    @classmethod
+    def get_schema_data(cls, extraction_obj: ExtractionData):
+        all_children = ExtractionData.objects.filter(parent=extraction_obj)
 
-    transform_obj = Transform.objects.create(
-        extraction=usgs_instance,
-        status=Transform.Status.PENDING,
-        trace_id=usgs_instance.trace_id,
-    )
+        losses_data = []
+        for child_item in all_children:
+            obj = ExtractionData.objects.filter(id=child_item.id).first()
+            if obj and obj.resp_data:
+                with obj.resp_data.open() as file_data:
+                    data = json.loads(file_data.read())
+                losses_data.append(data)
 
-    bulk_mgr = BulkCreateManager(chunk_size=1000)
-    geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
-    try:
-        transformer = USGSTransformer(USGSDataSource(source_url=usgs_instance.url, data=data), geocoder=geocoder)
-        transformed_event_items = transformer.make_items()
+        with extraction_obj.resp_data.open() as file_data:
+            data = file_data.read()
 
-        transform_obj.status = Transform.Status.SUCCESS
-        transform_obj.save(update_fields=["status"])
-    except Exception as e:
-        logger.error("usgs transformation failed", exc_info=True, extra=log_extra({"extraction_id": usgs_instance.id}))
-        transform_obj.status = Transform.Status.FAILED
-        transform_obj.save(update_fields=["status"])
-        raise e
+        losses_data = json.dumps(losses_data)
+        # FIXME: Why are we setting lossed_data to None?
+        if not losses_data:
+            losses_data = None
 
-    for item in transformed_event_items:
-        item_type = usgs_item_type_map[item.collection_id]
-        transformed_item_dict = item.to_dict()
-        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-        bulk_mgr.add(
-            PyStacLoadData(
-                transform_id=transform_obj,
-                item=transformed_item_dict,
-                collection_id=item.collection_id,
-                item_type=item_type,
-                load_status=PyStacLoadData.LoadStatus.PENDING,
-            )
-        )
+        return cls.transformer_schema(source_url=extraction_obj.url, data=data, losses_data=losses_data)
 
-    bulk_mgr.done()
-
-    transform_obj.is_loaded = True
-    transform_obj.save(update_fields=["is_loaded"])
-
-    logger.info("Transformation ended for usgs data")
+    @staticmethod
+    @app.task
+    def task(extraction_id):
+        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
+        return USGSTransformHandler().handle_transformation(extraction_id, geocoder=geocoder)

@@ -35,6 +35,9 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
     "ibtracs-events": PyStacLoadData.ItemType.EVENT,
     "ibtracs-hazards": PyStacLoadData.ItemType.HAZARD,
+    "usgs-events": PyStacLoadData.ItemType.EVENT,
+    "usgs-hazards": PyStacLoadData.ItemType.HAZARD,
+    "usgs-impacts": PyStacLoadData.ItemType.IMPACT,
 }
 
 

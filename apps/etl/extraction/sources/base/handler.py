@@ -60,7 +60,7 @@ class BaseExtraction:
         return extraction_instance
 
     @classmethod
-    def _create_extraction_instance(cls, url: str, source: int) -> ExtractionData:
+    def _create_extraction_instance(cls, url: str, source: int, parent_id: int | None) -> ExtractionData:
         """
         Create and return a new extraction instance with initial status.
         Returns:
@@ -76,6 +76,7 @@ class BaseExtraction:
             hazard_type=None,
             attempt_no=0,
             resp_code=0,
+            parent_id=parent_id,
         )
 
     @classmethod
@@ -117,14 +118,14 @@ class BaseExtraction:
         return json.loads(response.content)
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict | None, headers: dict, source: int) -> dict:
+    def handle_extraction(cls, url: str, params: dict | None, headers: dict, source: int, parent_id: int | None =None) -> dict:
         """
         Process data extraction.
         Returns:
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        instance = cls._create_extraction_instance(url=url, source=source)
+        instance = cls._create_extraction_instance(url=url, source=source, parent_id=parent_id)
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)

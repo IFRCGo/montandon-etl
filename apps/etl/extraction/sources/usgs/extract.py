@@ -1,121 +1,96 @@
 import json
 import logging
-import time
-import uuid
 
 import requests
-from celery import chain, shared_task
 
-from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.extraction.sources.base.utils import store_extraction_data
-from apps.etl.models import ExtractionData, HazardType
-from apps.etl.transform.sources.usgs import transform_usgs_event_data
+from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.models import ExtractionData
+from main.celery import app
 
 logger = logging.getLogger(__name__)
 
 
-def process_in_batches(extraction_id, features, batch_size=50):
-    for i in range(0, len(features), batch_size):
-        features_batch = features[i : i + batch_size]  # noqa
-        for feature in features_batch:
-            chain(
-                fetch_detail.s(extraction_id, feature["properties"]["detail"]),
-                transform_usgs_event_data.s(),
-            ).apply_async()
-        print("Wait 1 min to process next batch")
-        time.sleep(60)
+class USGSExtraction(BaseExtraction):
+    """
+    Handles data extraction from the USGS API
+    """
 
+    @classmethod
+    def handle_extraction(  # type: ignore[reportIncompatibleMethodOverride]
+        cls, url: str, params: dict | None, headers: dict | None, source: int, parent_id: int | None = None
+    ) -> int:
+        """
+        Process data extraction.
+        Returns:
+            int: ID of the extraction instance
+        """
+        logger.info("Starting data extraction")
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def fetch_detail(self, parent_id, detail_url, **kwargs):
-    url = detail_url
-    instance_id = kwargs.get("instance_id", None)
-    parent = ExtractionData.objects.get(id=parent_id)
-    if not instance_id:
-        usgs_instance = ExtractionData.objects.create(
-            source=ExtractionData.Source.USGS,
-            status=ExtractionData.Status.PENDING,
-            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            attempt_no=0,
-            resp_code=0,
-            hazard_type=HazardType.EARTHQUAKE,
-            trace_id=parent.trace_id if parent else str(uuid.uuid4()),
-        )
-    else:
-        usgs_instance = ExtractionData.objects.get(id=instance_id)
+        instance = cls._create_extraction_instance(url=url, source=source, parent_id=parent_id)
 
-    usgs_extraction = Extraction(url=url)
-    response = None
-    try:
-        response = usgs_extraction.pull_data(
-            source=ExtractionData.Source.USGS,
-            ext_object_id=usgs_instance.id,
-            retry_count=0,
-        )
-    except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": usgs_instance.id, "retry_count": self.request.retries})
-    if response:
-        usgs_instance = store_extraction_data(
-            response=response,
-            source=ExtractionData.Source.USGS,
-            instance_id=usgs_instance.id,
+        try:
+            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+
+            response = requests.get(url, params=params, headers=headers, timeout=30)
+            response.raise_for_status()
+            instance.resp_code = response.status_code
+
+            if response.status_code == 200 or response.status_code == 204:
+                response_data = cls.store_extraction_data(
+                    instance_id=instance.id,
+                    source=ExtractionData.Source.USGS,
+                    response=response,
+                    validate_source_func=None,
+                )
+                # Check if response contains data
+                if response_data:
+                    cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
+                    logger.info("Data extracted successfully")
+                else:
+                    cls._update_instance_status(
+                        instance,
+                        ExtractionData.Status.SUCCESS,
+                        ExtractionData.ValidationStatus.NO_DATA,
+                        update_validation=True,
+                    )
+                    logger.warning("No data found in response")
+                    # FIXME: Should we return None?
+                    return None
+            return instance.id
+        except requests.exceptions.RequestException:
+            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
+            logger.error(
+                "extraction failed",
+                exc_info=True,
+                extra={
+                    "source": instance.source,
+                },
+            )
+            raise
+
+    @staticmethod
+    @app.task
+    def task(parent_id: int | None, detail_url: str):  # type: ignore[reportIncompatibleMethodOverride]
+        """USGS Task"""
+        details_id = USGSExtraction.handle_extraction(
+            url=detail_url,
+            params=None,
+            headers=None,
             parent_id=parent_id,
-            hazard_type=HazardType.EARTHQUAKE,
+            source=ExtractionData.Source.USGS
         )
-        return usgs_instance.id
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def ext_and_transform_data(self, url, **kwargs):
-    """
-    Import hazard data from usgs api
-    """
-    logger.info(f"Importing {HazardType.EARTHQUAKE} data")
-
-    # Create a Extraction object in the beginning
-    instance_id = kwargs.get("instance_id", None)
-    retry_count = kwargs.get("retry_count", None)
-
-    usgs_instance = (
-        ExtractionData.objects.get(id=instance_id)
-        if instance_id
-        else ExtractionData.objects.create(
-            source=ExtractionData.Source.USGS,
-            status=ExtractionData.Status.PENDING,
-            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            hazard_type=HazardType.EARTHQUAKE,
-            attempt_no=0,
-            resp_code=0,
-            trace_id=str(uuid.uuid4()),
-        )
-    )
-
-    # Extract the data from api.
-    usgs_extraction = Extraction(url=url)
-    response = None
-    try:
-        response = usgs_extraction.pull_data(
-            source=ExtractionData.Source.USGS,
-            ext_object_id=usgs_instance.id,
-            retry_count=retry_count if retry_count else 1,
-        )
-    except requests.exceptions.RequestException as exc:
-        self.retry(exc=exc, kwargs={"instance_id": usgs_instance.id, "retry_count": self.request.retries})
-
-    if response:
-        # Save the extracted data into the existing usgs object
-        usgs_instance = store_extraction_data(
-            response=response,
-            source=ExtractionData.Source.GDACS,
-            validate_source_func=None,
-            instance_id=usgs_instance.id,
-        )
-        if usgs_instance.resp_code == 200:
+        if details_id:
+            usgs_instance = ExtractionData.objects.get(id=details_id)
             with usgs_instance.resp_data.open() as file_data:
-                response_data = file_data.read()
-                response_data = json.loads(response_data.decode("utf-8"))
-
-            process_in_batches(extraction_id=usgs_instance.id, features=response_data["features"])
-
-        logger.info(f"{HazardType.EARTHQUAKE} data imported sucessfully")
-        return usgs_instance.id
+                detail_data = json.loads(file_data.read())
+            if "losspager" in detail_data["properties"]["products"]:
+                for item in detail_data["properties"]["products"]["losspager"]:
+                    url = item["contents"]["json/losses.json"]["url"]
+                    USGSExtraction.handle_extraction(
+                        url=url,
+                        params=None,
+                        headers=None,
+                        parent_id=details_id,
+                        source=ExtractionData.Source.USGS
+                    )
+        return details_id
