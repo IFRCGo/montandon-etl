@@ -28,6 +28,11 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "pdc-events": PyStacLoadData.ItemType.EVENT,
     "pdc-hazards": PyStacLoadData.ItemType.HAZARD,
     "pdc-impacts": PyStacLoadData.ItemType.IMPACT,
+    "glide-events": PyStacLoadData.ItemType.EVENT,
+    "glide-hazards": PyStacLoadData.ItemType.HAZARD,
+    "emdat-events": PyStacLoadData.ItemType.EVENT,
+    "emdat-hazards": PyStacLoadData.ItemType.HAZARD,
+    "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
 }
 
 
@@ -101,7 +106,7 @@ class BaseTransformerHandler(ABC):
 
     @staticmethod
     @app.task
-    def task(extraction_id):
+    def task(extraction_id: int):
         """
         Not NotImplemented due to celery limitation with classmethod
         Eg: return XYZTransformHandler.handle_transformation(extraction_id)

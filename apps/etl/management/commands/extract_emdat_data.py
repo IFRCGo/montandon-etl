@@ -11,4 +11,4 @@ class Command(BaseCommand):
     help = "Import data from EM-DAT"
 
     def handle(self, *args, **options):
-        ext_and_transform_emdat_historical_data.delay()
+        ext_and_transform_emdat_historical_data()
