@@ -412,8 +412,12 @@ LOGGING = {
                 "handlers": ["console"],
                 "propagate": False,
             }
-            for app in ["root", "apps", "main", "utils", "celery", "django"]
+            for app in ["apps", "main", "utils", "celery", "django"]
         },
+    },
+    "root": {
+        "level": env("APP_LOG_LEVEL"),
+        "handlers": ["console"],
     },
 }
 
@@ -446,5 +450,9 @@ if DEBUG:
                 }
                 for key, logger in LOGGING["loggers"].items()
             },
+        },
+        "root": {
+            "level": env("APP_LOG_LEVEL"),
+            "handlers": ["colored_console"],
         },
     }

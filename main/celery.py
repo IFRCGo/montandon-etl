@@ -1,6 +1,8 @@
+import logging
 import os
+from logging.config import dictConfig
 
-from celery import Celery
+from celery import Celery, signals
 
 from utils.common import get_all_modules
 
@@ -21,3 +23,8 @@ app.autodiscover_tasks()
 app.autodiscover_tasks(get_all_modules("apps/etl/etl_tasks"))
 
 app.conf.beat_schedule = SCHEDULES
+@signals.setup_logging.connect
+def config_loggers(**_):
+    from django.conf import settings
+
+    dictConfig(settings.LOGGING)
