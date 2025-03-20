@@ -60,7 +60,9 @@ class BaseExtraction:
         return extraction_instance
 
     @classmethod
-    def _create_extraction_instance(cls, url: str, source: int, parent_id: int | None) -> ExtractionData:
+    def _create_extraction_instance(
+        cls, url: str, source: int, parent_id: int, status=ExtractionData.Status.PENDING, hazard_type=None, metadata={}
+    ) -> ExtractionData:
         """
         Create and return a new extraction instance with initial status.
         Returns:
@@ -69,7 +71,7 @@ class BaseExtraction:
         return ExtractionData.objects.create(
             source=source,
             url=url,
-            status=ExtractionData.Status.PENDING,
+            status=status,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             trace_id=str(uuid.uuid4()),
             # FIXME Pass hazard type
@@ -77,6 +79,7 @@ class BaseExtraction:
             attempt_no=0,
             resp_code=0,
             parent_id=parent_id,
+            metadata=metadata,
         )
 
     @classmethod
