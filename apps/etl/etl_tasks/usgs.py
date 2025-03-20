@@ -38,6 +38,7 @@ def ext_and_transform_usgs_data(url: str):
         logger.error("Base Extraction ID not found")
 
 
+# FIXME: This does not work if one of the system is down for more than a day
 @shared_task
 def ext_and_transform_usgs_latest_data():
     """Extract and Transform USGS latest data"""

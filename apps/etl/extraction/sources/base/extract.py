@@ -9,7 +9,7 @@ logger = get_task_logger(__name__)
 
 # FIXME: Remove this later
 class Extraction:
-    def __init__(self, url: str, headers: str = None):
+    def __init__(self, url: str, headers: dict | None = None):
         self.headers = headers
         self.url = url
 
@@ -22,7 +22,7 @@ class Extraction:
         }
         return mappings.get(content_type, "txt")
 
-    def pull_data(self, source: int, retry_count: int, timeout: int = 30, ext_object_id: int = None):
+    def pull_data(self, source: int, retry_count: int, timeout: int = 30, ext_object_id: int | None = None):
         resp_status = ExtractionData.Status.IN_PROGRESS
         source_validation_status = ExtractionData.ValidationStatus.NO_VALIDATION
 

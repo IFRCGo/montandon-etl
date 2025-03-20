@@ -21,7 +21,7 @@ class EtlResource(Resource):
         abstract = True
 
 
-# TODO: User IntegerChoices and add mapping for import/export
+# TODO: Use IntegerChoices and add mapping for import/export
 class HazardType(models.TextChoices):
     EARTHQUAKE = "EQ", "Earthquake"
     FLOOD = "FL", "Flood"
@@ -161,6 +161,9 @@ class ExtractionData(EtlResource):
     class Meta(EtlResource.Meta):
         verbose_name = "Extraction"
 
+    # FIXME: Add date range, Add country, Make hazard_type multiple selection
+    # GOAL: We do not need to store URL but we need to store data that can be used to retrigger the data.
+
     def __str__(self):
         return str(self.id)
 
@@ -175,12 +178,14 @@ class Transform(EtlResource):
         PENDING = 1, "Pending"
         SUCCESS = 2, "Success"
         FAILED = 3, "Failed"
+        # FIXME: We need to add PARTIAL_SUCCESS
 
     # METADATA
-    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("Extraction"))
+    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
 
     # STATUS
     status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
+    # FIXME: This might not be necessary
     is_loaded = models.BooleanField(
         default=False,
         help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
@@ -209,6 +214,7 @@ class PyStacLoadData(EtlResource):
     collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
 
     # STATUS
+    # FIXME: change to status
     load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
 
     # CONTENT

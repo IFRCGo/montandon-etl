@@ -1,7 +1,6 @@
 default_language_version:
   python: python3
 
-# NOTE: Update in .flake8 pyproject.toml as well
 exclude: |
     (?x)^(
       \.git|

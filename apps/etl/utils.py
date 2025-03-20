@@ -3,17 +3,17 @@ import logging
 
 import requests
 from django.conf import settings
+from django.core.files import File
 
 logger = logging.getLogger(__name__)
 
 
-def read_file_data(file):
+def read_file_data(file: File) -> str:
     """
     Read file content and return the content of the file
     """
     with file.open() as data_file:
-        data = data_file.read()
-    return data
+        return data_file.read()
 
 
 ARC_GIS_DEFAULT_PARAMS = {
@@ -55,19 +55,20 @@ ARC_GIS_DEFAULT_PARAMS = {
 }
 
 
+# FIXME: Rename this to PdcArcGisAccessor
 class AccessTokenManager:
     def __init__(self, session: requests.Session):
-        self.token_expires = None
-        self.access_token = None
+        self.token_expires: datetime.datetime | None = None
+        self.access_token: str | None = None
         self.session = session
         self.update()  # Ensure the token is fetched on initialization
 
     def get_access_token(self):
-        login_url = "https://partners.pdc.org/arcgis/tokens/generateToken"
+        login_url = f"{settings.PDC_ARCGIS_DOMAIN}/arcgis/tokens/generateToken"
         data = {
             "f": "json",
-            "username": settings.ARC_USERNAME,
-            "password": settings.ARC_PASSWORD,
+            "username": settings.PDC_ARCGIS_USERNAME,
+            "password": settings.PDC_ARCGIS_PASSWORD,
             "referer": "https://www.arcgis.com",
         }
         login_response = self.session.post(login_url, data=data, allow_redirects=True).json()
@@ -81,7 +82,7 @@ class AccessTokenManager:
             self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
 
     def get_polygon(self, uuid):
-        url = settings.ARC_DOMAIN
+        url = f"{settings.PDC_ARCGIS_DOMAIN}/arcgis/rest/services/partners/pdc_hazard_exposure/MapServer/27/query"
         response = self.session.post(
             url=url,
             data={

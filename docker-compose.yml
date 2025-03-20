@@ -10,6 +10,7 @@ x-server: &base_server_setup
   env_file:
     - .env
   environment: &base_server_environments
+      DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?err}
       DB_NAME: ${DB_NAME:-postgres}
@@ -22,28 +23,9 @@ x-server: &base_server_setup
       # Health-checks
       HEALTHCHECK_REDIS_URL: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       HEALTHCHECK_RABBITMQ_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
-      # ETL Sources
-      EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
-      IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
-      GFD_CREDENTIAL: ${GFD_CREDENTIAL?error}
-      GFD_SERVICE_ACCOUNT: ${GFD_SERVICE_ACCOUNT?error}
-      IFRC_DATA_URL: ${IFRC_DATA_URL?error}
-      DESINVENTAR_DATA_URL: ${DESINVENTAR_DATA_URL?error}
+      # Geocoder
+      # FIXME: Add geocoder to docker compose and use that service here
       GEOCODER_URL: ${GEOCODER_URL?error}
-      PDC_AUTHORIZATION_KEY: ${PDC_AUTHORIZATION_KEY?error}
-      PDC_BASE_URL: ${PDC_BASE_URL?error}
-      USGS_DATA_URL: ${USGS_DATA_URL?error}
-      GLIDE_URL: ${GLIDE_URL?error}
-      GDACS_URL: ${GDACS_URL?error}
-      EMDAT_URL: ${EMDAT_URL?error}
-
-      ARC_DOMAIN: ${ARC_DOMAIN?error}
-      ARC_USERNAME: ${ARC_USERNAME?error}
-      ARC_PASSWORD: ${ARC_PASSWORD?error}
-      IBTRACS_DATA_URL: ${IBTRACS_DATA_URL?error}
-      # ETL Load
-      EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
-      DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
   extra_hosts:
       - "host.docker.internal:host-gateway"
   volumes:

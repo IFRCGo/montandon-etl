@@ -9,7 +9,7 @@ from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
 logger = logging.getLogger(__name__)
 
 # list of countries which has same country_code and iso3
-country_code_iso3_list: list[str] = [
+country_code_iso3_list = [
     "ago",
     "alb",
     "arg",
@@ -106,7 +106,7 @@ country_code_iso3_list: list[str] = [
 ]
 
 # list of countries / regions which has different country_code and iso3
-additional_region_code_to_iso3_map: dict[str, str] = {
+additional_region_code_to_iso3_map = {
     "etm": "tls",
     "mal": "mdv",
     "sy11": "syr",
@@ -127,7 +127,7 @@ def ext_and_transform_desinventar_data():
             DesinventarTransformHandler.task.s(country_code, country_code),
         ).apply_async()
 
-    # FIXME: Rename country_code to region_code
+    # FIXME: country_code should be region_code
     for country_code, iso3 in additional_region_code_to_iso3_map.items():
         DATA_URL = f"{settings.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
         chain(

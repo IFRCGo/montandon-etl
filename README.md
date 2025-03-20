@@ -1,48 +1,65 @@
-## Getting started
+# Montandon ETL
 
-- Clone this repository: git@github.com:IFRCGo/montandon-etl.github
-- Go the directory where manage.py exists.
-- Create a .env file and copy all environment variable from sample.env.
-- Set your own environment variables in .env file.
-- Initialize, update, and ensure the proper setup of submodules in your repository.
-    ```bash
-       git submodule update --init --recursive
-    ```
-- Buiid docker using this command:
-    ```bash
-       docker compose up --build -d
-    ```
-- Run migration using this command:
-    ```bash
-       docker-compose exec web python manage.py migrate
-    ```
-- Command to import GDACS data.
-    ```bash
-       docker-compose exec web python manage.py extract_gdacs_data
-    ```
-- Command to import GLIDE data.
-    ```bash
-       docker-compose exec web python manage.py extract_glide_data
-    ```
-- Command to import EMDAT data.
-    ```bash
-       docker-compose exec web python manage.py extract_emdat_data
-    ```
-- Command to import IDU data.
-    ```bash
-       docker-compose exec web python manage.py extract_idu_data
-    ```
-- Command to import GIDD data.
-    ```bash
-       docker-compose exec web python manage.py extract_gidd_data
-    ```
-- Command to import Global Flood Database data.
-    ```bash
-       docker-compose exec web python manage.py extract_gfd_data
-    ```
-- To view the imported data in the admin panel you need to create yourself as a superuser:
-    ```bash
-       docker-compose exec web python manage.py createsuperuser
-    ```
-    Fill up the form for creating super user.
-- Once user is created, go the browser and request the link http://localhost:8000/admin/ to view the data in Extraction data table.
+## Getting Started
+
+Clone this repository:
+
+```bash
+git clone git@github.com:IFRCGo/montandon-etl.github
+cd montandon-etl
+```
+
+Update submodules
+```bash
+ git submodule update --init --recursive
+```
+
+Create an empty .env file.
+```bash
+touch .env
+```
+
+Install python dependencies
+```bash
+# uv should be installed globally
+uv sync
+```
+
+### Running
+
+Run container using the following command:
+```bash
+ docker compose up --build -d
+```
+
+Run migration using the following command:
+```bash
+docker-compose exec web python manage.py migrate
+```
+
+Create users to access admin panel using the following command:
+```bash
+docker-compose exec web python manage.py createsuperuser
+```
+
+### Triggering data import from external sources
+
+```bash
+# Import from GDACS
+ docker-compose exec web python manage.py extract_gdacs_data
+
+# Import from GLIDE
+docker-compose exec web python manage.py extract_glide_data
+
+# Import from EMDAT
+docker-compose exec web python manage.py extract_glide_data
+
+# Import from IDU
+docker-compose exec web python manage.py extract_idu_data
+
+# Import from GIDD
+docker-compose exec web python manage.py extract_gidd_data
+
+# Import from GFD
+docker-compose exec web python manage.py extract_gfd_data
+```

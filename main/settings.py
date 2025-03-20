@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import typing
 from pathlib import Path
 
 import environ
@@ -22,6 +23,8 @@ from .logging import log_render_extra_context
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# TODO: create source_config.py and read env
 
 env = environ.Env(
     APP_LOG_LEVEL=(str, "INFO"),
@@ -73,92 +76,74 @@ env = environ.Env(
     SENTRY_TRACES_SAMPLE_RATE=(float, 0.2),
     SENTRY_PROFILE_SAMPLE_RATE=(float, 0.2),
     SENTRY_MONITOR_CELERY_BEAT_TASKS=(bool, True),
-    # ETL Source configs
-    EMDAT_AUTHORIZATION_KEY=str,
-    IDMC_CLIENT_ID=str,
-    IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
-    USGS_DATA_URL=(str, "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary"),
-    # Default start date for latest data extraction
-    GLIDE_START_DATE=(str, "2025-01-01"),
-    IFRCEVENT_START_DATE=(str, "2025-01-01"),
-    GDACS_START_DATE=(str, "2025-01-01"),
-    EMDAT_START_YEAR=(str, "2024"),
-    GFD_START_DATE=(str, "2025-01-01"),
-    IBTRACS_DATA_URL=str,
-    # ETL Load configs
-    EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
-    GFD_CREDENTIAL=str,
-    GFD_SERVICE_ACCOUNT=str,
-    IFRC_DATA_URL=str,
-    DESINVENTAR_DATA_URL=str,
-    PDC_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
-    PDC_AUTHORIZATION_KEY=str,
-    GLIDE_URL=str,
-    GDACS_URL=str,
-    EMDAT_URL=str,
-    # ETL Load configs
+    # External services
     GEOCODER_URL=str,
-    ARC_DOMAIN=str,
-    ARC_USERNAME=str,
-    ARC_PASSWORD=str,
+    EOAPI_DOMAIN=(str, None),
+    # Sources
+    # FIXME: Check if all start dates are used
+    DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
+    EMDAT_AUTHORIZATION_KEY=(str, None),
+    EMDAT_START_YEAR=(str, "2024"),
+    EMDAT_URL=(str, "https://api.emdat.be/v1"),
+    GDACS_START_DATE=(str, "2025-01-01"),
+    GDACS_URL=(str, "https://www.gdacs.org"),
+    GFD_CREDENTIAL=(str, None),
+    GFD_SERVICE_ACCOUNT=(str, None),
+    GFD_START_DATE=(str, "2025-01-01"),
+    GLIDE_START_DATE=(str, "2025-01-01"),
+    GLIDE_URL=(str, "https://www.glidenumber.net"),
+    IBTRACS_DATA_URL=(
+        str,
+        "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/",
+    ),
+    IDMC_CLIENT_ID=(str, None),
+    IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
+    IFRC_DATA_URL=(str, "https://goadmin.ifrc.org"),
+    IFRC_EVENT_START_DATE=(str, "2025-01-01"),
+    PDC_ARCGIS_DOMAIN=(str, "https://partners.pdc.org"),
+    PDC_ARCGIS_PASSWORD=(str, None),
+    PDC_ARCGIS_USERNAME=(str, None),
+    PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
+    PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
+    USGS_DATA_URL=(str, "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary"),
 )
-EMDAT_URL = env("EMDAT_URL")
-
-GLIDE_URL = env("GLIDE_URL")
-
-GDACS_URL = env("GDACS_URL")
-
-GLIDE_START_DATE = env("GLIDE_START_DATE")
-
-GDACS_START_DATE = env("GDACS_START_DATE")
-
-IFRCEVENT_START_DATE = env("IFRCEVENT_START_DATE")
-
-GFD_START_DATE = env("GFD_START_DATE")
-
-EMDAT_START_YEAR = env("EMDAT_START_YEAR")
-
-DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
-
-GEOCODER_URL = env("GEOCODER_URL")
-
-GFD_SERVICE_ACCOUNT = env("GFD_SERVICE_ACCOUNT")
-
-GFD_CREDENTIAL = env("GFD_CREDENTIAL")
-
-IFRC_DATA_URL = env("IFRC_DATA_URL")
-
-EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
-
-IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
-
-IDMC_DATA_URL = env("IDMC_DATA_URL")
-
-USGS_DATA_URL = env("USGS_DATA_URL")
-
-PDC_BASE_URL = env("PDC_BASE_URL")
-
-PDC_AUTHORIZATION_KEY = env("PDC_AUTHORIZATION_KEY")
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+GEOCODER_URL = env("GEOCODER_URL")
 
-ARC_DOMAIN = env("ARC_DOMAIN")
-ARC_USERNAME = env("ARC_USERNAME")
-ARC_PASSWORD = env("ARC_PASSWORD")
+DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
+EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
+EMDAT_START_YEAR = env("EMDAT_START_YEAR")
+EMDAT_URL = env("EMDAT_URL")
+GDACS_START_DATE = env("GDACS_START_DATE")
+GDACS_URL = env("GDACS_URL")
+GFD_CREDENTIAL = env("GFD_CREDENTIAL")
+GFD_SERVICE_ACCOUNT = env("GFD_SERVICE_ACCOUNT")
+GFD_START_DATE = env("GFD_START_DATE")
+GLIDE_START_DATE = env("GLIDE_START_DATE")
+GLIDE_URL = env("GLIDE_URL")
+IDMC_CLIENT_ID = env("IDMC_CLIENT_ID")
+IDMC_DATA_URL = env("IDMC_DATA_URL")
+IFRC_DATA_URL = env("IFRC_DATA_URL")
+IFRC_EVENT_START_DATE = env("IFRC_EVENT_START_DATE")
+PDC_ARCGIS_DOMAIN = env("PDC_ARCGIS_DOMAIN")
+PDC_ARCGIS_PASSWORD = env("PDC_ARCGIS_PASSWORD")
+PDC_ARCGIS_USERNAME = env("PDC_ARCGIS_USERNAME")
+PDC_SENTRY_AUTHORIZATION_KEY = env("PDC_SENTRY_AUTHORIZATION_KEY")
+PDC_SENTRY_BASE_URL = env("PDC_SENTRY_BASE_URL")
+USGS_DATA_URL = env("USGS_DATA_URL")
 
 IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
-
 SECRET_KEY = env("DJANGO_SECRET_KEY")
-
 DJANGO_APP_ENVIRONMENT = env("DJANGO_APP_ENVIRONMENT")
 DJANGO_APP_TYPE = env("DJANGO_APP_TYPE")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env("DJANGO_DEBUG")
 
-ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
+ALLOWED_HOSTS = typing.cast(list[str], env("DJANGO_ALLOWED_HOSTS"))
 
 # Celery
 CELERY_BROKER_URL = env("CELERY_BROKER_URL")
@@ -359,7 +344,8 @@ if SENTRY_DSN is not None:
     SENTRY_CONFIG = {
         "dsn": SENTRY_DSN,
         "send_default_pii": True,
-        # "release": env("APP_RELEASE"),  # TODO:
+        # TODO: define release
+        # "release": env("APP_RELEASE"),
         "environment": DJANGO_APP_ENVIRONMENT,
         "traces_sample_rate": env("SENTRY_TRACES_SAMPLE_RATE"),
         "profiles_sample_rate": env("SENTRY_PROFILE_SAMPLE_RATE"),
@@ -459,3 +445,6 @@ if DEBUG:
             "handlers": ["colored_console"],
         },
     }
+
+# Manual checks
+import main.checks  # noqa: F401 E402

@@ -1,5 +1,7 @@
+import abc
 import json
 import logging
+import typing
 from typing import Any, Callable
 
 import requests
@@ -9,7 +11,6 @@ from apps.etl.extraction.sources.base.utils import (
     manage_duplicate_file_content,
 )
 from apps.etl.models import ExtractionData, get_trace_id
-from main.celery import app
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ class BaseExtraction:
         source: int,
         response: requests.Response,
         instance_id: int | None = None,
-    ):
+    ) -> ExtractionData:
         """
         Save extracted data into data base. Checks for duplicate conent using hashing.
         """
@@ -128,7 +129,7 @@ class BaseExtraction:
 
     @classmethod
     def handle_extraction(
-        cls, url: str, params: dict | None, headers: dict, source: int, parent_id: int | None = None
+        cls, url: str, params: dict | None, headers: dict | None, source: int, parent_id: int | None = None
     ) -> int:
         """
         Process data extraction.
@@ -174,9 +175,10 @@ class BaseExtraction:
             )
             raise
 
+    # FIXME: Implement init subclass to check if abstract methods are implemented on subclasses
     @staticmethod
-    @app.task
-    def task():
+    @abc.abstractmethod
+    def task(*args: Any, **kwargs: typing.Any):
         """
         Not NotImplemented due to celery limitation with classmethod
         Eg: return XYZExtraction.handle_extraction(url, source)
