@@ -7,6 +7,7 @@ from pystac_monty.geocoding import MontyGeoCoder
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.celery import app
+from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class BaseTransformerHandler(ABC):
             logger.info("Transformation ended")
 
         except Exception as e:
-            logger.error("Transformation failed", exc_info=True, extra={"extraction_id": extraction_obj.id})
+            logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
             transform_obj.status = Transform.Status.FAILED
             transform_obj.save(update_fields=["status"])
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.

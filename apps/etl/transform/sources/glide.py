@@ -6,6 +6,7 @@ from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ def transform_glide_event_data(extraction_id):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Glide transformation failed", exc_info=True, extra={"extraction_id": glide_instance.id})
+        logger.error("Glide transformation failed", exc_info=True, extra=log_extra({"extraction_id": glide_instance.id}))
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
         # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.

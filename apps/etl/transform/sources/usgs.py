@@ -8,6 +8,7 @@ from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def transform_usgs_event_data(extraction_id):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("usgs transformation failed", exc_info=True, extra={"extraction_id": usgs_instance.id})
+        logger.error("usgs transformation failed", exc_info=True, extra=log_extra({"extraction_id": usgs_instance.id}))
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
         raise e

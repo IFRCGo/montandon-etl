@@ -12,6 +12,7 @@ from pystac_monty.sources.gdacs import (
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def transform_event_data(event_extraction_data):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
@@ -109,7 +110,7 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
         transform_obj.save(update_fields=["status"])
 
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
@@ -152,7 +153,7 @@ def transform_impact_data(event_data):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra={"extraction_id": gdacs_instance.id})
+        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])

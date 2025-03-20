@@ -13,6 +13,7 @@ from apps.etl.extraction.sources.base.utils import (
 )
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -166,8 +167,10 @@ class IDUExtraction(Extraction):
             logger.error(
                 "IDU extraction failed",
                 exc_info=True,
-                extra={
-                    "source": ExtractionData.Source.IDU,
-                },
+                extra=log_extra(
+                    {
+                        "source": ExtractionData.Source.IDU,
+                    }
+                ),
             )
             raise

@@ -2,6 +2,7 @@ import requests
 from celery.utils.log import get_task_logger
 
 from apps.etl.models import ExtractionData
+from main.logging import log_extra
 
 logger = get_task_logger(__name__)
 
@@ -61,7 +62,9 @@ class Extraction:
                 instance_obj.save()
 
                 if not response.status_code == 204:  # bypass exception when content is empty
-                    logger.error("Request failed with status", exc_info=True, extra={"response_code": response.status_code})
+                    logger.error(
+                        "Request failed with status", exc_info=True, extra=log_extra({"response_code": response.status_code})
+                    )
                     raise Exception("Request failed")
 
             resp_status = ExtractionData.Status.SUCCESS
@@ -80,6 +83,6 @@ class Extraction:
                 "resp_text": "",
             }
         except requests.exceptions.RequestException:
-            logger.error("Extraction failed", exc_info=True, extra={"source": source})
+            logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": source}))
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise

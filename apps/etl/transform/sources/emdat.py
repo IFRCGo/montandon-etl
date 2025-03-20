@@ -9,6 +9,7 @@ from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import read_file_data
+from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,9 @@ def transform_data(source, transformer, data_source, extraction_id, data):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Transformation failed", exc_info=True, extra={"extraction_id": ext_instance.id, "source": source})
+        logger.error(
+            "Transformation failed", exc_info=True, extra=log_extra({"extraction_id": ext_instance.id, "source": source})
+        )
         # update transformation status to success
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])

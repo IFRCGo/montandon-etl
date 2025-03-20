@@ -9,6 +9,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -119,9 +120,11 @@ class IFRCEventExtraction(BaseExtraction):
             logger.error(
                 "extraction failed",
                 exc_info=True,
-                extra={
-                    "source": instance.source,
-                },
+                extra=log_extra(
+                    {
+                        "source": instance.source,
+                    }
+                ),
             )
             raise
 
