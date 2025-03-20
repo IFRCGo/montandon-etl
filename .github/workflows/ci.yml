@@ -40,6 +40,7 @@ env:
   ARC_DOMAIN: https://arc.dummy.com
   ARC_USERNAME: dummy-username
   ARC_PASSWORD: dummy-password
+  IBTRACS_DATA_URL: https://ibtracs.dummy.com
 
 jobs:
   pre_commit_checks:
