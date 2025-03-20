@@ -68,9 +68,9 @@ services:
     image: redis:6-alpine
     volumes:
       - redis-data:/data
-    post_start:
-      # NOTE: Set maxmemory for database /0 (celery results backend)
-      - command: sh -c "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"
+    # post_start:  # FIXME: Uncomment after github action have docker compose version > 1.30
+    #   # NOTE: Set maxmemory for database /0 (celery results backend)
+    #   - command: sh -c "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"
 
   rabbitmq:
     image: rabbitmq:4-management
