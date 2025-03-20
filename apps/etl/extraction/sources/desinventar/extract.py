@@ -26,7 +26,7 @@ class DesinventarExtraction(BaseExtraction):
         instance_id: int = None,
     ):
         """
-        Save extracted data into database. Checks for duplicate content using hashing.
+        Save extracted data into database.
         """
         file_name = f"{source}.zip"
         resp_data = response
@@ -41,6 +41,7 @@ class DesinventarExtraction(BaseExtraction):
             # manage duplicate file content.
             manage_duplicate_file_content(
                 source=extraction_instance.source,
+                # FIXME: We need to calculate has for zip file
                 hash_content=None,
                 instance=extraction_instance,
                 response_data=resp_data.content,

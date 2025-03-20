@@ -27,7 +27,7 @@ class BaseExtraction:
         validate_source_func: Callable[[Any], None],
         source: int,
         response: dict,
-        instance_id: int = None,
+        instance_id: int | None = None,
     ):
         """
         Save extracted data into data base. Checks for duplicate conent using hashing.
@@ -72,6 +72,7 @@ class BaseExtraction:
             status=ExtractionData.Status.PENDING,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             trace_id=str(uuid.uuid4()),
+            # FIXME Pass hazard type
             hazard_type=None,
             attempt_no=0,
             resp_code=0,
@@ -79,7 +80,7 @@ class BaseExtraction:
 
     @classmethod
     def _update_instance_status(
-        cls, instance: ExtractionData, status: int, validation_status: int = None, update_validation: bool = False
+        cls, instance: ExtractionData, status: int, validation_status: int | None = None, update_validation: bool = False
     ) -> None:
         """
         Update the status of the extraction instance.
@@ -116,7 +117,7 @@ class BaseExtraction:
         return json.loads(response.content)
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict, headers: dict, source: int) -> dict:
+    def handle_extraction(cls, url: str, params: dict | None, headers: dict, source: int) -> dict:
         """
         Process data extraction.
         Returns:

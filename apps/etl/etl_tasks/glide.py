@@ -3,41 +3,41 @@ from datetime import datetime
 from celery import chain, shared_task
 from django.conf import settings
 
-from apps.etl.extraction.sources.glide.extract import GlideExtraction
+from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideQueryVars
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.glide import GlideTransformHandler
 
 GLIDE_HAZARDS = [
-    ("EQ", HazardType.EARTHQUAKE),
-    ("TC", HazardType.CYCLONE),
-    ("FL", HazardType.FLOOD),
-    ("DR", HazardType.DROUGHT),
-    ("WF", HazardType.WILDFIRE),
-    ("VO", HazardType.VOLCANO),
-    ("TS", HazardType.TSUNAMI),
-    ("CW", HazardType.COLDWAVE),
-    ("EP", HazardType.EPIDEMIC),
-    ("EC", HazardType.EXTRATROPICAL_CYCLONE),
-    ("ET", HazardType.EXTREME_TEMPERATURE),
-    ("FR", HazardType.FIRE),
-    ("FF", HazardType.FLASH_FLOOD),
-    ("HT", HazardType.HEAT_WAVE),
-    ("IN", HazardType.INSECT_INFESTATION),
-    ("LS", HazardType.LANDSLIDE),
-    ("MS", HazardType.MUD_SLIDE),
-    ("ST", HazardType.SEVERE_LOCAL_STROM),
-    ("SL", HazardType.SLIDE),
-    ("AV", HazardType.SNOW_AVALANCHE),
-    ("SS", HazardType.STORM),
-    ("AC", HazardType.TECH_DISASTER),
-    ("TO", HazardType.TORNADO),
-    ("VW", HazardType.VIOLENT_WIND),
-    ("WV", HazardType.WAVE_SURGE),
+    HazardType.EARTHQUAKE,
+    HazardType.FLOOD,
+    HazardType.CYCLONE,
+    HazardType.EPIDEMIC,
+    HazardType.STORM,
+    HazardType.DROUGHT,
+    HazardType.TSUNAMI,
+    HazardType.WILDFIRE,
+    HazardType.VOLCANO,
+    HazardType.COLDWAVE,
+    HazardType.EXTRATROPICAL_CYCLONE,
+    HazardType.EXTREME_TEMPERATURE,
+    HazardType.FIRE,
+    HazardType.FLASH_FLOOD,
+    HazardType.HEAT_WAVE,
+    HazardType.INSECT_INFESTATION,
+    HazardType.LANDSLIDE,
+    HazardType.MUD_SLIDE,
+    HazardType.SEVERE_LOCAL_STROM,
+    HazardType.SLIDE,
+    HazardType.SNOW_AVALANCHE,
+    HazardType.TECH_DISASTER,
+    HazardType.TORNADO,
+    HazardType.VIOLENT_WIND,
+    HazardType.WAVE_SURGE,
 ]
 
 
 @shared_task
-def _ext_and_transform_glide_latest_data(hazard_type, hazard_type_str):
+def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     ext_object = (
         ExtractionData.objects.filter(
             source=ExtractionData.Source.GLIDE,
@@ -48,31 +48,55 @@ def _ext_and_transform_glide_latest_data(hazard_type, hazard_type_str):
         .order_by("-created_at")
         .first()
     )
+
     if ext_object:
         from_date = ext_object.created_at.date()
     else:
         from_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
 
     to_date = datetime.today().date()
-    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?fromyear={from_date.year}&frommonth={from_date.month}&fromday={from_date.day}&toyear={to_date.year}&tomonth={to_date.month}&today={to_date.day}&events={hazard_type}"  # noqa: E501
 
-    chain(GlideExtraction.task.s(url), GlideTransformHandler.task.s()).apply_async()
+    # FIXME: Check if the date filters are inclusive
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp"
+    variables: GlideQueryVars = {
+        "fromyear": from_date.year,
+        "frommonth": from_date.month,
+        "fromday": from_date.day,
+        "toyear": to_date.year,
+        "tomonth": to_date.month,
+        "today": to_date.day,
+        "events": hazard_type.value,
+    }
+
+    chain(GlideExtraction.task.s(url, variables), GlideTransformHandler.task.s()).apply_async()
 
 
 @shared_task
-def _ext_and_transform_glide_historical_data(hazard_type, hazard_type_str):
+def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
     to_date = datetime.today().date()
-    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp?toyear={to_date.year}&tomonth={to_date.month}&to_date={to_date.day}&events={hazard_type}"  # noqa: E501
-    chain(GlideExtraction.task.s(url), GlideTransformHandler.task.s()).apply_async()
+
+    # FIXME: Check if the date filters are inclusive
+    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp"
+    variables: GlideQueryVars = {
+        "fromyear": None,
+        "frommonth": None,
+        "fromday": None,
+        "toyear": to_date.year,
+        "tomonth": to_date.month,
+        "today": to_date.day,
+        "events": hazard_type.value,
+    }
+
+    chain(GlideExtraction.task.s(url, variables), GlideTransformHandler.task.s()).apply_async()
 
 
 @shared_task
 def ext_and_transform_glide_latest_data():
-    for hazard_type, hazard_type_str in GLIDE_HAZARDS:
-        _ext_and_transform_glide_latest_data(hazard_type, hazard_type_str)
+    for hazard_type in GLIDE_HAZARDS:
+        _ext_and_transform_glide_latest_data(hazard_type)
 
 
 @shared_task
 def ext_and_transform_glide_historical_data():
-    for hazard_type, hazard_type_str in GLIDE_HAZARDS:
-        _ext_and_transform_glide_historical_data(hazard_type, hazard_type_str)
+    for hazard_type in GLIDE_HAZARDS:
+        _ext_and_transform_glide_historical_data(hazard_type)

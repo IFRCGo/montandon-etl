@@ -106,7 +106,7 @@ class BaseTransformerHandler(ABC):
 
     @staticmethod
     @app.task
-    def task(extraction_id):
+    def task(extraction_id: int):
         """
         Not NotImplemented due to celery limitation with classmethod
         Eg: return XYZTransformHandler.handle_transformation(extraction_id)
