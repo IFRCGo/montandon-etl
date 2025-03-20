@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import datetime
 
 import requests
@@ -62,6 +63,7 @@ def import_glide_hazard_data(self, hazard_type: str, hazard_type_str: str, url: 
             hazard_type=hazard_type_str,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
     )
 

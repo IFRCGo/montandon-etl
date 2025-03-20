@@ -57,6 +57,7 @@ class PDCTransformHandler(BaseTransformerHandler):
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
             status=Transform.Status.PENDING,
+            trace_id=extraction_obj.trace_id,
         )
 
         try:

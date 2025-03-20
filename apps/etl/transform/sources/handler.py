@@ -44,8 +44,7 @@ class BaseTransformerHandler(ABC):
             return
 
         transform_obj = Transform.objects.create(
-            extraction=extraction_obj,
-            status=Transform.Status.PENDING,
+            extraction=extraction_obj, status=Transform.Status.PENDING, trace_id=extraction_obj.trace_id
         )
 
         try:
@@ -88,6 +87,7 @@ class BaseTransformerHandler(ABC):
                     collection_id=item.collection_id,
                     item_type=item_type,
                     load_status=PyStacLoadData.LoadStatus.PENDING,
+                    trace_id=transform_obj.trace_id,
                 )
             )
 

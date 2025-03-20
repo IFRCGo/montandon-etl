@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from datetime import datetime
 
 import requests
@@ -115,6 +116,7 @@ def import_hazard_data(variables, **kwargs):
         source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
         hazard_type=HazardType.OTHER,
         attempt_no=0,
+        trace_id=str(uuid.uuid4()),
         resp_code=0,
     )
 

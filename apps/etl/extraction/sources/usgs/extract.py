@@ -1,6 +1,7 @@
 import json
 import logging
 import time
+import uuid
 
 import requests
 from celery import chain, shared_task
@@ -29,6 +30,7 @@ def process_in_batches(extraction_id, features, batch_size=50):
 def fetch_detail(self, parent_id, detail_url, **kwargs):
     url = detail_url
     instance_id = kwargs.get("instance_id", None)
+    parent = ExtractionData.objects.get(id=parent_id)
     if not instance_id:
         usgs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.USGS,
@@ -37,6 +39,7 @@ def fetch_detail(self, parent_id, detail_url, **kwargs):
             attempt_no=0,
             resp_code=0,
             hazard_type=HazardType.EARTHQUAKE,
+            trace_id=parent.trace_id if parent else str(uuid.uuid4()),
         )
     else:
         usgs_instance = ExtractionData.objects.get(id=instance_id)
@@ -83,6 +86,7 @@ def ext_and_transform_data(self, url, **kwargs):
             hazard_type=HazardType.EARTHQUAKE,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
     )
 

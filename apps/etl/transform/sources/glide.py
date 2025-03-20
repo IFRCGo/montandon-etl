@@ -30,6 +30,7 @@ def transform_glide_event_data(extraction_id):
     transform_obj = Transform.objects.create(
         extraction=glide_instance,
         status=Transform.Status.PENDING,
+        trace_id=glide_instance.trace_id,
     )
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)

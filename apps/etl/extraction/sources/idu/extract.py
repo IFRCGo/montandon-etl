@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from typing import Any, Callable
 
 import requests
@@ -84,6 +85,7 @@ class IDUExtraction(Extraction):
             hazard_type=None,
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
 
     @staticmethod

@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 
 import requests
 from celery import shared_task
@@ -48,7 +49,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                 response=geo_json_file,
                 source=ExtractionData.Source.PDC,
                 validate_source_func=None,
-                parent_id=instance_id.id,
+                parent_id=instance_id,
                 hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                 metadata={},
             )
@@ -76,7 +77,7 @@ def get_hazard_details(self, extraction_id, **kwargs):
                     response=detail_response.json(),
                     source=ExtractionData.Source.PDC,
                     validate_source_func=None,
-                    parent_id=instance_id.id,
+                    parent_id=instance_id,
                     hazard_type=HAZARD_TYPE_MAP.get(hazard["type_ID"]),
                     metadata={"exposure_id": exposure_id, "uuid": hazard["uuid"]},
                 )
@@ -107,6 +108,7 @@ def import_hazard_data(self, **kwargs):
             hazard_type="",
             attempt_no=0,
             resp_code=0,
+            trace_id=str(uuid.uuid4()),
         )
     )
 
