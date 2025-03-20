@@ -16,6 +16,7 @@ def hash_file_content(content):
     return file_hash
 
 
+# FIXME: This is not correct. "revision_id" cannot be attached as such
 def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name):
     """
     if duplicate file content exists then do not create a new file, but point the url to
@@ -33,6 +34,7 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     instance.save()
 
 
+# FIXME: reused by gdacs and usgs but this is not correct
 def store_extraction_data(
     response,
     source=None,
@@ -60,17 +62,6 @@ def store_extraction_data(
     # Validate the non empty response data.
     if resp_data and not response["resp_code"] == 204:
         resp_data_content = resp_data.content
-        # Source validation
-        # if the validate function requires hazard type as argument pass it as argument else don't.
-        if validate_source_func:
-            if requires_hazard_type:
-                extraction_instance.source_validation_status = validate_source_func(resp_data_content, hazard_type)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data_content, hazard_type)[
-                    "validation_error"
-                ]
-            else:
-                extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
@@ -84,6 +75,7 @@ def store_extraction_data(
     return extraction_instance
 
 
+# FIXME: move this function
 def store_pdc_exposure_data(
     response, source=None, validate_source_func=None, instance_id=None, parent_id=None, hazard_type=None, metadata=None
 ):

@@ -13,18 +13,20 @@ class ExtractionDataAdmin(admin.ModelAdmin):
         return []
 
     list_display = (
-        "id",
-        "source",
-        "resp_code",
-        "status",
-        "parent__id",
-        "resp_data_type",
-        "source_validation_status",
-        "hazard_type",
         "trace_id",
+        "id",
+        "parent__id",
+        "source",
+        "metadata",
+        "status",
+        "source_validation_status",
+        "resp_code",
+        "resp_data",
+        "resp_data_type",
+        "hazard_type",
         "created_at",
     )
-    list_filter = ("status", "source")
+    list_filter = ("status", "source", "source_validation_status")
     autocomplete_fields = ["parent"]
     search_fields = ["parent"]
 
@@ -37,7 +39,14 @@ class TransformAdmin(admin.ModelAdmin):
             return [field.name for field in self.model._meta.fields]
         return []
 
-    list_display = ("id", "extraction", "status", "trace_id", "is_loaded")
+    list_display = (
+        "trace_id",
+        "id",
+        "extraction",
+        "status",
+        "is_loaded",
+        "created_at",
+    )
     list_filter = ("status",)
     autocomplete_fields = ["extraction"]
     search_fields = ["extraction"]
@@ -52,13 +61,17 @@ class PyStacLoadDataAdmin(admin.ModelAdmin):
         return []
 
     list_display = (
+        "trace_id",
         "id",
         "transform_id",
+        "collection_id",
         "item_type",
         "load_status",
-        "collection_id",
-        "trace_id",
+        "created_at",
     )
-    list_filter = ("load_status",)
+    list_filter = (
+        "item_type",
+        "load_status",
+    )
     autocomplete_fields = ["transform_id"]
     search_fields = ["transform_id"]

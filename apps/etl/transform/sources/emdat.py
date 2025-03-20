@@ -1,8 +1,6 @@
 import json
 import logging
 
-from django.conf import settings
-from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 
 from apps.etl.models import ExtractionData
@@ -29,5 +27,4 @@ class EMDATTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
-        return EMDATTransformHandler().handle_transformation(extraction_id, geocoder)
+        return EMDATTransformHandler().handle_transformation(extraction_id)

@@ -18,12 +18,12 @@ class DesinventarExtraction(BaseExtraction):
     """
 
     @classmethod
-    def store_extraction_data(
+    def store_extraction_data(  # type: ignore[reportIncompatibleMethodOverride]
         cls,
-        validate_source_func: Callable[[Any], None],
+        validate_source_func: Callable[[Any], None] | None,
         source: int,
-        response: dict,
-        instance_id: int = None,
+        response: requests.Response,
+        instance_id: int | None = None,
     ):
         """
         Save extracted data into database.
@@ -50,7 +50,7 @@ class DesinventarExtraction(BaseExtraction):
         return resp_data.content
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict, headers: dict, source: int) -> dict:
+    def handle_extraction(cls, url: str, params: dict | None, headers: dict | None, source: int) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
@@ -91,17 +91,13 @@ class DesinventarExtraction(BaseExtraction):
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(
-                "extraction failed",
+                "Extraction failed",
                 exc_info=True,
-                extra=log_extra(
-                    {
-                        "source": instance.source,
-                    }
-                ),
+                extra=log_extra({"source": instance.source}),
             )
             raise
 
     @staticmethod
     @app.task
-    def task(DATA_URL):
-        return DesinventarExtraction().handle_extraction(DATA_URL, None, None, ExtractionData.Source.DESINVENTAR)
+    def task(url: str):  # type: ignore[reportIncompatibleMethodOverride]
+        return DesinventarExtraction().handle_extraction(url, None, None, ExtractionData.Source.DESINVENTAR)

@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import Resource
+from apps.common.models import Resource, Tracing
 
 
 # TODO: User IntegerChoices and add mapping for import/export
@@ -39,7 +39,27 @@ class HazardType(models.TextChoices):
     OTHER = "OT", "Other"
 
 
-class ExtractionData(Resource):
+# FIXME:
+# - Rename source_validation_status to validation_status
+# - Rename resp_text to resp_error
+# - Rename resp_data_type to resp_content_type.
+# - Remove resp_data_type
+# - Remove url
+# - Rename content_validation to validation_error
+# - Remove hazard_type
+
+
+# TODO:
+# - Implement retries
+# - Implement no_change optimization
+# - Implement time tracking: started_at, completed_at
+class ExtractionData(Resource, Tracing):
+    class Status(models.IntegerChoices):
+        PENDING = 1, _("Pending")
+        IN_PROGRESS = 2, _("In progress")
+        SUCCESS = 3, _("Success")
+        FAILED = 4, _("Failed")
+
     class ValidationStatus(models.IntegerChoices):
         SUCCESS = 1, _("Success")
         FAILED = 2, _("Failed")
@@ -71,39 +91,40 @@ class ExtractionData(Resource):
         WFPADAM = 13, _("WFP-ADAM")
         DESINVENTAR = 14, _("DesInventar")
 
-    class Status(models.IntegerChoices):
-        PENDING = 1, _("Pending")
-        IN_PROGRESS = 2, _("In progress")
-        SUCCESS = 3, _("Success")
-        FAILED = 4, _("Failed")
-
-    # TODO: change to resp -> response
+    # METADATA
     source = models.IntegerField(verbose_name=_("source"), choices=Source.choices)
-    url = models.URLField(verbose_name=_("url"), blank=True)
-    attempt_no = models.IntegerField(verbose_name=_("attempt number"), blank=True)
-    resp_code = models.IntegerField(verbose_name=_("response code"), blank=True)
-    status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
-    resp_data = models.FileField(verbose_name=_("response data"), upload_to="source_raw_data/", blank=True, null=True)
-    file_hash = models.CharField(
-        verbose_name=_("file hash value"),
-        max_length=500,
-        blank=True,
-    )
-    resp_type = models.IntegerField(verbose_name=_("response type"), choices=ResponseDataType.choices, blank=True, null=True)
-    # TODO change to resp_other_type
-    resp_data_type = models.CharField(verbose_name=_("response data type"), blank=True)
-    # TODO change to resp_error_text
-    resp_text = models.TextField(verbose_name=_("response data in case failure occurs"), blank=True)
+    # meta_data field contains data required for extraction and transformation
+    metadata = models.JSONField(default=dict)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extractions")
-    # TODO change to validation_status
+
+    # STATUS
+    status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
     source_validation_status = models.IntegerField(
         verbose_name=_("source data validation status"),
         choices=ValidationStatus.choices,
         default=ValidationStatus.NO_VALIDATION,
     )
-    # TODO change to validation_error
-    content_validation = models.TextField(verbose_name=_("validation status fail reason"), blank=True)
-    # TODO lets brainstrom for renaming this field
+
+    # CONTENT
+    resp_code = models.IntegerField(verbose_name=_("HTTP response code"), blank=True)
+    resp_data = models.FileField(verbose_name=_("Response data"), upload_to="source_raw_data/", blank=True, null=True)
+    resp_type = models.IntegerField(verbose_name=_("Response type"), choices=ResponseDataType.choices, blank=True, null=True)
+
+    # ERROR
+    resp_text = models.TextField(verbose_name=_("Error message if request fails"), blank=True)
+    content_validation = models.TextField(verbose_name=_("Error message if validation fails"), blank=True)
+
+    # RETRIES
+    attempt_no = models.IntegerField(verbose_name=_("Attempt number"), blank=True)
+
+    # OPTIMIZATION
+    file_hash = models.CharField(
+        verbose_name=_("File hash value"),
+        max_length=500,
+        blank=True,
+    )
+    # This should point to the latest extraction with the same metadata if the file_hash matches
+    # NOTE: We should define how the metadata is compared.
     revision_id = models.ForeignKey(
         "self",
         verbose_name=_("revision id"),
@@ -112,33 +133,50 @@ class ExtractionData(Resource):
         null=True,
         blank=True,
     )
+
+    # OBSOLETE
+
+    resp_data_type = models.CharField(verbose_name=_("Response data type"), blank=True)
+    url = models.URLField(verbose_name=_("url"), blank=True)
     hazard_type = models.CharField(
         max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
     )
-    # meta_data field contains data required for the extraction for each sources.
-    metadata = models.JSONField(default=dict)
-    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
 
     def __str__(self):
         return str(self.id)
 
+    class Meta(Resource.Meta, Tracing.Meta):
+        ordering = ["-id"]
 
-class Transform(Resource):
+
+# TODO:
+# - Implement time tracking: started_at, completed_at
+# - Implement partial success and progress tracking: total_items, failed_items, completed_items
+# - Rename to TransformData
+# - Rename extraction to extraction_id to make this consistent with PyStacLoadData?
+class Transform(Resource, Tracing):
     class Status(models.IntegerChoices):
         PENDING = 1, "Pending"
         SUCCESS = 2, "Success"
         FAILED = 3, "Failed"
 
-    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
+    # METADATA
+    extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("Extraction"))
+
+    # STATUS
     status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
     is_loaded = models.BooleanField(
         default=False,
         help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
     )
-    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
+
+    class Meta(Resource.Meta, Tracing.Meta):
+        ordering = ["-id"]
 
 
-class PyStacLoadData(Resource):
+# TODO:
+# - Rename to LoadData
+class PyStacLoadData(Resource, Tracing):
     class ItemType(models.IntegerChoices):
         EVENT = 1, "Event"
         HAZARD = 2, "Hazard"
@@ -149,14 +187,19 @@ class PyStacLoadData(Resource):
         SUCCESS = 2, "Success"
         FAILED = 3, "Failed"
 
+    # METADATA
     transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
     item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
     collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
-    item = models.JSONField(verbose_name=_("item"), default=dict)
-    load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
-    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
 
-    class Meta:
+    # STATUS
+    load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
+
+    # CONTENT
+    item = models.JSONField(verbose_name=_("item"), default=dict)
+
+    class Meta(Resource.Meta, Tracing.Meta):
+        ordering = ["-id"]
         indexes = [
             models.Index(fields=["load_status"], name="partial_index_on_load_status", condition=models.Q(load_status=1)),
         ]

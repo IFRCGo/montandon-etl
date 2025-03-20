@@ -50,6 +50,7 @@ class EMDATExtraction(BaseExtraction):
             response.raise_for_status()
             response_data = cls._save_response_data(instance, response)
 
+            # FIXME: Handle response.status_code == 200 or response.status_code == 204:
             if not response_data or not response_data["data"]["public_emdat"]:
                 cls._update_instance_status(
                     instance,

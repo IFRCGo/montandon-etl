@@ -1,7 +1,5 @@
 import json
 
-from django.conf import settings
-from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
 from apps.etl.models import ExtractionData
@@ -40,5 +38,4 @@ class USGSTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
-        return USGSTransformHandler().handle_transformation(extraction_id, geocoder=geocoder)
+        return USGSTransformHandler().handle_transformation(extraction_id)

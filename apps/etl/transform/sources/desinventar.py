@@ -19,9 +19,11 @@ class DesinventarTransformHandler(BaseTransformerHandler):
     transformer_schema = DesinventarDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str):
+    def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
+
+        # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
         tmp_zip_file.write(file_content)
 
@@ -32,10 +34,15 @@ class DesinventarTransformHandler(BaseTransformerHandler):
             iso3=iso3,
         )
 
+    # FIXME: Get country_code and iso3 from ExtractionData.metadata and remove method
     @classmethod
-    def handle_transformation(cls, extraction_id, country_code, iso3):
+    def handle_transformation(cls, extraction_id: int, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
         logger.info("Transformation started")
-        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
+        extraction_obj = ExtractionData.objects.get(id=extraction_id)
+
+        if not extraction_obj.resp_data:
+            logger.info("Transformation ended because there is no data")
+            return
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
@@ -52,9 +59,7 @@ class DesinventarTransformHandler(BaseTransformerHandler):
             transform_obj.save(update_fields=["status"])
 
             cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
-
             logger.info("Transformation ended")
-
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
             transform_obj.status = Transform.Status.FAILED
@@ -62,7 +67,8 @@ class DesinventarTransformHandler(BaseTransformerHandler):
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
+    # FIXME: Get country_code and iso3 from ExtractionData.metadata and remove parameters
     @staticmethod
     @app.task
-    def task(extraction_id, country_code, iso3):
+    def task(extraction_id: int, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
         return DesinventarTransformHandler().handle_transformation(extraction_id, country_code, iso3)
