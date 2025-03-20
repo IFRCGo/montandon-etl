@@ -117,7 +117,7 @@ class ExtractionData(Resource):
     )
     # meta_data field contains data required for the extraction for each sources.
     metadata = models.JSONField(default=dict)
-    trace_id = models.UUIDField(editable=False, null=True, blank=True, db_index=True)
+    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
 
     def __str__(self):
         return str(self.id)
@@ -135,7 +135,7 @@ class Transform(Resource):
         default=False,
         help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
     )
-    trace_id = models.UUIDField(editable=False, null=True, blank=True, db_index=True)
+    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
 
 
 class PyStacLoadData(Resource):
@@ -154,7 +154,7 @@ class PyStacLoadData(Resource):
     collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
     item = models.JSONField(verbose_name=_("item"), default=dict)
     load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
-    trace_id = models.UUIDField(editable=False, null=True, blank=True, db_index=True)
+    trace_id = models.UUIDField(editable=False, default="00000000-0000-0000-0000-000000000000", db_index=True)
 
     class Meta:
         indexes = [
