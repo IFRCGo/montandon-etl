@@ -80,6 +80,7 @@ env = environ.Env(
     GDACS_START_DATE=(str, "2025-01-01"),
     EMDAT_START_YEAR=(str, "2024"),
     GFD_START_DATE=(str, "2025-01-01"),
+    IBTRACS_DATA_URL=str,
     # ETL Load configs
     EOAPI_DOMAIN=str,  # http://montandon-eoapi.ifrc.org
     GFD_CREDENTIAL=str,
@@ -140,6 +141,8 @@ EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 ARC_DOMAIN = env("ARC_DOMAIN")
 ARC_USERNAME = env("ARC_USERNAME")
 ARC_PASSWORD = env("ARC_PASSWORD")
+
+IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 
@@ -349,7 +352,7 @@ else:
 SENTRY_DSN = env("SENTRY_DSN")
 SENTRY_ENABLED = False
 SENTRY_MONITOR_CELERY_BEAT_TASKS = env("SENTRY_MONITOR_CELERY_BEAT_TASKS")
-if SENTRY_DSN:
+if SENTRY_DSN is not None:
     SENTRY_ENABLED = True
     SENTRY_CONFIG = {
         "dsn": SENTRY_DSN,

@@ -33,6 +33,8 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "emdat-events": PyStacLoadData.ItemType.EVENT,
     "emdat-hazards": PyStacLoadData.ItemType.HAZARD,
     "emdat-impacts": PyStacLoadData.ItemType.IMPACT,
+    "ibtracs-events": PyStacLoadData.ItemType.EVENT,
+    "ibtracs-hazards": PyStacLoadData.ItemType.HAZARD,
 }
 
 

@@ -26,7 +26,7 @@ env:
   ARC_DOMAIN: https://arc.dummy.com
   USGS_DATA_URL: https://usgs.dummy.com
   EMDAT_URL: https://emdat.dummy.com
-
+  IBTRACS_DATA_URL: https://ibtracs.dummy.com
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun

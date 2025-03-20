@@ -36,6 +36,7 @@ x-server: &base_server_setup
       ARC_DOMAIN: ${ARC_DOMAIN?error}
       ARC_USERNAME: ${ARC_USERNAME?error}
       ARC_PASSWORD: ${ARC_PASSWORD?error}
+      IBTRACS_DATA_URL: ${IBTRACS_DATA_URL?error}
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
       DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
