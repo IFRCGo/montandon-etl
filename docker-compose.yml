@@ -19,7 +19,9 @@ x-server: &base_server_setup
       DB_PORT: ${DB_PORT:-5432}
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      # Health-checks
       HEALTHCHECK_REDIS_URL: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      HEALTHCHECK_RABBITMQ_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
       # ETL Sources
       EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
       IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}

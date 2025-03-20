@@ -39,6 +39,7 @@ env = environ.Env(
     DB_PORT=int,
     # Redis
     HEALTHCHECK_REDIS_URL=str,
+    HEALTHCHECK_RABBITMQ_URL=str,
     # Celery
     CELERY_BROKER_URL=str,
     CELERY_RESULT_BACKEND=str,
@@ -188,6 +189,7 @@ INSTALLED_APPS = [
     "health_check.storage",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",  # requires Redis broker
+    "health_check.contrib.rabbitmq",  # requires RabbitMQ broker
     # Internal
     "apps.common",
     "apps.etl",
@@ -378,6 +380,7 @@ if SENTRY_DSN is not None:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # HEALTH-CHECK
+BROKER_URL = env("HEALTHCHECK_RABBITMQ_URL")
 REDIS_URL = env("HEALTHCHECK_REDIS_URL")
 HEALTHCHECK_CACHE_KEY = "MONTY_ETL_HEALTHCHECK_KEY"
 
