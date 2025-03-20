@@ -2,6 +2,9 @@ dependencies:
 - name: redis
   repository: https://charts.bitnami.com/bitnami
   version: 20.6.3
+- name: rabbitmq
+  repository: https://charts.bitnami.com/bitnami
+  version: 15.4.0
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
   version: 16.4.5
@@ -11,5 +14,5 @@ dependencies:
 - name: geocoding-helm
   repository: oci://ghcr.io/ifrcgo/geocoding-service
   version: 0.0.1-c9dd1963
-digest: sha256:b266b67da4f9337103e426ac15c0f82e392ffc1c5871bac51255daf3568de29d
-generated: "2025-03-01T15:02:41.109933513+05:45"
+digest: sha256:a996d4d64904e432efd1658f4d5611fecb0ac85e291ddcfe67050ec4d74d1c91
+generated: "2025-03-19T23:17:02.333319005+05:45"

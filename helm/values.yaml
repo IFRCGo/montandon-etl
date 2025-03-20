@@ -19,10 +19,39 @@ redis:
   auth:
     enabled: false
   master:
+    lifecycleHooks:
+      postStart:
+        exec:
+          # NOTE: Set maxmemory for database /0 (celery results backend)
+          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"]
     persistence:
       enabled: true
-      size: .5Gi
+      size: 1Gi
       storageClass:
+
+rabbitmq:
+  enabled: true
+  fullnameOverride: montandon-etl-rabbitmq
+  auth:
+    username: monty
+    password:
+  # XXX: Don't change this (`celery` vhost is used in templates/config/secret.yaml
+  extraConfiguration: |-
+    default_vhost = celery
+    default_permissions.configure = .*
+    default_permissions.read = .*
+    default_permissions.write = .*
+  resources:
+    requests:
+      cpu: .1
+      memory: 1024Mi
+    limits:
+      cpu: 4
+      memory: 2048Mi
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClass:
 
 # https://artifacthub.io/packages/helm/bitnami/minio
 # extraEnvVars: https://github.com/bitnami/containers/blob/main/bitnami/minio/README.md#environment-variables
