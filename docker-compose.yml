@@ -17,7 +17,9 @@ x-server: &base_server_setup
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
-      CELERY_REDIS_URL: ${CELERY_REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      HEALTHCHECK_REDIS_URL: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       # ETL Sources
       EMDAT_AUTHORIZATION_KEY: ${EMDAT_AUTHORIZATION_KEY?error}
       IDMC_CLIENT_ID: ${IDMC_CLIENT_ID?error}
@@ -47,6 +49,7 @@ x-server: &base_server_setup
   depends_on:
     - db
     - redis
+    - rabbitmq
 
 services:
   db:
@@ -63,6 +66,21 @@ services:
     image: redis:6-alpine
     volumes:
       - redis-data:/data
+    post_start:
+      # NOTE: Set maxmemory for database /0 (celery results backend)
+      - command: sh -c "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_VHOST: celery
+      RABBITMQ_DEFAULT_USER: monty
+      RABBITMQ_DEFAULT_PASS: monty
+    ports:
+      - 127.0.0.1:15672:15672  # Managements console
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
   web:
     <<: *base_server_setup
@@ -88,11 +106,12 @@ services:
     environment:
       <<: *base_server_environments
       DJANGO_APP_TYPE: "worker"
-    # command: celery -A main worker --loglevel=info
+    # FIXME: Use dev model celery
     command: bash -c "/code/scripts/run_worker.sh"
 
 volumes:
   postgres-data:
   redis-data:
+  rabbitmq_data:
   ipython_data_local:
   local_cache_pull:
