@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import requests
 from celery import chain, shared_task
 from django.conf import settings
+from django.db import transaction
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -128,42 +129,45 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
             instance_id=gdacs_instance.id,
         )
 
-        # Fetch geometry and population exposure data
-        if gdacs_instance.resp_code == 200 and gdacs_instance.status == ExtractionData.Status.SUCCESS and resp_data_json:
-            for feature in resp_data_json["features"]:
-                event_id = feature["properties"]["eventid"]
-                episode_id = feature["properties"]["episodeid"]
-                footprint_url = feature["properties"]["url"]["geometry"]
-                if hazard_type == HazardType.CYCLONE and event_id and episode_id:
-                    footprint_url = f"{settings.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+        def trigger_workflows():
+            # Fetch geometry and population exposure data
+            if gdacs_instance.resp_code == 200 and gdacs_instance.status == ExtractionData.Status.SUCCESS and resp_data_json:
+                for feature in resp_data_json["features"]:
+                    event_id = feature["properties"]["eventid"]
+                    episode_id = feature["properties"]["episodeid"]
+                    footprint_url = feature["properties"]["url"]["geometry"]
+                    if hazard_type == HazardType.CYCLONE and event_id and episode_id:
+                        footprint_url = f"{settings.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
-                event_workflow = chain(
-                    fetch_event_data.s(
-                        parent_id=gdacs_instance.id,
-                        event_id=event_id,
-                        hazard_type=hazard_type,
-                    ),
-                    transform_event_data.s(),
-                )
-                event_result = event_workflow.apply_async()
+                    event_workflow = chain(
+                        fetch_event_data.s(
+                            parent_id=gdacs_instance.id,
+                            event_id=event_id,
+                            hazard_type=hazard_type,
+                        ),
+                        transform_event_data.s(),
+                    )
+                    event_result = event_workflow.apply_async()
 
-                geo_workflow = chain(
-                    fetch_gdacs_geometry_data.s(
-                        parent_id=gdacs_instance.id,
-                        footprint_url=footprint_url,
-                    ),
-                    transform_geo_data.s(event_result.parent.id),
-                )
-                geo_workflow.apply_async()
+                    geo_workflow = chain(
+                        fetch_gdacs_geometry_data.s(
+                            parent_id=gdacs_instance.id,
+                            footprint_url=footprint_url,
+                        ),
+                        transform_geo_data.s(event_result.parent.id),
+                    )
+                    geo_workflow.apply_async()
 
-                impact_workflow = chain(
-                    fetch_event_data.s(
-                        parent_id=gdacs_instance.id,
-                        event_id=event_id,
-                        hazard_type=hazard_type,
-                    ),
-                    transform_impact_data.s(),
-                )
-                impact_workflow.apply_async()
+                    impact_workflow = chain(
+                        fetch_event_data.s(
+                            parent_id=gdacs_instance.id,
+                            event_id=event_id,
+                            hazard_type=hazard_type,
+                        ),
+                        transform_impact_data.s(),
+                    )
+                    impact_workflow.apply_async()
+
+        transaction.on_commit(trigger_workflows)
 
         logger.info(f"{hazard_type} data imported sucessfully")
