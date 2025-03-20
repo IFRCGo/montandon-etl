@@ -11,6 +11,7 @@ from apps.etl.extraction.sources.base.utils import (
 )
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +155,11 @@ class BaseExtraction:
             logger.error(
                 "extraction failed",
                 exc_info=True,
-                extra={
-                    "source": instance.source,
-                },
+                extra=log_extra(
+                    {
+                        "source": instance.source,
+                    }
+                ),
             )
             raise
 

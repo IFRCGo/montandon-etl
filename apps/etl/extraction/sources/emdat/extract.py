@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 
 from apps.etl.models import ExtractionData, HazardType
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +152,6 @@ def import_hazard_data(variables, **kwargs):
         # Set extraction status to Fail
         emdat_instance.status = ExtractionData.Status.FAILED
         emdat_instance.save(update_fields=["status"])
-        logger.error("Extraction failed", exc_info=True, extra={"source": ExtractionData.Source.EMDAT})
+        logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": ExtractionData.Source.EMDAT}))
         # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
         raise
