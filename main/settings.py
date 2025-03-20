@@ -18,10 +18,13 @@ from azure.identity import DefaultAzureCredential
 
 from main import sentry
 
+from .logging import log_render_extra_context
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
+    APP_LOG_LEVEL=(str, "INFO"),
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, ["*"]),
@@ -374,3 +377,71 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # HEALTH-CHECK
 REDIS_URL = CELERY_REDIS_URL
 HEALTHCHECK_CACHE_KEY = "MONTY_ETL_HEALTHCHECK_KEY"
+
+# Logging
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "render_extra_context": {
+            "()": "django.utils.log.CallbackFilter",
+            "callback": log_render_extra_context,
+        }
+    },
+    "formatters": {
+        "simple": {
+            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s"),
+            "datefmt": "%Y-%m-%dT%H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+            "filters": ["render_extra_context"],
+        },
+    },
+    "loggers": {
+        **{
+            app: {
+                "level": env("APP_LOG_LEVEL"),
+                "handlers": ["console"],
+                "propagate": False,
+            }
+            for app in ["root", "apps", "main", "utils", "celery", "django"]
+        },
+    },
+}
+
+if DEBUG:
+    LOGGING = {
+        **LOGGING,
+        "formatters": {
+            **LOGGING["formatters"],
+            "colored_verbose": {
+                "()": "colorlog.ColoredFormatter",
+                "format": (
+                    "%(log_color)s%(asctime)s: %(threadName)s - %(levelname)-s%(red)s %(module)-s%(reset)s "
+                    "%(blue)s%(message)s %(custom_extra)s"
+                ),
+            },
+        },
+        "handlers": {
+            **LOGGING["handlers"],
+            "colored_console": {
+                "class": "logging.StreamHandler",
+                "formatter": "colored_verbose",
+                "filters": ["render_extra_context"],
+            },
+        },
+        "loggers": {
+            **{
+                key: {
+                    **logger,
+                    "handlers": ["colored_console"],
+                }
+                for key, logger in LOGGING["loggers"].items()
+            },
+        },
+    }
