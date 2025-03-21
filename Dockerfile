@@ -22,14 +22,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     apt-get update -y \
     && apt-get install -y --no-install-recommends \
         # Build required packages
-        gcc libc-dev gdal-bin libproj-dev \
+        build-essential gcc libc-dev gdal-bin libgdal-dev libproj-dev \
         # Helper packages
         procps \
         wait-for-it \
     # FIXME: Add condition to skip dev dependencies
     && uv sync --frozen --no-install-project --all-groups \
     # Clean-up
-    && apt-get remove -y gcc libc-dev libproj-dev \
+    && apt-get remove -y gcc libc-dev libproj-dev build-essential libgdal-dev  \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
