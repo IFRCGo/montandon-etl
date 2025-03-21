@@ -61,7 +61,13 @@ class BaseExtraction:
 
     @classmethod
     def _create_extraction_instance(
-        cls, url: str, source: int, parent_id: int, status=ExtractionData.Status.PENDING, hazard_type=None, metadata={}
+        cls,
+        url: str,
+        source: int,
+        parent_id: int = None,
+        status=ExtractionData.Status.PENDING,
+        hazard_type=None,
+        metadata={},
     ) -> ExtractionData:
         """
         Create and return a new extraction instance with initial status.
