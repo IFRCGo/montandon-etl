@@ -68,14 +68,14 @@ class BaseExtraction:
         Returns:
             ExtractionData: The created extraction instance
         """
+        parent = ExtractionData.objects.filter(id=parent_id).first()
         return ExtractionData.objects.create(
             source=source,
             url=url,
             status=status,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            trace_id=str(uuid.uuid4()),
-            # FIXME Pass hazard type
-            hazard_type=None,
+            trace_id=parent.trace_id if parent else uuid.uuid4(),
+            hazard_type=hazard_type,
             attempt_no=0,
             resp_code=0,
             parent_id=parent_id,

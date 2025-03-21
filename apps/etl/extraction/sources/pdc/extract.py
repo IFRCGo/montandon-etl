@@ -62,7 +62,6 @@ class PDCExtraction(BaseExtraction):
         hazard_type=None,
         metadata=None,
     ):
-        print("..................", metadata)
         file_extension = "json"
         file_name = f"{instance_id}pdc.{file_extension}"
         data = json.dumps(response).encode("utf-8")
@@ -74,7 +73,7 @@ class PDCExtraction(BaseExtraction):
             hazard_type=hazard_type,
             metadata=metadata,
         )
-        print("metadata is here", instance.metadata)
+
         content_file = ContentFile(data)
         content_file.name = file_name
         instance.resp_data.save(content_file.name, content_file)
@@ -97,7 +96,6 @@ class PDCExtraction(BaseExtraction):
             )
 
             exposure_ids = cls.fetch_exposure_data(hazard["uuid"])
-            print(exposure_ids)
             for exposure_id in exposure_ids:
                 if ExtractionData.objects.filter(
                     metadata__exposure_id=exposure_id,
@@ -107,7 +105,7 @@ class PDCExtraction(BaseExtraction):
                 ).exists():
                     continue
 
-                details = (cls.fetch_exposure_detail(hazard["uuid"], exposure_id),)
+                details = cls.fetch_exposure_detail(hazard["uuid"], exposure_id)
                 exposure_detail = cls.store_pdc_exposure_data(
                     response=details,
                     source=ExtractionData.Source.PDC,

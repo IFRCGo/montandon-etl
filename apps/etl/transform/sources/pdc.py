@@ -30,6 +30,7 @@ class PDCTransformHandler(BaseTransformerHandler):
             file_content = f.read()
         tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp_exposure_detail_file.write(file_content)
+        print("file data", file_content)
 
         with geo_json_obj.resp_data.open("rb") as f:
             file_content = f.read()
