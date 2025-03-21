@@ -73,11 +73,7 @@ class USGSExtraction(BaseExtraction):
     def task(parent_id: int | None, detail_url: str):  # type: ignore[reportIncompatibleMethodOverride]
         """USGS Task"""
         details_id = USGSExtraction.handle_extraction(
-            url=detail_url,
-            params=None,
-            headers=None,
-            parent_id=parent_id,
-            source=ExtractionData.Source.USGS
+            url=detail_url, params=None, headers=None, parent_id=parent_id, source=ExtractionData.Source.USGS
         )
         if details_id:
             usgs_instance = ExtractionData.objects.get(id=details_id)
@@ -87,10 +83,6 @@ class USGSExtraction(BaseExtraction):
                 for item in detail_data["properties"]["products"]["losspager"]:
                     url = item["contents"]["json/losses.json"]["url"]
                     USGSExtraction.handle_extraction(
-                        url=url,
-                        params=None,
-                        headers=None,
-                        parent_id=details_id,
-                        source=ExtractionData.Source.USGS
+                        url=url, params=None, headers=None, parent_id=details_id, source=ExtractionData.Source.USGS
                     )
         return details_id
