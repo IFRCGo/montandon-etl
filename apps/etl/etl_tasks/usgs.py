@@ -18,10 +18,7 @@ def ext_and_transform_usgs_data(url: str):
 
     # Handles base extraction from the all day url
     base_extraction_id = USGSExtraction.handle_extraction(
-        url=url,
-        params=None,
-        headers=headers,
-        source=ExtractionData.Source.USGS
+        url=url, params=None, headers=headers, source=ExtractionData.Source.USGS
     )
 
     if base_extraction_id:

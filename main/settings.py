@@ -38,7 +38,11 @@ env = environ.Env(
     DB_HOST=str,
     DB_PORT=int,
     # Redis
-    CELERY_REDIS_URL=str,
+    HEALTHCHECK_REDIS_URL=str,
+    HEALTHCHECK_RABBITMQ_URL=str,
+    # Celery
+    CELERY_BROKER_URL=str,
+    CELERY_RESULT_BACKEND=str,
     # Storage
     # -- Static, Media configs
     DJANGO_STATIC_URL=(str, "/static/"),
@@ -156,12 +160,9 @@ DEBUG = env("DJANGO_DEBUG")
 
 ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 
-# Redis
-CELERY_REDIS_URL = env("CELERY_REDIS_URL")
-
 # Celery
-CELERY_BROKER_URL = CELERY_REDIS_URL
-CELERY_RESULT_BACKEND = CELERY_REDIS_URL
+CELERY_BROKER_URL = env("CELERY_BROKER_URL")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND")
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
 CELERY_ACKS_LATE = True
@@ -188,6 +189,7 @@ INSTALLED_APPS = [
     "health_check.storage",
     "health_check.contrib.migrations",
     "health_check.contrib.redis",  # requires Redis broker
+    "health_check.contrib.rabbitmq",  # requires RabbitMQ broker
     # Internal
     "apps.common",
     "apps.etl",
@@ -378,7 +380,8 @@ if SENTRY_DSN is not None:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # HEALTH-CHECK
-REDIS_URL = CELERY_REDIS_URL
+BROKER_URL = env("HEALTHCHECK_RABBITMQ_URL")
+REDIS_URL = env("HEALTHCHECK_REDIS_URL")
 HEALTHCHECK_CACHE_KEY = "MONTY_ETL_HEALTHCHECK_KEY"
 
 # Logging

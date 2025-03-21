@@ -118,7 +118,9 @@ class BaseExtraction:
         return json.loads(response.content)
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict | None, headers: dict, source: int, parent_id: int | None =None) -> dict:
+    def handle_extraction(
+        cls, url: str, params: dict | None, headers: dict, source: int, parent_id: int | None = None
+    ) -> dict:
         """
         Process data extraction.
         Returns:

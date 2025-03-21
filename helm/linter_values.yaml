@@ -9,6 +9,11 @@ ingress:
   host: test.com
   className: "nginx"
 
+
+rabbitmq:
+  auth:
+    password: monty
+
 env:
   # DJANGO_APP_ENVIRONMENT: using .environment
   # APP_RELEASE: using .image.tag
