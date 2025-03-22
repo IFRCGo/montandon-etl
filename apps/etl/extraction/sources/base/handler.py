@@ -24,7 +24,7 @@ class BaseExtraction:
     @classmethod
     def store_extraction_data(
         cls,
-        validate_source_func: Callable[[Any], None],
+        validate_source_func: Callable[[Any], None] | None,
         source: int,
         response: dict,
         instance_id: int | None = None,
@@ -64,7 +64,7 @@ class BaseExtraction:
         cls,
         url: str,
         source: int,
-        parent_id: int = None,
+        parent_id: int | None = None,
         status=ExtractionData.Status.PENDING,
         hazard_type=None,
         metadata={},

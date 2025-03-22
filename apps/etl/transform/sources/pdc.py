@@ -18,7 +18,7 @@ class PDCTransformHandler(BaseTransformerHandler):
     transformer_schema = PDCDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData, geo_json_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData, geo_json_obj: ExtractionData):  # type: ignore[reportIncompatibleMethodOverride]
         source_url = extraction_obj.url
 
         with extraction_obj.parent.resp_data.open("rb") as f:
@@ -30,7 +30,6 @@ class PDCTransformHandler(BaseTransformerHandler):
             file_content = f.read()
         tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp_exposure_detail_file.write(file_content)
-        print("file data", file_content)
 
         with geo_json_obj.resp_data.open("rb") as f:
             file_content = f.read()
@@ -48,10 +47,10 @@ class PDCTransformHandler(BaseTransformerHandler):
         return cls.transformer_schema(source_url=source_url, data=json.dumps(data))
 
     @classmethod
-    def handle_transformation(cls, extraction_id, geo_json_id):
+    def handle_transformation(cls, extraction_id, geo_json_id):  # type: ignore[reportIncompatibleMethodOverride]
         logger.info("Transformation started")
-        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
-        geo_json_obj = ExtractionData.objects.filter(id=geo_json_id).first()
+        extraction_obj = ExtractionData.objects.get(id=extraction_id)
+        geo_json_obj = ExtractionData.objects.get(id=geo_json_id)
         if not extraction_obj.resp_data:
             logger.info("Transformation ended due to no data")
             return
@@ -83,5 +82,5 @@ class PDCTransformHandler(BaseTransformerHandler):
 
     @staticmethod
     @app.task
-    def task(extraction_id, geo_json_id):
+    def task(extraction_id, geo_json_id):  # type: ignore[reportIncompatibleMethodOverride]
         return PDCTransformHandler().handle_transformation(extraction_id, geo_json_id)
