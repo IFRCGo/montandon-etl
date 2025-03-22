@@ -8,9 +8,6 @@ from apps.etl.transform.sources.idu import IDUTransformHandler
 
 logger = logging.getLogger(__name__)
 
-HISTORICAL_DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/idus/all/"
-LATEST_DATA_URL = f"{settings.IDMC_DATA_URL}/external-api/idus/last-180-days/"
-
 
 @shared_task
 def extract_and_transform_idu_data(url):
@@ -24,10 +21,12 @@ def extract_and_transform_idu_data(url):
 @shared_task
 def ext_and_transform_idu_historical_data():
     """Extract and Transform IDU historical data"""
-    extract_and_transform_idu_data(HISTORICAL_DATA_URL)
+    url = f"{settings.IDMC_DATA_URL}/external-api/idus/all/"
+    extract_and_transform_idu_data(url)
 
 
 @shared_task
 def ext_and_transform_idu_latest_data():
     """Extract and Transform IDU latest data"""
-    extract_and_transform_idu_data(LATEST_DATA_URL)
+    url = f"{settings.IDMC_DATA_URL}/external-api/idus/last-180-days/"
+    extract_and_transform_idu_data(url)

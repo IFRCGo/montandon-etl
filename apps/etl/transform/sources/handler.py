@@ -1,17 +1,20 @@
+import abc
 import logging
+import typing
 import uuid
-from abc import ABC
-from typing import Optional
 
-from pystac_monty.geocoding import MontyGeoCoder
+from django.conf import settings
+from pystac_monty.geocoding import GAULGeocoder
+from pystac_monty.sources.common import MontyDataTransformer
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
 from main.celery import app
 from main.logging import log_extra
 from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
+# FIXME: Instead of literal use enum from pystac
 ITEM_TYPE_COLLECTION_ID_MAP = {
     "idmc-idu-events": PyStacLoadData.ItemType.EVENT,
     "idmc-idu-impacts": PyStacLoadData.ItemType.IMPACT,
@@ -41,29 +44,44 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 }
 
 
-class BaseTransformerHandler(ABC):
+Transformer = typing.TypeVar("Transformer", bound=MontyDataTransformer)
+
+
+class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
+    transformer_class: typing.Type[Transformer]
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if getattr(cls, "transformer_class", None) is None:
+            raise NotImplementedError(f"Please define transformer_class for {cls}")
+        if getattr(cls, "get_schema_data", None) is None:
+            raise NotImplementedError(f"Please define get_schema_data method for {cls}")
+
     @classmethod
+    @abc.abstractmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
         raise NotImplementedError()
 
     @classmethod
-    def handle_transformation(cls, extraction_id: int, geocoder: Optional[MontyGeoCoder] = None):
+    def handle_transformation(cls, extraction_id: int):
         logger.info("Transformation started")
-        extraction_obj = ExtractionData.objects.filter(id=extraction_id).first()
+        extraction_obj = ExtractionData.objects.get(id=extraction_id)
+
         if not extraction_obj.resp_data:
-            logger.info("Transformation ended due to no data")
+            logger.info("Transformation ended because there is no data")
             return
 
         transform_obj = Transform.objects.create(
-            extraction=extraction_obj, status=Transform.Status.PENDING, trace_id=extraction_obj.trace_id
+            extraction=extraction_obj,
+            status=Transform.Status.PENDING,
+            trace_id=get_trace_id(extraction_obj),
         )
 
         try:
+            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
+
             schema = cls.get_schema_data(extraction_obj)
-            if geocoder:
-                transformer = cls.transformer(schema, geocoder=geocoder)
-            else:
-                transformer = cls.transformer(schema)
+            transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.make_items()
 
@@ -71,9 +89,7 @@ class BaseTransformerHandler(ABC):
             transform_obj.save(update_fields=["status"])
 
             cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
-
             logger.info("Transformation ended")
-
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
             transform_obj.status = Transform.Status.FAILED
@@ -85,7 +101,8 @@ class BaseTransformerHandler(ABC):
     def load_stac_item_to_queue(cls, transform_items, transform_obj_id):
         logger.info("Loading data into queue")
 
-        transform_obj = Transform.objects.filter(id=transform_obj_id).first()
+        transform_obj = Transform.objects.get(id=transform_obj_id)
+
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
@@ -98,7 +115,7 @@ class BaseTransformerHandler(ABC):
                     collection_id=item.collection_id,
                     item_type=item_type,
                     load_status=PyStacLoadData.LoadStatus.PENDING,
-                    trace_id=transform_obj.trace_id,
+                    trace_id=get_trace_id(transform_obj),
                 )
             )
 

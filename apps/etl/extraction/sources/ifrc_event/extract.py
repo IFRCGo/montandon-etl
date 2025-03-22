@@ -1,6 +1,8 @@
+import datetime
 import hashlib
 import json
 import logging
+import typing
 from typing import Any, Callable
 
 import requests
@@ -13,8 +15,16 @@ from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
-
-HEADERS = {"accept": "application/json"}
+IFRCEventQueryVars = typing.TypedDict(
+    "IFRCEventQueryVars",
+    {
+        "disaster_start_date__gte": datetime.date | None,
+        "limit": int,
+        "offset": int,
+        "ordering": str,
+        "format": typing.Literal["json"],
+    },
+)
 
 
 class IFRCEventExtraction(BaseExtraction):
@@ -33,12 +43,12 @@ class IFRCEventExtraction(BaseExtraction):
         return hashlib.sha256(content).hexdigest()
 
     @classmethod
-    def store_extraction_data(
+    def store_extraction_data(  # type: ignore[reportIncompatibleMethodOverride]
         cls,
-        validate_source_func: Callable[[Any], None],
+        validate_source_func: Callable[[Any], None] | None,
         source: int,
-        response: dict,
-        instance_id: int = None,
+        response: list[Any],
+        instance_id: int | None = None,
     ):
         """
         Save extracted data into database. Checks for duplicate content using hashing.
@@ -54,11 +64,6 @@ class IFRCEventExtraction(BaseExtraction):
 
         # Validate the non empty response data.
         if resp_data:
-            # Source validation
-            if validate_source_func:
-                extraction_instance.source_validation_status = validate_source_func(resp_data)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data)["validation_error"]
-
             # manage duplicate file content.
             hash_content = cls.hash_file_content(resp_data)
             manage_duplicate_file_content(
@@ -71,7 +76,7 @@ class IFRCEventExtraction(BaseExtraction):
         return resp_data
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict, headers: dict, source: int) -> dict:
+    def handle_extraction(cls, url: str, params: IFRCEventQueryVars, headers: dict, source: int) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
@@ -86,7 +91,7 @@ class IFRCEventExtraction(BaseExtraction):
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
             while True:
-                response = requests.get(url, params=params, headers=headers, timeout=30)
+                response = requests.get(url, params=typing.cast(dict, params), headers=headers, timeout=30)
                 response.raise_for_status()
                 instance.resp_code = response.status_code
                 data_json = response.json()
@@ -120,15 +125,12 @@ class IFRCEventExtraction(BaseExtraction):
             logger.error(
                 "extraction failed",
                 exc_info=True,
-                extra=log_extra(
-                    {
-                        "source": instance.source,
-                    }
-                ),
+                extra=log_extra({"source": instance.source}),
             )
             raise
 
     @staticmethod
     @app.task
-    def task(DATA_URL, PARAMS):
-        return IFRCEventExtraction().handle_extraction(DATA_URL, PARAMS, HEADERS, ExtractionData.Source.DREF)
+    def task(url: str, params: IFRCEventQueryVars):  # type: ignore[reportIncompatibleMethodOverride]
+        HEADERS = {"accept": "application/json"}
+        return IFRCEventExtraction().handle_extraction(url, params, HEADERS, ExtractionData.Source.DREF)

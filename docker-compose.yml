@@ -44,6 +44,8 @@ x-server: &base_server_setup
       # ETL Load
       EOAPI_DOMAIN: ${EOAPI_DOMAIN?error}
       DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
+  extra_hosts:
+      - "host.docker.internal:host-gateway"
   volumes:
     - .:/code
     - ipython_data_local:/root/.ipython/profile_default   # persist ipython data, including ipython history

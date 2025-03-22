@@ -1,7 +1,5 @@
 import logging
 
-from django.conf import settings
-from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
 
 from apps.etl.models import ExtractionData
@@ -12,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class IFRCEventTransformHandler(BaseTransformerHandler):
-    transformer = IFRCEventTransformer
+    transformer_class = IFRCEventTransformer
     transformer_schema = IFRCEventDataSource
 
     @classmethod
@@ -28,5 +26,4 @@ class IFRCEventTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
-        return IFRCEventTransformHandler().handle_transformation(extraction_id, geocoder)
+        return IFRCEventTransformHandler().handle_transformation(extraction_id)

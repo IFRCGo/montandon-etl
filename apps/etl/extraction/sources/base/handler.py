@@ -1,6 +1,5 @@
 import json
 import logging
-import uuid
 from typing import Any, Callable
 
 import requests
@@ -9,7 +8,7 @@ from apps.etl.extraction.sources.base.utils import (
     hash_file_content,
     manage_duplicate_file_content,
 )
-from apps.etl.models import ExtractionData
+from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import app
 from main.logging import log_extra
 
@@ -26,7 +25,7 @@ class BaseExtraction:
         cls,
         validate_source_func: Callable[[Any], None] | None,
         source: int,
-        response: dict,
+        response: requests.Response,
         instance_id: int | None = None,
     ):
         """
@@ -44,6 +43,7 @@ class BaseExtraction:
         # Validate the non empty response data.
         if resp_data_content:
             # Source validation
+            # FIXME: Is validate_source_func being used?
             if validate_source_func:
                 extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
                 extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
@@ -80,7 +80,7 @@ class BaseExtraction:
             url=url,
             status=status,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            trace_id=parent.trace_id if parent else uuid.uuid4(),
+            trace_id=get_trace_id(parent),
             hazard_type=hazard_type,
             attempt_no=0,
             resp_code=0,
@@ -129,7 +129,7 @@ class BaseExtraction:
     @classmethod
     def handle_extraction(
         cls, url: str, params: dict | None, headers: dict, source: int, parent_id: int | None = None
-    ) -> dict:
+    ) -> int:
         """
         Process data extraction.
         Returns:
@@ -146,6 +146,7 @@ class BaseExtraction:
             instance.resp_code = response.status_code
             instance.save(update_fields=["resp_code"])
 
+            # FIXME: Handle 204
             if response.status_code == 200:
                 response_data = cls._save_response_data(instance, response)
                 # Check if response contains data
@@ -161,6 +162,7 @@ class BaseExtraction:
                     )
                     logger.warning("No hazard data found in response")
 
+            # FIXME: Handle else case
             return instance.id
 
         except requests.exceptions.RequestException:
@@ -168,11 +170,7 @@ class BaseExtraction:
             logger.error(
                 "extraction failed",
                 exc_info=True,
-                extra=log_extra(
-                    {
-                        "source": instance.source,
-                    }
-                ),
+                extra=log_extra({"source": instance.source}),
             )
             raise
 

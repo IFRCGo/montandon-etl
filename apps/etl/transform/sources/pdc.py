@@ -2,9 +2,11 @@ import json
 import logging
 import tempfile
 
+from django.conf import settings
+from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
 
-from apps.etl.models import ExtractionData, Transform
+from apps.etl.models import ExtractionData, Transform, get_trace_id
 from main.celery import app
 from main.logging import log_extra
 
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class PDCTransformHandler(BaseTransformerHandler):
-    transformer = PDCTransformer
+    transformer_class = PDCTransformer
     transformer_schema = PDCDataSource
 
     @classmethod
@@ -58,12 +60,14 @@ class PDCTransformHandler(BaseTransformerHandler):
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
             status=Transform.Status.PENDING,
-            trace_id=extraction_obj.trace_id,
+            trace_id=get_trace_id(extraction_obj),
         )
+
+        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
 
         try:
             schema = cls.get_schema_data(extraction_obj, geo_json_obj)
-            transformer = cls.transformer(schema)
+            transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS

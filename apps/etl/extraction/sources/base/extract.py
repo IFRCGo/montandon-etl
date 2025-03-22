@@ -7,6 +7,7 @@ from main.logging import log_extra
 logger = get_task_logger(__name__)
 
 
+# FIXME: Remove this later
 class Extraction:
     def __init__(self, url: str, headers: str = None):
         self.headers = headers

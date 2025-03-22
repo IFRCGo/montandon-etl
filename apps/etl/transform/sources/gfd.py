@@ -8,7 +8,7 @@ from main.celery import app
 
 
 class GFDTransformHandler(BaseTransformerHandler):
-    transformer = GFDTransformer
+    transformer_class = GFDTransformer
     transformer_schema = GFDDataSource
 
     @classmethod

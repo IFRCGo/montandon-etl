@@ -6,7 +6,7 @@ from main.celery import app
 
 
 class GlideTransformHandler(BaseTransformerHandler):
-    transformer = GlideTransformer
+    transformer_class = GlideTransformer
     transformer_schema = GlideDataSource
 
     @classmethod

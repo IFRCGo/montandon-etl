@@ -1,7 +1,5 @@
 import logging
 
-from django.conf import settings
-from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
 from apps.etl.models import ExtractionData
@@ -12,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class IbtracsTransformHandler(BaseTransformerHandler):
-    transformer = IBTrACSTransformer
+    transformer_class = IBTrACSTransformer
     transformer_schema = IBTrACSDataSource
 
     @classmethod
@@ -25,5 +23,4 @@ class IbtracsTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
-        return IbtracsTransformHandler().handle_transformation(extraction_id, geocoder)
+        return IbtracsTransformHandler().handle_transformation(extraction_id)

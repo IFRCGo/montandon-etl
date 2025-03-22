@@ -1,13 +1,17 @@
 import base64
+import datetime
 import hashlib
 import json
 import logging
 import tempfile
+import typing
 from typing import Any, Callable
 
 import ee
 import requests
 from django.conf import settings
+from ee._helpers import ServiceAccountCredentials
+from ee.imagecollection import ImageCollection
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
@@ -23,13 +27,13 @@ DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-lega
 
 class GFDExtraction(BaseExtraction):
     @classmethod
-    def decode_json(cls, encoded_str):
+    def decode_json(cls, encoded_str: str):
         """Decodes a Base64 string back to a JSON object."""
         decoded_data = base64.urlsafe_b64decode(encoded_str.encode()).decode()
         return json.loads(decoded_data)
 
     @classmethod
-    def get_json_credentials(cls, content):
+    def get_json_credentials(cls, content: typing.Any):
         with tempfile.NamedTemporaryFile(delete=False, mode="w") as temp_file:
             json_string = json.dumps(content, sort_keys=True)
             temp_file.write(json_string)
@@ -37,7 +41,7 @@ class GFDExtraction(BaseExtraction):
         return temp_path
 
     @classmethod
-    def hash_json_content(cls, json_data):
+    def hash_json_content(cls, json_data: typing.Any):
         """Hashes a JSON object using SHA256."""
         json_string = json.dumps(json_data, sort_keys=True)
         return hashlib.sha256(json_string.encode()).hexdigest()
@@ -45,16 +49,15 @@ class GFDExtraction(BaseExtraction):
     @classmethod
     def store_extraction_data(
         cls,
-        validate_source_func: Callable[[Any], None],
+        validate_source_func: Callable[[Any], None] | None,
         source: int,
-        response: dict,
-        instance_id: int = None,
+        response: requests.Response,
+        instance_id: int | None = None,
     ):
         """
         Save extracted data into database. Checks for duplicate content using hashing.
         """
-        file_extension = "json"
-        file_name = f"{source}.{file_extension}"
+        file_name = f"{source}.json"
         resp_data_content = json.dumps(response)
 
         # save the additional response data after the data is fetched from api.
@@ -64,11 +67,6 @@ class GFDExtraction(BaseExtraction):
 
         # Validate the non empty response data.
         if resp_data_content:
-            # Source validation
-            if validate_source_func:
-                extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
-
             # manage duplicate file content.
             hash_content = cls.hash_json_content(resp_data_content)
             manage_duplicate_file_content(
@@ -78,8 +76,10 @@ class GFDExtraction(BaseExtraction):
                 response_data=resp_data_content,
                 file_name=file_name,
             )
+
         return extraction_instance
 
+    # FIXME: response does not need to be requests.Response
     @classmethod
     def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
         """
@@ -97,22 +97,50 @@ class GFDExtraction(BaseExtraction):
             instance_id=instance.id,
         )
 
+        # FIXME: return type does not need to be dict or object
         return response
 
     @classmethod
-    def get_flood_data(cls, collection, batch_size=1000):
+    def get_flood_data(cls, collection: ImageCollection, batch_size=1000):
         """Retrieve flood metadata in batches to avoid memory issues."""
-        total_size = collection.size().getInfo()
+        total_size: int | None = collection.size().getInfo()
 
-        all_data = []
+        if total_size is None:
+            return []
+
+        all_data: list[typing.Any] = []
         for i in range(0, total_size, batch_size):
-            batch = collection.toList(batch_size, i).getInfo()
-            all_data.extend([feature for feature in batch])
+            batch: list[typing.Any] | None = collection.toList(batch_size, i).getInfo()
+            if batch is not None:
+                all_data.extend([feature for feature in batch])
 
         return all_data
 
     @classmethod
-    def handle_extraction(cls, url: str, source: int, start_date, end_date) -> int:
+    def extract_data(cls, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
+        # Set up authentication
+        service_account = settings.GFD_SERVICE_ACCOUNT
+
+        # # Decode the earthengine credential
+        decoded_json = cls.decode_json(settings.GFD_CREDENTIAL)
+        credential_file_path = cls.get_json_credentials(decoded_json)
+
+        # Authenticate
+        credentials = ServiceAccountCredentials(service_account, credential_file_path)
+        ee.Initialize(credentials)
+
+        # Load Global Flood Database (GFD)
+        gfd_data = ImageCollection("GLOBAL_FLOOD_DB/MODIS_EVENTS/V1")
+
+        # Filter flood events by date
+        if start_date and end_date:
+            gfd_data = gfd_data.filterDate(str(start_date), str(end_date))
+
+        flood_data = cls.get_flood_data(gfd_data, batch_size=500)
+        return flood_data
+
+    @classmethod
+    def handle_extraction(cls, url: str, source: int, start_date, end_date) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
@@ -145,38 +173,11 @@ class GFDExtraction(BaseExtraction):
             logger.error(
                 "extraction failed",
                 exc_info=True,
-                extra=log_extra(
-                    {
-                        "source": instance.source,
-                    }
-                ),
+                extra=log_extra({"source": instance.source}),
             )
             raise
 
-    @classmethod
-    def extract_data(cls, start_date=None, end_date=None):
-        # Set up authentication
-        service_account = settings.GFD_SERVICE_ACCOUNT
-
-        # # Decode the earthengine credential
-        decoded_json = cls.decode_json(settings.GFD_CREDENTIAL)
-        credential_file_path = cls.get_json_credentials(decoded_json)
-
-        # Authenticate
-        credentials = ee.ServiceAccountCredentials(service_account, credential_file_path)
-        ee.Initialize(credentials)
-
-        # Load Global Flood Database (GFD)
-        gfd_data = ee.ImageCollection("GLOBAL_FLOOD_DB/MODIS_EVENTS/V1")
-
-        # Filter flood events by date
-        if start_date and end_date:
-            gfd_data = gfd_data.filterDate(str(start_date), str(end_date))
-
-        flood_data = cls.get_flood_data(gfd_data, batch_size=500)
-        return flood_data
-
     @staticmethod
     @app.task
-    def task(start_date=None, end_date=None):
+    def task(start_date: datetime.date | None = None, end_date: datetime.date | None = None):  # type: ignore[reportIncompatibleMethodOverride]
         return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GFD, start_date, end_date)

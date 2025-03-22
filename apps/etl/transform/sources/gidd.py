@@ -6,7 +6,7 @@ from main.celery import app
 
 
 class GIDDTransformHandler(BaseTransformerHandler):
-    transformer = GIDDTransformer
+    transformer_class = GIDDTransformer
     transformer_schema = GIDDDataSource
 
     @classmethod
