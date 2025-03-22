@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class DesinventarTransformHandler(BaseTransformerHandler):
-    transformer = DesinventarTransformer
+    transformer_class = DesinventarTransformer
     transformer_schema = DesinventarDataSource
 
     @classmethod
@@ -56,7 +56,7 @@ class DesinventarTransformHandler(BaseTransformerHandler):
 
         try:
             schema = cls.get_schema_data(extraction_obj, country_code, iso3)
-            transformer = cls.transformer(schema, geocoder)
+            transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS

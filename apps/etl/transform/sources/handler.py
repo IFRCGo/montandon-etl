@@ -1,8 +1,9 @@
+import abc
 import logging
 import typing
 import uuid
-from abc import ABC
 
+from django.conf import settings
 from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
@@ -46,10 +47,18 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 Transformer = typing.TypeVar("Transformer", bound=MontyDataTransformer)
 
 
-class BaseTransformerHandler(ABC, typing.Generic[Transformer]):
+class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
     transformer_class: typing.Type[Transformer]
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if getattr(cls, "transformer_class", None) is None:
+            raise NotImplementedError(f"Please define transformer_class for {cls}")
+        if getattr(cls, "get_schema_data", None) is None:
+            raise NotImplementedError(f"Please define get_schema_data method for {cls}")
+
     @classmethod
+    @abc.abstractmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
         raise NotImplementedError()
 

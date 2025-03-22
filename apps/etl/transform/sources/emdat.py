@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class EMDATTransformHandler(BaseTransformerHandler):
-    transformer = EMDATTransformer
+    transformer_class = EMDATTransformer
     transformer_schema = EMDATDataSource
 
     @classmethod

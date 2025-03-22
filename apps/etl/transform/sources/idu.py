@@ -8,7 +8,7 @@ from main.celery import app
 class IDUTransformHandler(BaseTransformerHandler):
     """IDU Transformer handler"""
 
-    transformer = IDUTransformer
+    transformer_class = IDUTransformer
     transformer_schema = IDUDataSource
 
     @classmethod

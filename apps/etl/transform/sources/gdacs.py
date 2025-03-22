@@ -38,7 +38,9 @@ def transform_event_data(event_extraction_data):
 
     try:
         transformer = GDACSTransformer(
-            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
+            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)],
+            # FIXME: Pass geo-coder as in other sources
+            None,
         )
         transformed_event_item = transformer.make_source_event_item()
         transformed_item_dict = transformed_event_item.to_dict()
@@ -101,7 +103,9 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
                     type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=event_data["extracted_data"]
                 ),
                 GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
-            ]
+            ],
+            # FIXME: Pass geo-coder as in other sources
+            None,
         )
         transformed_hazard_item = transformer.make_hazard_event_item()
         transformed_item_dict = transformed_hazard_item.to_dict()
@@ -146,7 +150,9 @@ def transform_impact_data(event_data):
     bulk_mgr = BulkCreateManager(chunk_size=1000)
     try:
         transformer = GDACSTransformer(
-            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)]
+            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)],
+            # FIXME: Pass geo-coder as in other sources
+            None,
         )
         transformed_impact_item = transformer.make_impact_items()
 

@@ -10,7 +10,7 @@ from main.celery import app
 class USGSTransformHandler(BaseTransformerHandler):
     """USGS Transformer handler"""
 
-    transformer = USGSTransformer
+    transformer_class = USGSTransformer
     transformer_schema = USGSDataSource
 
     @classmethod

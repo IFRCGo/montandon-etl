@@ -8,7 +8,7 @@ from apps.common.models import Resource
 class EtlTrace(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta():
+    class Meta:
         verbose_name = "Trace"
 
 

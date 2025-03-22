@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class PDCTransformHandler(BaseTransformerHandler):
-    transformer = PDCTransformer
+    transformer_class = PDCTransformer
     transformer_schema = PDCDataSource
 
     @classmethod
@@ -67,7 +67,7 @@ class PDCTransformHandler(BaseTransformerHandler):
 
         try:
             schema = cls.get_schema_data(extraction_obj, geo_json_obj)
-            transformer = cls.transformer(schema, geocoder)
+            transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS

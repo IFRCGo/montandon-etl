@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class IbtracsTransformHandler(BaseTransformerHandler):
-    transformer = IBTrACSTransformer
+    transformer_class = IBTrACSTransformer
     transformer_schema = IBTrACSDataSource
 
     @classmethod

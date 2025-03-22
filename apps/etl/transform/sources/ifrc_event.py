@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class IFRCEventTransformHandler(BaseTransformerHandler):
-    transformer = IFRCEventTransformer
+    transformer_class = IFRCEventTransformer
     transformer_schema = IFRCEventDataSource
 
     @classmethod
