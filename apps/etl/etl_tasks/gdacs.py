@@ -1,6 +1,5 @@
 import json
 import logging
-import uuid
 from datetime import datetime, timedelta
 
 import requests
@@ -14,7 +13,7 @@ from apps.etl.extraction.sources.gdacs.extract import (
     fetch_gdacs_geometry_data,
     validate_source_data,
 )
-from apps.etl.models import ExtractionData, HazardType
+from apps.etl.models import ExtractionData, HazardType, get_trace_id
 from apps.etl.transform.sources.gdacs import (
     transform_event_data,
     transform_geo_data,
@@ -84,19 +83,18 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
     instance_id = kwargs.get("instance_id", None)
     retry_count = kwargs.get("retry_count", None)
 
-    gdacs_instance = (
-        ExtractionData.objects.get(id=instance_id)
-        if instance_id
-        else ExtractionData.objects.create(
+    if instance_id:
+        gdacs_instance = ExtractionData.objects.get(id=instance_id)
+    else:
+        gdacs_instance = ExtractionData.objects.create(
             source=ExtractionData.Source.GDACS,
             status=ExtractionData.Status.PENDING,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            trace_id=str(uuid.uuid4()),
+            trace_id=get_trace_id(None),
             hazard_type=hazard_type_str,
             attempt_no=0,
             resp_code=0,
         )
-    )
 
     # Extract the data from api.
     gdacs_extraction = Extraction(url=gdacs_url)

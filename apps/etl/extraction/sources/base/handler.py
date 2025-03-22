@@ -1,6 +1,5 @@
 import json
 import logging
-import uuid
 from typing import Any, Callable
 
 import requests
@@ -9,7 +8,7 @@ from apps.etl.extraction.sources.base.utils import (
     hash_file_content,
     manage_duplicate_file_content,
 )
-from apps.etl.models import ExtractionData
+from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import app
 from main.logging import log_extra
 
@@ -81,7 +80,7 @@ class BaseExtraction:
             url=url,
             status=status,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            trace_id=parent.trace_id if parent else uuid.uuid4(),
+            trace_id=get_trace_id(parent),
             hazard_type=hazard_type,
             attempt_no=0,
             resp_code=0,

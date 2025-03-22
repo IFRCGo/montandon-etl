@@ -15,7 +15,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
     list_display = (
         "trace_id",
         "id",
-        "parent__id",
+        "parent_id",
         "source",
         "metadata",
         "status",

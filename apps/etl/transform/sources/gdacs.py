@@ -10,7 +10,7 @@ from pystac_monty.sources.gdacs import (
     GDACSTransformer,
 )
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
 from apps.etl.utils import read_file_data
 from main.logging import log_extra
 from main.managers import BulkCreateManager
@@ -33,7 +33,7 @@ def transform_event_data(event_extraction_data):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
-        trace_id=gdacs_instance.trace_id,
+        trace_id=get_trace_id(gdacs_instance),
     )
 
     try:
@@ -91,7 +91,7 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
-        trace_id=gdacs_instance.trace_id,
+        trace_id=get_trace_id(gdacs_instance),
     )
 
     try:
@@ -140,7 +140,7 @@ def transform_impact_data(event_data):
     transform_obj = Transform.objects.create(
         extraction=gdacs_instance,
         status=Transform.Status.PENDING,
-        trace_id=gdacs_instance.trace_id,
+        trace_id=get_trace_id(gdacs_instance),
     )
 
     bulk_mgr = BulkCreateManager(chunk_size=1000)

@@ -6,7 +6,7 @@ from pystac_monty.sources.desinventar import (
     DesinventarTransformer,
 )
 
-from apps.etl.models import ExtractionData, Transform
+from apps.etl.models import ExtractionData, Transform, get_trace_id
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 from main.logging import log_extra
@@ -47,7 +47,7 @@ class DesinventarTransformHandler(BaseTransformerHandler):
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
             status=Transform.Status.PENDING,
-            trace_id=extraction_obj.trace_id,
+            trace_id=get_trace_id(extraction_obj),
         )
 
         try:

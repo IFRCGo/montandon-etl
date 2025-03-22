@@ -2,7 +2,20 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from apps.common.models import Resource, Tracing
+from apps.common.models import Resource
+
+
+class EtlTrace(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class EtlResource(Resource):
+    trace = models.ForeignKey(EtlTrace, null=True, related_name="+", on_delete=models.PROTECT)
+    # types
+    trace_id: int | None
+
+    class Meta(Resource.Meta):
+        abstract = True
 
 
 # TODO: User IntegerChoices and add mapping for import/export
@@ -53,7 +66,7 @@ class HazardType(models.TextChoices):
 # - Implement retries
 # - Implement no_change optimization
 # - Implement time tracking: started_at, completed_at
-class ExtractionData(Resource, Tracing):
+class ExtractionData(EtlResource):
     class Status(models.IntegerChoices):
         PENDING = 1, _("Pending")
         IN_PROGRESS = 2, _("In progress")
@@ -145,16 +158,13 @@ class ExtractionData(Resource, Tracing):
     def __str__(self):
         return str(self.id)
 
-    class Meta(Resource.Meta, Tracing.Meta):
-        ordering = ["-id"]
-
 
 # TODO:
 # - Implement time tracking: started_at, completed_at
 # - Implement partial success and progress tracking: total_items, failed_items, completed_items
 # - Rename to TransformData
 # - Rename extraction to extraction_id to make this consistent with PyStacLoadData?
-class Transform(Resource, Tracing):
+class Transform(EtlResource):
     class Status(models.IntegerChoices):
         PENDING = 1, "Pending"
         SUCCESS = 2, "Success"
@@ -170,13 +180,10 @@ class Transform(Resource, Tracing):
         help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
     )
 
-    class Meta(Resource.Meta, Tracing.Meta):
-        ordering = ["-id"]
-
 
 # TODO:
 # - Rename to LoadData
-class PyStacLoadData(Resource, Tracing):
+class PyStacLoadData(EtlResource):
     class ItemType(models.IntegerChoices):
         EVENT = 1, "Event"
         HAZARD = 2, "Hazard"
@@ -198,8 +205,14 @@ class PyStacLoadData(Resource, Tracing):
     # CONTENT
     item = models.JSONField(verbose_name=_("item"), default=dict)
 
-    class Meta(Resource.Meta, Tracing.Meta):
-        ordering = ["-id"]
+    class Meta(EtlResource.Meta):
         indexes = [
             models.Index(fields=["load_status"], name="partial_index_on_load_status", condition=models.Q(load_status=1)),
         ]
+
+
+def get_trace_id(parent_obj: ExtractionData | Transform | None) -> int | None:
+    if parent_obj:
+        return parent_obj.trace_id
+    new_trace = EtlTrace.objects.create()
+    return new_trace.pk

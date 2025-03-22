@@ -1,10 +1,9 @@
 import hashlib
 import json
-import uuid
 
 from django.core.files.base import ContentFile
 
-from apps.etl.models import ExtractionData
+from apps.etl.models import ExtractionData, get_trace_id
 
 
 def hash_file_content(content):
@@ -91,7 +90,7 @@ def store_pdc_exposure_data(
         status=ExtractionData.Status.SUCCESS,
         hazard_type=hazard_type,
         metadata=metadata,
-        trace_id=parent_id.trace_id if parent_id else str(uuid.uuid4()),
+        trace_id=get_trace_id(parent_id),
     )
 
     content_file = ContentFile(data)
