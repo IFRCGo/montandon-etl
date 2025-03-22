@@ -8,6 +8,9 @@ from apps.common.models import Resource
 class EtlTrace(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta():
+        verbose_name = "Trace"
+
 
 class EtlResource(Resource):
     trace = models.ForeignKey(EtlTrace, null=True, related_name="+", on_delete=models.PROTECT)
@@ -155,6 +158,9 @@ class ExtractionData(EtlResource):
         max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
     )
 
+    class Meta(EtlResource.Meta):
+        verbose_name = "Extraction"
+
     def __str__(self):
         return str(self.id)
 
@@ -179,6 +185,9 @@ class Transform(EtlResource):
         default=False,
         help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
     )
+
+    class Meta(EtlResource.Meta):
+        verbose_name = "Transform"
 
 
 # TODO:
@@ -209,6 +218,7 @@ class PyStacLoadData(EtlResource):
         indexes = [
             models.Index(fields=["load_status"], name="partial_index_on_load_status", condition=models.Q(load_status=1)),
         ]
+        verbose_name = "Stac Item"
 
 
 def get_trace_id(parent_obj: ExtractionData | Transform | None) -> int | None:

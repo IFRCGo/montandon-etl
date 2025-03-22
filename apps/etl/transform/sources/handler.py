@@ -3,6 +3,7 @@ import typing
 import uuid
 from abc import ABC
 
+from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
@@ -12,6 +13,7 @@ from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
+# FIXME: Instead of literal use enum from pystac
 ITEM_TYPE_COLLECTION_ID_MAP = {
     "idmc-idu-events": PyStacLoadData.ItemType.EVENT,
     "idmc-idu-impacts": PyStacLoadData.ItemType.IMPACT,
@@ -67,8 +69,10 @@ class BaseTransformerHandler(ABC, typing.Generic[Transformer]):
         )
 
         try:
+            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
+
             schema = cls.get_schema_data(extraction_obj)
-            transformer = cls.transformer_class(schema)
+            transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.make_items()
 

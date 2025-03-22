@@ -1,7 +1,23 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import ExtractionData, PyStacLoadData, Transform
+from .models import EtlTrace, ExtractionData, PyStacLoadData, Transform
+
+
+@admin.register(EtlTrace)
+class EtlTraceAdmin(admin.ModelAdmin):
+    def get_readonly_fields(self, request, obj=None):
+        # Use the model's fields to populate readonly_fields
+        if obj:  # If the object exists (edit page)
+            return [field.name for field in self.model._meta.fields]
+        return []
+
+    date_hierarchy = "created_at"
+
+    list_display = (
+        "id",
+        "created_at",
+    )
 
 
 @admin.register(ExtractionData)

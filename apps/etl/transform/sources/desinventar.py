@@ -1,6 +1,8 @@
 import logging
 import tempfile
 
+from django.conf import settings
+from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.desinventar import (
     DesinventarDataSource,
     DesinventarTransformer,
@@ -50,10 +52,12 @@ class DesinventarTransformHandler(BaseTransformerHandler):
             trace_id=get_trace_id(extraction_obj),
         )
 
+        geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
+
         try:
             schema = cls.get_schema_data(extraction_obj, country_code, iso3)
-            transformer = cls.transformer(data_source=schema)
-            transformed_items = transformer.get_items()
+            transformer = cls.transformer(schema, geocoder)
+            transformed_items = transformer.make_items()
 
             transform_obj.status = Transform.Status.SUCCESS
             transform_obj.save(update_fields=["status"])
