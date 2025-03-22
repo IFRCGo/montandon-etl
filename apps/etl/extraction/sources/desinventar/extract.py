@@ -87,7 +87,7 @@ class DesinventarExtraction(BaseExtraction):
                     )
                     logger.warning("No hazard data found in response")
 
-            return instance.id
+            return instance.pk
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(

@@ -42,14 +42,14 @@ class PDCExtraction(BaseExtraction):
 
     @staticmethod
     def fetch_exposure_data(hazard_uuid: str):
-        url = f"{settings.PDC_BASE_URL}/hazard/{hazard_uuid}/exposure"
-        headers = {"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"}
+        url = f"{settings.PDC_SENTRY_BASE_URL}/hazard/{hazard_uuid}/exposure"
+        headers = {"Authorization": f"Bearer {settings.PDC_SENTRY_AUTHORIZATION_KEY}"}
         return requests.get(url, headers=headers).json()
 
     @staticmethod
     def fetch_exposure_detail(hazard_uuid: str, exposure_id: int):
-        url = f"{settings.PDC_BASE_URL}/hazard/{hazard_uuid}/exposure/{exposure_id}"
-        headers = {"Authorization": f"Bearer {settings.PDC_AUTHORIZATION_KEY}"}
+        url = f"{settings.PDC_SENTRY_BASE_URL}/hazard/{hazard_uuid}/exposure/{exposure_id}"
+        headers = {"Authorization": f"Bearer {settings.PDC_SENTRY_AUTHORIZATION_KEY}"}
         return requests.get(url, headers=headers).json()
 
     @classmethod

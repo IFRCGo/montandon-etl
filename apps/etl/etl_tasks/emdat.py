@@ -78,6 +78,7 @@ query monty(
 """
 
 
+# FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
     # FIXME: Why are we getting data from settings.EMDAT_START_YEAR to get the latest data?
@@ -92,6 +93,7 @@ def ext_and_transform_emdat_latest_data(**kwargs):
     chain(EMDATExtraction.task.s(QUERY, variables), EMDATTransformHandler.task.s()).apply_async()
 
 
+# FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
     variables: EMDATQueryVars = {

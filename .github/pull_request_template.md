@@ -16,7 +16,7 @@ NOTE: **Mention related users here if any.**
 
 - [ ] temporary files, auto-generated files or secret keys
 - [ ] n+1 queries
-- [ ] flake8 issues
+- [ ] linter issues
 - [ ] `print`
 - [ ] typos
 - [ ] unwanted comments
@@ -24,5 +24,3 @@ NOTE: **Mention related users here if any.**
 ## This PR contains valid:
 
 - [ ] tests
-- [ ] permission checks (tests here too)
-- [ ] translations
