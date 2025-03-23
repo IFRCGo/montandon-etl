@@ -13,6 +13,7 @@ ingress:
 rabbitmq:
   auth:
     password: monty
+    erlangCookie: strong-random-erlang-cookie
 
 env:
   # DJANGO_APP_ENVIRONMENT: using .environment
