@@ -109,6 +109,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
+            # FIXME: We need to check if we have collection_id
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())

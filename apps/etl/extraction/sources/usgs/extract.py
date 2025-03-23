@@ -69,11 +69,12 @@ class USGSExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task(parent_id: int | None, detail_url: str):  # type: ignore[reportIncompatibleMethodOverride]
+    def task(url: str, parent_id: int | None):  # type: ignore[reportIncompatibleMethodOverride]
         """USGS Task"""
         details_id = USGSExtraction.handle_extraction(
-            url=detail_url, params=None, headers=None, parent_id=parent_id, source=ExtractionData.Source.USGS
+            url=url, params=None, headers=None, parent_id=parent_id, source=ExtractionData.Source.USGS
         )
+
         if details_id:
             usgs_instance = ExtractionData.objects.get(id=details_id)
             with usgs_instance.resp_data.open() as file_data:

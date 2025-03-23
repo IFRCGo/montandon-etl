@@ -1,6 +1,6 @@
 import logging
-import typing
 
+import pydantic
 import requests
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
@@ -11,15 +11,12 @@ from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
-EMDATQueryVars = typing.TypedDict(
-    "EMDATQueryVars",
-    {
-        "limit": int | None,
-        "from": int | None,
-        "to": int | None,
-        "include_hist": bool | None,
-    },
-)
+
+class EmdatExtractionInputMetadata(pydantic.BaseModel):
+    limit: int | None
+    from_: int | None = pydantic.Field(..., alias="from")
+    to: int | None
+    include_hist: bool | None
 
 
 class EMDATExtraction(BaseExtraction):
@@ -29,7 +26,7 @@ class EMDATExtraction(BaseExtraction):
 
     # FIXME: We need to handle GraphQL request in BaseExtraction
     @classmethod
-    def handle_extraction(cls, query: str, variables: EMDATQueryVars, source: int) -> int:  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_extraction(cls, query: str, metadata: EmdatExtractionInputMetadata) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
@@ -37,15 +34,26 @@ class EMDATExtraction(BaseExtraction):
         """
         logger.info("Starting data extraction")
 
+        source = ExtractionData.Source.EMDAT
+
         url = f"{etl_config.EMDAT_URL}/v1"
         headers = {"Authorization": etl_config.EMDAT_AUTHORIZATION_KEY}
 
-        instance = cls._create_extraction_instance(url=url, source=source)
+        input_metadata = metadata.model_dump(by_alias=True)
+
+        instance = cls._create_extraction_instance(
+            url=url,
+            # NOTE: We are not storing the query
+            source=source,
+            metadata={
+                "input": input_metadata,
+            },
+        )
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            paylod = {"query": query, "variables": variables}
+            paylod = {"query": query, "variables": input_metadata}
             response = requests.post(url, json=paylod, headers=headers)
             response.raise_for_status()
             response_data = cls._save_response_data(instance, response)
@@ -71,5 +79,6 @@ class EMDATExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task(query: str, variables: EMDATQueryVars):  # type: ignore[reportIncompatibleMethodOverride]
-        return EMDATExtraction().handle_extraction(query, variables, ExtractionData.Source.EMDAT)
+    def task(query: str, metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
+        input_metadata = EmdatExtractionInputMetadata(**metadata)
+        return EMDATExtraction().handle_extraction(query, input_metadata)

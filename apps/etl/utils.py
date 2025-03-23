@@ -93,4 +93,4 @@ class AccessTokenManager:
             },
         )
 
-        return response.json()
+        return (response.json(), url)

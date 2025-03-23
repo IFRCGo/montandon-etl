@@ -2,7 +2,7 @@ from datetime import datetime
 
 from celery import chain, shared_task
 
-from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideQueryVars
+from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionInputMetadata
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.configs import etl_config
@@ -57,18 +57,20 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    url = f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp"
-    variables: GlideQueryVars = {
-        "fromyear": from_date.year,
-        "frommonth": from_date.month,
-        "fromday": from_date.day,
-        "toyear": to_date.year,
-        "tomonth": to_date.month,
-        "today": to_date.day,
-        "events": hazard_type.value,
-    }
+    variables = GlideExtractionInputMetadata(
+        fromyear=from_date.year,
+        frommonth=from_date.month,
+        fromday=from_date.day,
+        toyear=to_date.year,
+        tomonth=to_date.month,
+        today=to_date.day,
+        events=hazard_type.value,
+    )
 
-    chain(GlideExtraction.task.s(url, variables), GlideTransformHandler.task.s()).apply_async()
+    chain(
+        GlideExtraction.task.s(variables),
+        GlideTransformHandler.task.s(),
+    ).apply_async()
 
 
 @shared_task
@@ -76,18 +78,20 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    url = f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp"
-    variables: GlideQueryVars = {
-        "fromyear": None,
-        "frommonth": None,
-        "fromday": None,
-        "toyear": to_date.year,
-        "tomonth": to_date.month,
-        "today": to_date.day,
-        "events": hazard_type.value,
-    }
+    variables = GlideExtractionInputMetadata(
+        fromyear=None,
+        frommonth=None,
+        fromday=None,
+        toyear=to_date.year,
+        tomonth=to_date.month,
+        today=to_date.day,
+        events=hazard_type.value,
+    )
 
-    chain(GlideExtraction.task.s(url, variables), GlideTransformHandler.task.s()).apply_async()
+    chain(
+        GlideExtraction.task.s(variables),
+        GlideTransformHandler.task.s(),
+    ).apply_async()
 
 
 @shared_task

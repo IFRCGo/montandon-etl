@@ -16,6 +16,10 @@ from main.logging import log_extra
 logger = logging.getLogger(__name__)
 
 
+class ValidationResponse(typing.TypedDict):
+    status: str
+
+
 class BaseExtraction:
     """
     Handles data extraction.
@@ -24,7 +28,7 @@ class BaseExtraction:
     @classmethod
     def store_extraction_data(
         cls,
-        validate_source_func: Callable[[Any], None] | None,
+        validate_source_func: Callable[[Any], ValidationResponse] | None,
         source: int,
         response: requests.Response,
         instance_id: int | None = None,
@@ -65,9 +69,9 @@ class BaseExtraction:
         url: str,
         source: int,
         parent_id: int | None = None,
-        status=ExtractionData.Status.PENDING,
-        hazard_type=None,
-        metadata={},
+        status: ExtractionData.Status = ExtractionData.Status.PENDING,
+        hazard_type: str | None = None,
+        metadata: dict | None = {},
     ) -> ExtractionData:
         """
         Create and return a new extraction instance with initial status.
@@ -82,10 +86,10 @@ class BaseExtraction:
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             trace_id=get_trace_id(parent),
             hazard_type=hazard_type,
-            attempt_no=0,
-            resp_code=0,
             parent_id=parent_id,
             metadata=metadata,
+            attempt_no=0,
+            resp_code=0,
         )
 
     @classmethod
@@ -128,7 +132,13 @@ class BaseExtraction:
 
     @classmethod
     def handle_extraction(
-        cls, url: str, params: dict | None, headers: dict | None, source: int, parent_id: int | None = None
+        cls,
+        url: str,
+        params: dict | None,
+        headers: dict | None,
+        source: int,
+        parent_id: int | None = None,
+        timeout: int = 30,
     ) -> int:
         """
         Process data extraction.
@@ -136,18 +146,23 @@ class BaseExtraction:
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        instance = cls._create_extraction_instance(url=url, source=source, parent_id=parent_id)
+        instance = cls._create_extraction_instance(
+            url=url,
+            source=source,
+            parent_id=parent_id,
+            metadata={"input": params} if params else {},
+        )
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-            response = requests.get(url, params=params, headers=headers, timeout=30)
+            response = requests.get(url, params=params, headers=headers, timeout=timeout)
             response.raise_for_status()
             instance.resp_code = response.status_code
             instance.save(update_fields=["resp_code"])
 
             # FIXME: Handle 204
-            if response.status_code == 200:
+            if response.status_code == 200 or response.status_code == 204:
                 response_data = cls._save_response_data(instance, response)
                 # Check if response contains data
                 if response_data:

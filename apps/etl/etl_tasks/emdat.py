@@ -2,7 +2,7 @@ from datetime import datetime
 
 from celery import chain, shared_task
 
-from apps.etl.extraction.sources.emdat.extract import EMDATExtraction, EMDATQueryVars
+from apps.etl.extraction.sources.emdat.extract import EMDATExtraction, EmdatExtractionInputMetadata
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from main.configs import etl_config
 
@@ -83,24 +83,34 @@ query monty(
 def ext_and_transform_emdat_latest_data(**kwargs):
     # FIXME: Why are we getting data from etl_config.EMDAT_START_YEAR to get the latest data?
     # Also, the filtering only filters using year so we might have lot of duplicate data
-    variables: EMDATQueryVars = {
-        "limit": -1,
-        "from": etl_config.EMDAT_START_YEAR,
-        "to": datetime.now().year,
-        "include_hist": None,
-    }
+    variables = EmdatExtractionInputMetadata.model_validate(
+        {
+            "limit": -1,
+            "from": etl_config.EMDAT_START_YEAR,
+            "to": datetime.now().year,
+            "include_hist": None,
+        }
+    ).model_dump(by_alias=True)
 
-    chain(EMDATExtraction.task.s(QUERY, variables), EMDATTransformHandler.task.s()).apply_async()
+    chain(
+        EMDATExtraction.task.s(QUERY, variables),
+        EMDATTransformHandler.task.s(),
+    ).apply_async()
 
 
 # FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
-    variables: EMDATQueryVars = {
-        "limit": -1,
-        "from": None,
-        "to": None,
-        "include_hist": True,
-    }
+    variables = EmdatExtractionInputMetadata.model_validate(
+        {
+            "limit": -1,
+            "from": None,
+            "to": None,
+            "include_hist": True,
+        }
+    ).model_dump(by_alias=True)
 
-    chain(EMDATExtraction.task.s(QUERY, variables), EMDATTransformHandler.task.s()).apply_async()
+    chain(
+        EMDATExtraction.task.s(QUERY, variables),
+        EMDATTransformHandler.task.s(),
+    ).apply_async()
