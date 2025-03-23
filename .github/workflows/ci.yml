@@ -77,9 +77,9 @@ jobs:
           if [[ "$BRANCH_NAME" == *"/"* ]]; then
               # XXX: Change the docker image package to -alpha
               IMAGE_NAME="$IMAGE_NAME-alpha"
-              TAG="$(echo "$BRANCH_NAME" | sed 's|/|-|g').$(echo $GITHUB_SHA | head -c7)"
+              TAG="$(echo "$BRANCH_NAME" | sed 's|/|-|g').c$(echo $GITHUB_SHA | head -c7)"
           else
-              TAG="$BRANCH_NAME.$(echo $GITHUB_SHA | head -c7)"
+              TAG="$BRANCH_NAME.c$(echo $GITHUB_SHA | head -c7)"
           fi
 
           IMAGE_NAME=$(echo $IMAGE_NAME | tr '[:upper:]' '[:lower:]')
