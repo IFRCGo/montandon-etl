@@ -30,7 +30,6 @@ data:
 
   # ETL Load config
   EOAPI_DOMAIN: {{ required "env.EOAPI_DOMAIN" .Values.env.EOAPI_DOMAIN | quote }}
-  GEOCODER_URL: {{ required "env.GEOCODER_URL" .Values.env.GEOCODER_URL | quote }}
 
   # Additional configs
   {{- range $name, $value := .Values.envAdditional }}

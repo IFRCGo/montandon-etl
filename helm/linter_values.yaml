@@ -23,7 +23,6 @@ env:
   DJANGO_ALLOWED_HOSTS: "*"
   # ETL Load config
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
-  GEOCODER_URL: https://geocoder.dummy.com
 envAdditional:
   ENABLE_MAGIC: "true"
   MAGIC_TYPE: fun
