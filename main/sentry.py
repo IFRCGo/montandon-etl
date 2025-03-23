@@ -28,6 +28,9 @@ for _logger in IGNORED_LOGGERS:
 @signals.beat_init.connect
 @signals.celeryd_init.connect
 def init_sentry(**_):
+    if not settings.SENTRY_ENABLED:
+        return
+
     integrations = [
         DjangoIntegration(),
         RedisIntegration(),

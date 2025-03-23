@@ -24,6 +24,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         # Build required packages
         gcc libc-dev gdal-bin libproj-dev \
         # Helper packages
+        procps \
         wait-for-it \
     && uv sync --frozen --no-install-project  --no-dev \
     # Clean-up
