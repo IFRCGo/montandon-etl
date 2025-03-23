@@ -15,40 +15,51 @@ logger = get_task_logger(__name__)
 HEADERS = {"Content-Type": "application/json"}
 
 
-def load_collections(*, eoapi_domain: str) -> bool:
+def load_collections(*, eoapi_domain: str) -> list[str]:
     """
     Create missing collections in eoAPI
     """
     logger.info("Sync collections")
 
     url = f"{eoapi_domain}/stac/collections"
-    response = requests.get(url, headers=HEADERS)
-    try:
-        response.raise_for_status()
+    response = requests.get(f"{url}?limit={len(ITEM_TYPE_COLLECTION_ID_MAP.keys())}", headers=HEADERS)
 
-        # FIXME: Make sure ITEM_TYPE_COLLECTION_ID_MAP is using ref from pystac
-        existing_collections = {
-            collection["id"]
-            for collection in response.json()["collections"]
-            if collection["id"] in ITEM_TYPE_COLLECTION_ID_MAP
-        }
-        collections_to_add = set(ITEM_TYPE_COLLECTION_ID_MAP.keys()).difference(existing_collections)
+    if response.status_code != 200:
+        logger.error(
+            "Failed to load collections",
+            extra=log_extra_response(response=response),
+        )
+        return []
 
-        for collection_id in collections_to_add:
-            response = requests.get(
-                url,
-                headers=HEADERS,
-                json={
-                    "id": collection_id,
-                },
-            )
-            response.raise_for_status()
+    # FIXME: Make sure ITEM_TYPE_COLLECTION_ID_MAP is using ref from pystac
+    existing_collections = {
+        collection["id"] for collection in response.json()["collections"] if collection["id"] in ITEM_TYPE_COLLECTION_ID_MAP
+    }
+    collections_to_add = set(ITEM_TYPE_COLLECTION_ID_MAP.keys()).difference(existing_collections)
+
+    remote_collections = list(existing_collections)
+
+    # Try to create missing collections (Only working in alpha eoAPI instance)
+    for collection_id in collections_to_add:
+        response = requests.post(
+            url,
+            headers=HEADERS,
+            json={
+                "id": collection_id,
+            },
+        )
+        if response.status_code == 200:
+            remote_collections.append(collection_id)
             logger.info(f"Successfully created collection id: {collection_id}")
-
-        return True
-    except Exception:
-        logger.error("Failed to load collections", exc_info=True)
-    return False
+        else:
+            logger.error(
+                "Failed to create collection id",
+                extra=log_extra_response(
+                    response=response,
+                    collection_id=collection_id,
+                ),
+            )
+    return remote_collections
 
 
 def send_post_request_to_stac_api(
@@ -86,9 +97,12 @@ def send_post_request_to_stac_api(
 
         if 400 <= response.status_code <= 499:
             load_status = PyStacLoadData.Status.FAILED
-        logger.warning(
-            f"Fail to load item {py_stac_obj.id}",
-            extra=log_extra_response(response=response),
+        logger.error(
+            "Fail to load pystac item",
+            extra=log_extra_response(
+                response=response,
+                py_stac_obj_id=py_stac_obj.id,
+            ),
         )
 
     if load_status is not None:
@@ -100,7 +114,7 @@ def send_post_request_to_stac_api(
         )
 
 
-def load_data(limit: int = 5000):
+def load_data(limit: int = etl_config.EOAPI_SYNC_LIMIT):
     """Load data into STAC"""
     logger.info("Loading data start")
 
@@ -109,10 +123,15 @@ def load_data(limit: int = 5000):
         logger.warning(f"EOAPI_DOMAIN is not defined. {eoapi_domain}.. Skipping...")
         return
 
-    if not load_collections(eoapi_domain=eoapi_domain):
+    available_collections_id = load_collections(eoapi_domain=eoapi_domain)
+    if len(available_collections_id) == 0:
+        logger.warning("There is no available collections in the eoAPI.. Skipping...")
         return
 
-    pending_py_stac_qs = PyStacLoadData.objects.filter(status=PyStacLoadData.Status.PENDING)
+    pending_py_stac_qs = PyStacLoadData.objects.filter(
+        status=PyStacLoadData.Status.PENDING,
+        collection_id__in=available_collections_id,
+    )
 
     bulk_mgr = BulkUpdateManager(["status"], chunk_size=500)
     for py_stac_obj in pending_py_stac_qs.all()[:limit]:
