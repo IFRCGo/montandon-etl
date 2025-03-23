@@ -167,8 +167,6 @@ class EtlConfig:
         self.GDACS_START_DATE = self.parse_date_value_required("GDACS_START_DATE")
 
         # GFD
-        self.GFD_START_DATE = self.parse_date_value_required("GFD_START_DATE")
-        # -- Credentials
         self.GFD_CREDENTIAL = self.parse_json_value("GFD_CREDENTIAL")
         self.GFD_SERVICE_ACCOUNT = self.parse_non_empty_value("GFD_SERVICE_ACCOUNT")
 

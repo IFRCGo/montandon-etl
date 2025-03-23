@@ -24,12 +24,21 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     if not isinstance(response_data, bytes):
         response_data = json.dumps(response_data, indent=2)
 
-    duplicate_file_content = ExtractionData.objects.filter(source=source, file_hash=hash_content)
-    if duplicate_file_content:
-        instance.resp_data = duplicate_file_content.first().resp_data
-        instance.revision_id = duplicate_file_content.first()
+    duplicate_extraction_qs = ExtractionData.objects.filter(
+        source=source,
+        file_hash=hash_content,
+        file_hash__isnull=False,
+    )
+    if instance.id:
+        duplicate_extraction_qs.exclude(id=instance.id)
+
+    duplicate_extraction_obj = duplicate_extraction_qs.first()
+    if duplicate_extraction_obj:
+        instance.resp_data = duplicate_extraction_obj.resp_data
+        instance.revision_id = duplicate_extraction_obj.id
     else:
         instance.resp_data.save(file_name, ContentFile(response_data))
+
     instance.save()
 
 

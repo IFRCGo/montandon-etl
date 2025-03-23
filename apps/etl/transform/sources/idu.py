@@ -1,18 +1,15 @@
 from pystac_monty.sources.idu import IDUDataSource, IDUTransformer
 
-from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 
 
-class IDUTransformHandler(BaseTransformerHandler):
-    """IDU Transformer handler"""
-
+class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource]):
     transformer_class = IDUTransformer
     transformer_schema = IDUDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj):
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
@@ -21,4 +18,4 @@ class IDUTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        return IDUTransformHandler().handle_transformation(extraction_id)
+        IDUTransformHandler().handle_transformation(extraction_id)

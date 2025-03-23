@@ -129,6 +129,7 @@ dmypy.json
 
 # editors
 .idea/
-source_raw_data/
 
+# Media/Data
+assets/
 *.gpkg

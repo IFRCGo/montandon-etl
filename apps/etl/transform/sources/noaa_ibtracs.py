@@ -2,19 +2,18 @@ import logging
 
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
-from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 
 logger = logging.getLogger(__name__)
 
 
-class IbtracsTransformHandler(BaseTransformerHandler):
+class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACSDataSource]):
     transformer_class = IBTrACSTransformer
     transformer_schema = IBTrACSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj):
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
@@ -23,4 +22,4 @@ class IbtracsTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        return IbtracsTransformHandler().handle_transformation(extraction_id)
+        IbtracsTransformHandler().handle_transformation(extraction_id)

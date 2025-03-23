@@ -47,7 +47,6 @@ class BaseExtraction:
             # FIXME: Is validate_source_func being used?
             if validate_source_func:
                 extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-                extraction_instance.content_validation = validate_source_func(resp_data_content)["validation_error"]
 
             # manage duplicate file content.
             hash_content = hash_file_content(resp_data_content)

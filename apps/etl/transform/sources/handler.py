@@ -3,6 +3,7 @@ import logging
 import typing
 import uuid
 
+from pystac import Item as PyStacItem
 from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
@@ -45,10 +46,12 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
 
 
 Transformer = typing.TypeVar("Transformer", bound=MontyDataTransformer)
+TransformerSchema = typing.TypeVar("TransformerSchema")
 
 
-class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
+class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSchema]):
     transformer_class: typing.Type[Transformer]
+    transformer_schema: typing.Type[TransformerSchema]
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -59,7 +62,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
 
     @classmethod
     @abc.abstractmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData) -> TransformerSchema:
         raise NotImplementedError()
 
     @classmethod
@@ -73,10 +76,10 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
-            status=Transform.Status.PENDING,
             trace_id=get_trace_id(extraction_obj),
         )
 
+        transform_obj.mark_as_started()
         try:
             geocoder = GAULGeocoder(gpkg_path=None, service_base_url=etl_config.GEOCODER_URL)
 
@@ -85,23 +88,24 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
 
             transformed_items = transformer.make_items()
 
-            transform_obj.status = Transform.Status.SUCCESS
-            transform_obj.save(update_fields=["status"])
+            cls.load_stac_item_to_queue(transform_obj, transformed_items)
 
-            cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
+            summary = transformer.transform_summary
+            transform_obj.metadata["summary"] = {
+                "failed_rows": summary.failed_rows,
+                "total_rows": summary.total_rows,
+            }
+            transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
-            transform_obj.status = Transform.Status.FAILED
-            transform_obj.save(update_fields=["status"])
+            transform_obj.mark_as_ended(Transform.Status.FAILED)
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
     @classmethod
-    def load_stac_item_to_queue(cls, transform_items, transform_obj_id):
+    def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items: list[PyStacItem]):
         logger.info("Loading data into queue")
-
-        transform_obj = Transform.objects.get(id=transform_obj_id)
 
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
@@ -114,21 +118,17 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
                     item=transformed_item_dict,
                     collection_id=item.collection_id,
                     item_type=item_type,
-                    load_status=PyStacLoadData.LoadStatus.PENDING,
                     trace_id=get_trace_id(transform_obj),
                 )
             )
 
         bulk_mgr.done()
 
-        transform_obj.is_loaded = True
-        transform_obj.save(update_fields=["is_loaded"])
-
         logger.info("Loading data into queue successfull")
 
     @staticmethod
     @app.task
-    def task(extraction_id: int):
+    def task(extraction_id: int) -> None:
         """
         Not NotImplemented due to celery limitation with classmethod
         Eg: return XYZTransformHandler.handle_transformation(extraction_id)

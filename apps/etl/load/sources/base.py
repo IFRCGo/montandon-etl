@@ -72,7 +72,7 @@ def send_post_request_to_stac_api(
     load_status = None
     # Success (OK, Created, Accepted)
     if response.status_code in [200, 201, 202]:
-        load_status = PyStacLoadData.LoadStatus.SUCCESS
+        load_status = PyStacLoadData.Status.SUCCESS
         logger.info(f"Successfully loaded item {py_stac_obj.id}")
     # Client Error (400 – 499)
     else:
@@ -85,7 +85,7 @@ def send_post_request_to_stac_api(
             )
 
         if 400 <= response.status_code <= 499:
-            load_status = PyStacLoadData.LoadStatus.FAILED
+            load_status = PyStacLoadData.Status.FAILED
         logger.warning(
             f"Fail to load item {py_stac_obj.id}",
             extra=log_extra_response(response=response),
@@ -95,7 +95,7 @@ def send_post_request_to_stac_api(
         bulk_mgr.add(
             PyStacLoadData(
                 id=py_stac_obj.id,
-                load_status=load_status,
+                status=load_status,
             ),
         )
 
@@ -112,9 +112,9 @@ def load_data(limit: int = 5000):
     if not load_collections(eoapi_domain=eoapi_domain):
         return
 
-    pending_py_stac_qs = PyStacLoadData.objects.filter(load_status=PyStacLoadData.LoadStatus.PENDING)
+    pending_py_stac_qs = PyStacLoadData.objects.filter(status=PyStacLoadData.Status.PENDING)
 
-    bulk_mgr = BulkUpdateManager(["load_status"], chunk_size=500)
+    bulk_mgr = BulkUpdateManager(["status"], chunk_size=500)
     for py_stac_obj in pending_py_stac_qs.all()[:limit]:
         try:
             # TODO: Send in bulk - https://stac-utils.github.io/stac-fastapi/api/stac_fastapi/extensions/third_party/

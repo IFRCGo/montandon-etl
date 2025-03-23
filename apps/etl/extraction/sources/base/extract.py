@@ -50,9 +50,6 @@ class Extraction:
                     "resp_data_type": "text",
                     "file_extension": None,
                     "source_validation_status": ExtractionData.ValidationStatus.NO_VALIDATION,
-                    "content_validation": "",
-                    # TODO fix for the case where there is no text
-                    "resp_text": response.text,
                 }
                 if response.status_code == 204:
                     data["source_validation_status"] = ExtractionData.ValidationStatus.NO_DATA
@@ -80,8 +77,6 @@ class Extraction:
                 "resp_data_type": resp_type,
                 "file_extension": file_extension,
                 "source_validation_status": source_validation_status,
-                "content_validation": "",
-                "resp_text": "",
             }
         except requests.exceptions.RequestException:
             logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": source}))
