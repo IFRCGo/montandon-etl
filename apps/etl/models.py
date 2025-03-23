@@ -211,7 +211,7 @@ class PyStacLoadData(EtlResource):
     # METADATA
     transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
     item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
-    collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)
+    collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)  # FIXME: Use TextChoices
 
     # STATUS
     # FIXME: change to status

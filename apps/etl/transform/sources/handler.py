@@ -3,12 +3,12 @@ import logging
 import typing
 import uuid
 
-from django.conf import settings
 from pystac_monty.geocoding import GAULGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
 from main.celery import app
+from main.configs import etl_config
 from main.logging import log_extra
 from main.managers import BulkCreateManager
 
@@ -78,7 +78,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer]):
         )
 
         try:
-            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=settings.GEOCODER_URL)
+            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=etl_config.GEOCODER_URL)
 
             schema = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)

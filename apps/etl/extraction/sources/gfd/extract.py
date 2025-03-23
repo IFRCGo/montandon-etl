@@ -1,4 +1,3 @@
-import base64
 import datetime
 import hashlib
 import json
@@ -9,7 +8,6 @@ from typing import Any, Callable
 
 import ee
 import requests
-from django.conf import settings
 from ee._helpers import ServiceAccountCredentials
 from ee.imagecollection import ImageCollection
 
@@ -17,6 +15,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.configs import etl_config
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
@@ -26,12 +25,6 @@ DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-lega
 
 
 class GFDExtraction(BaseExtraction):
-    @classmethod
-    def decode_json(cls, encoded_str: str):
-        """Decodes a Base64 string back to a JSON object."""
-        decoded_data = base64.urlsafe_b64decode(encoded_str.encode()).decode()
-        return json.loads(decoded_data)
-
     @classmethod
     def get_json_credentials(cls, content: typing.Any):
         with tempfile.NamedTemporaryFile(delete=False, mode="w") as temp_file:
@@ -119,10 +112,10 @@ class GFDExtraction(BaseExtraction):
     @classmethod
     def extract_data(cls, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
         # Set up authentication
-        service_account = settings.GFD_SERVICE_ACCOUNT
+        service_account = etl_config.GFD_SERVICE_ACCOUNT
 
         # # Decode the earthengine credential
-        decoded_json = cls.decode_json(settings.GFD_CREDENTIAL)
+        decoded_json = etl_config.GFD_CREDENTIAL
         credential_file_path = cls.get_json_credentials(decoded_json)
 
         # Authenticate

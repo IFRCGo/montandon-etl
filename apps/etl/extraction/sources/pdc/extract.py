@@ -3,7 +3,6 @@ import logging
 import typing
 
 import requests
-from django.conf import settings
 from django.core.files.base import ContentFile
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
@@ -11,6 +10,7 @@ from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from apps.etl.utils import AccessTokenManager
 from main.celery import app
+from main.configs import etl_config
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
@@ -42,14 +42,14 @@ class PDCExtraction(BaseExtraction):
 
     @staticmethod
     def fetch_exposure_data(hazard_uuid: str):
-        url = f"{settings.PDC_SENTRY_BASE_URL}/hazard/{hazard_uuid}/exposure"
-        headers = {"Authorization": f"Bearer {settings.PDC_SENTRY_AUTHORIZATION_KEY}"}
+        url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{hazard_uuid}/exposure"
+        headers = {"Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}"}
         return requests.get(url, headers=headers).json()
 
     @staticmethod
     def fetch_exposure_detail(hazard_uuid: str, exposure_id: int):
-        url = f"{settings.PDC_SENTRY_BASE_URL}/hazard/{hazard_uuid}/exposure/{exposure_id}"
-        headers = {"Authorization": f"Bearer {settings.PDC_SENTRY_AUTHORIZATION_KEY}"}
+        url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{hazard_uuid}/exposure/{exposure_id}"
+        headers = {"Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}"}
         return requests.get(url, headers=headers).json()
 
     @classmethod
@@ -204,5 +204,5 @@ class PDCExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task(data_url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        header = {"Authorization": "Bearer {}".format(settings.PDC_AUTHORIZATION_KEY)}
+        header = {"Authorization": "Bearer {}".format(etl_config.PDC_AUTHORIZATION_KEY)}
         return PDCExtraction.handle_extraction(url=data_url, params=None, headers=header, source=ExtractionData.Source.PDC)
