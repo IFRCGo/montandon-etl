@@ -43,10 +43,10 @@ rabbitmq:
     default_permissions.write = .*
   resources:
     requests:
-      cpu: .1
+      cpu: "0.1"
       memory: 1024Mi
     limits:
-      cpu: 4
+      cpu: "4"
       memory: 2048Mi
   persistence:
     enabled: true
@@ -118,21 +118,21 @@ api:
   containerPort: 80
   resources:
     requests:
-      cpu: "2"
-      memory: 0.5Gi
-    limits:
-      cpu: "2"
+      cpu: "0.1"
       memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 2Gi
 
 worker:
   enabled: true
   beat:
     resources:
       requests:
-        cpu: "1"
+        cpu: "0.1"
         memory: 0.5Gi
       limits:
-        cpu: "1"
+        cpu: "2"
         memory: 1Gi
   flower:
     enabled: false
@@ -157,10 +157,10 @@ worker:
         - "10"
       resources:
         requests:
-          cpu: "1"
+          cpu: "0.1"
           memory: 1Gi
         limits:
-          cpu: "1"
+          cpu: "4"
           memory: 2Gi
 
 argoHooks:
@@ -194,18 +194,9 @@ env:
   AZURE_STORAGE_ACCOUNT_NAME:
   AZURE_STORAGE_MEDIA_CONTAINER:
   AZURE_STORAGE_STATIC_CONTAINER:
-  # ETL Load config
+  # ETL app config
   EOAPI_DOMAIN:
-  DESINVENTAR_DATA_URL:
-  PDC_SENTRY_BASE_URL:
-  GLIDE_URL:
-  GDACS_URL:
-  USGS_DATA_URL:
-  EMDAT_URL:
-  PDC_ARCGIS_DOMAIN:
-  IFRC_DATA_URL:
-  EMDAT_URL:
-  IBTRACS_DATA_URL:
+  GEOCODER_URL:
 # NOTE: Used to pass additional configs to api/worker containers
 # NOTE: Not used by azure vault
 envAdditional:
@@ -225,7 +216,7 @@ secrets:
   # Redis (Provide: if not redis.enabled)
   # - Celery
   CELERY_REDIS_URL:
-  # ETL Sources
+  # ETL sources config
   EMDAT_AUTHORIZATION_KEY:
   IDMC_CLIENT_ID:
   GFD_CREDENTIAL:

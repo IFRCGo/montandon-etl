@@ -22,25 +22,17 @@ on:
 env:
   COMPOSE_FILE: docker-compose.yml:gh-docker-compose.yml
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
-  EMDAT_AUTHORIZATION_KEY: dummy-value
-  IDMC_CLIENT_ID: dummy-value
-  IFRC_DATA_URL: dummy-url
-  GEOCODER_URL: dummy-url
+  # ETL app configs
   EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
-  DESINVENTAR_DATA_URL: https://desinventar.dummy.com
-  GFD_CREDENTIAL: dummy-value
-  GFD_SERVICE_ACCOUNT: dummy-value
-
-  PDC_BASE_URL: https://pdc.dummy.com
-  GLIDE_URL: https://glide.dummy.com
-  GDACS_URL: https://gdacs.dummy.com
-  USGS_DATA_URL: https://usgs.dummy.com
-  EMDAT_URL: https://emdat.dummy.com
-  PDC_AUTHORIZATION_KEY: dummy-value
-  ARC_DOMAIN: https://arc.dummy.com
-  ARC_USERNAME: dummy-username
-  ARC_PASSWORD: dummy-password
-  IBTRACS_DATA_URL: https://ibtracs.dummy.com
+  GEOCODER_URL: https://geocoder.dummy.com
+  # ETL sources configs
+  EMDAT_AUTHORIZATION_KEY: dummy-key
+  IDMC_CLIENT_ID: dummy-client-id
+  GFD_CREDENTIAL: dummy-gfd-cred
+  GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
+  PDC_SENTRY_AUTHORIZATION_KEY: dummy-key
+  PDC_ARCGIS_USERNAME: dummy-username
+  PDC_ARCGIS_PASSWORD: dummy-password
 
 jobs:
   pre_commit_checks:
