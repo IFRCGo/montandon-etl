@@ -15,7 +15,7 @@ logger = get_task_logger(__name__)
 HEADERS = {"Content-Type": "application/json"}
 
 
-def load_collections(*, eoapi_domain: str) -> list[str]:
+def load_collections(*, eoapi_domain: str, skip_collection_create: bool) -> list[str]:
     """
     Create missing collections in eoAPI
     """
@@ -38,6 +38,8 @@ def load_collections(*, eoapi_domain: str) -> list[str]:
     collections_to_add = set(ITEM_TYPE_COLLECTION_ID_MAP.keys()).difference(existing_collections)
 
     remote_collections = list(existing_collections)
+    if skip_collection_create:
+        return remote_collections
 
     # Try to create missing collections (Only working in alpha eoAPI instance)
     for collection_id in collections_to_add:
@@ -114,7 +116,11 @@ def send_post_request_to_stac_api(
         )
 
 
-def load_data(limit: int = etl_config.EOAPI_SYNC_LIMIT):
+def load_data(
+    limit: int = etl_config.EOAPI_SYNC_LIMIT,
+    skip_collection_create: bool = False,
+    load_filters: dict | None = None,
+):
     """Load data into STAC"""
     logger.info("Loading data start")
 
@@ -123,7 +129,11 @@ def load_data(limit: int = etl_config.EOAPI_SYNC_LIMIT):
         logger.warning(f"EOAPI_DOMAIN is not defined. {eoapi_domain}.. Skipping...")
         return
 
-    available_collections_id = load_collections(eoapi_domain=eoapi_domain)
+    available_collections_id = load_collections(
+        eoapi_domain=eoapi_domain,
+        skip_collection_create=skip_collection_create,
+    )
+
     if len(available_collections_id) == 0:
         logger.warning("There is no available collections in the eoAPI.. Skipping...")
         return
@@ -131,6 +141,7 @@ def load_data(limit: int = etl_config.EOAPI_SYNC_LIMIT):
     pending_py_stac_qs = PyStacLoadData.objects.filter(
         status=PyStacLoadData.Status.PENDING,
         collection_id__in=available_collections_id,
+        **(load_filters or {}),
     )
 
     bulk_mgr = BulkUpdateManager(["status"], chunk_size=500)

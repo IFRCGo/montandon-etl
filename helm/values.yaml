@@ -35,6 +35,7 @@ rabbitmq:
   auth:
     username: monty
     password:
+    erlangCookie: # Generate using `dd if=/dev/urandom bs=30 count=1 | base64`
   # XXX: Don't change this (`celery` vhost is used in templates/config/secret.yaml
   extraConfiguration: |-
     default_vhost = celery

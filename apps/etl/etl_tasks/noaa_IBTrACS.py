@@ -18,13 +18,13 @@ def extract_and_transform_ibtracs_data(url):
     ).apply_async()
 
 
-def get_url(path):
+def get_url(path: str):
     return urljoin(
         (
             f"{etl_config.IBTRACS_DATA_URL}"
-            "/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv"
+            "/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/"
         ),
-        path,
+        path.lstrip("/"),  # Remove leading slash
     )
 
 
