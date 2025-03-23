@@ -17,6 +17,8 @@ from main.managers import BulkCreateManager
 
 logger = logging.getLogger(__name__)
 
+# FIXME: start_end_handler base zzz
+
 
 @shared_task
 def transform_event_data(event_extraction_data):
@@ -60,11 +62,10 @@ def transform_event_data(event_extraction_data):
         item_type=PyStacLoadData.ItemType.EVENT,
         collection_id=transformed_event_item.collection_id,
         item=transformed_item_dict,
-        load_status=PyStacLoadData.LoadStatus.PENDING,
     )
 
-    transform_obj.is_loaded = True
-    transform_obj.save(update_fields=["is_loaded"])
+    # transform_obj.is_loaded = True
+    # transform_obj.save(update_fields=["is_loaded"])
 
     logger.info("Trandformation ended for event data")
 
@@ -126,10 +127,9 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
         item_type=PyStacLoadData.ItemType.HAZARD,
         collection_id=transformed_hazard_item.collection_id,
         item=transformed_item_dict,
-        load_status=PyStacLoadData.LoadStatus.PENDING,
     )
-    transform_obj.is_loaded = True
-    transform_obj.save(update_fields=["is_loaded"])
+    # transform_obj.is_loaded = True
+    # transform_obj.save(update_fields=["is_loaded"])
 
     logger.info("Transformation ended for hazard data")
 
@@ -174,13 +174,12 @@ def transform_impact_data(event_data):
                 item_type=PyStacLoadData.ItemType.IMPACT,
                 collection_id=item.collection_id,
                 item=transformed_item_dict,
-                load_status=PyStacLoadData.LoadStatus.PENDING,
             )
         )
 
     bulk_mgr.done()
 
-    transform_obj.is_loaded = True
-    transform_obj.save(update_fields=["is_loaded"])
+    # transform_obj.is_loaded = True
+    # transform_obj.save(update_fields=["is_loaded"])
 
     logger.info("Transformation ended for impact data")

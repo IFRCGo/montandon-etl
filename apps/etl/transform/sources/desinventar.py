@@ -16,7 +16,7 @@ from main.logging import log_extra
 logger = logging.getLogger(__name__)
 
 
-class DesinventarTransformHandler(BaseTransformerHandler):
+class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer, DesinventarDataSource]):
     transformer_class = DesinventarTransformer
     transformer_schema = DesinventarDataSource
 
@@ -48,10 +48,10 @@ class DesinventarTransformHandler(BaseTransformerHandler):
 
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
-            status=Transform.Status.PENDING,
             trace_id=get_trace_id(extraction_obj),
         )
 
+        transform_obj.mark_as_started()
         geocoder = GAULGeocoder(gpkg_path=None, service_base_url=etl_config.GEOCODER_URL)
 
         try:
@@ -59,15 +59,18 @@ class DesinventarTransformHandler(BaseTransformerHandler):
             transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.make_items()
 
-            transform_obj.status = Transform.Status.SUCCESS
-            transform_obj.save(update_fields=["status"])
+            cls.load_stac_item_to_queue(transform_obj, transformed_items)
 
-            cls.load_stac_item_to_queue(transformed_items, transform_obj.id)
+            summary = transformer.transform_summary
+            transform_obj.metadata["summary"] = {
+                "failed_rows": summary.failed_rows,
+                "total_rows": summary.total_rows,
+            }
+            transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
-            transform_obj.status = Transform.Status.FAILED
-            transform_obj.save(update_fields=["status"])
+            transform_obj.mark_as_ended(Transform.Status.FAILED)
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
@@ -75,4 +78,4 @@ class DesinventarTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id: int, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
-        return DesinventarTransformHandler().handle_transformation(extraction_id, country_code, iso3)
+        DesinventarTransformHandler().handle_transformation(extraction_id, country_code, iso3)

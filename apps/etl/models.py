@@ -1,5 +1,7 @@
-# Create your models here.
+import typing
+
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.common.models import Resource
@@ -11,14 +13,54 @@ class EtlTrace(models.Model):
     class Meta:
         verbose_name = "Trace"
 
+    def __str__(self):
+        return str(self.pk)
 
-class EtlResource(Resource):
-    trace = models.ForeignKey(EtlTrace, null=True, related_name="+", on_delete=models.PROTECT)
+
+class Status(models.IntegerChoices):
+    PENDING = 1, _("Pending")
+    IN_PROGRESS = 2, _("In progress")
+    SUCCESS = 3, _("Success")
+    FAILED = 4, _("Failed")
+
+
+class EtlTraceResource(models.Model):
+    trace = models.ForeignKey(EtlTrace, related_name="+", on_delete=models.PROTECT)
     # types
-    trace_id: int | None
+    trace_id: int
 
-    class Meta(Resource.Meta):
+    class Meta:
         abstract = True
+
+    def __str__(self):
+        return str(self.pk)
+
+
+class EtlResource(Resource, EtlTraceResource):
+    started_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    status = models.IntegerField(verbose_name=_("status"), choices=Status.choices, default=Status.PENDING)
+
+    class Meta(Resource.Meta, EtlTraceResource.Meta):
+        abstract = True
+
+    def mark_as_started(self):
+        self.status = Status.IN_PROGRESS
+        self.started_at = timezone.now()
+        self.save(update_fields=["status", "started_at"])
+
+    def mark_as_ended(
+        self,
+        status: typing.Literal[Status.FAILED, Status.SUCCESS],
+        *,
+        update_fields: list[str] = [],
+    ):
+        self.status = status
+        self.ended_at = timezone.now()
+        self.save(update_fields=["status", "ended_at", *update_fields])
+
+    def __str__(self):
+        return str(self.id)
 
 
 # TODO: Use IntegerChoices and add mapping for import/export
@@ -57,12 +99,15 @@ class HazardType(models.TextChoices):
 
 # FIXME:
 # - Rename source_validation_status to validation_status
-# - Rename resp_text to resp_error
 # - Rename resp_data_type to resp_content_type.
 # - Remove resp_data_type
 # - Remove url
-# - Rename content_validation to validation_error
 # - Remove hazard_type
+
+
+def extract_data_upload_to(instance: "ExtractionData", filename: str):
+    today = timezone.now().strftime("%Y-%m-%d")
+    return f"extract-raw-data/source-{int(instance.source)}/{today}/{filename}"
 
 
 # TODO:
@@ -70,11 +115,7 @@ class HazardType(models.TextChoices):
 # - Implement no_change optimization
 # - Implement time tracking: started_at, completed_at
 class ExtractionData(EtlResource):
-    class Status(models.IntegerChoices):
-        PENDING = 1, _("Pending")
-        IN_PROGRESS = 2, _("In progress")
-        SUCCESS = 3, _("Success")
-        FAILED = 4, _("Failed")
+    Status = Status
 
     class ValidationStatus(models.IntegerChoices):
         SUCCESS = 1, _("Success")
@@ -114,7 +155,6 @@ class ExtractionData(EtlResource):
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extractions")
 
     # STATUS
-    status = models.IntegerField(verbose_name=_("status"), choices=Status.choices)
     source_validation_status = models.IntegerField(
         verbose_name=_("source data validation status"),
         choices=ValidationStatus.choices,
@@ -122,30 +162,22 @@ class ExtractionData(EtlResource):
     )
 
     # CONTENT
-    resp_code = models.IntegerField(verbose_name=_("HTTP response code"), blank=True)
-    resp_data = models.FileField(verbose_name=_("Response data"), upload_to="source_raw_data/", blank=True, null=True)
+    resp_code = models.IntegerField(verbose_name=_("HTTP response code"), null=True, blank=True)
+    resp_data = models.FileField(verbose_name=_("Response data"), upload_to=extract_data_upload_to, blank=True, null=True)
     resp_type = models.IntegerField(verbose_name=_("Response type"), choices=ResponseDataType.choices, blank=True, null=True)
-
-    # ERROR
-    resp_text = models.TextField(verbose_name=_("Error message if request fails"), blank=True)
-    content_validation = models.TextField(verbose_name=_("Error message if validation fails"), blank=True)
 
     # RETRIES
     attempt_no = models.IntegerField(verbose_name=_("Attempt number"), blank=True)
 
     # OPTIMIZATION
-    file_hash = models.CharField(
-        verbose_name=_("File hash value"),
-        max_length=500,
-        blank=True,
-    )
+    file_hash = models.CharField(verbose_name=_("File hash value"), max_length=500, blank=True, null=True)
     # This should point to the latest extraction with the same metadata if the file_hash matches
-    # NOTE: We should define how the metadata is compared.
+    # TODO: We should define how the metadata is compared.
     revision_id = models.ForeignKey(
         "self",
         verbose_name=_("revision id"),
         help_text="This id points to the extraction object having same file content",
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
     )
@@ -161,11 +193,7 @@ class ExtractionData(EtlResource):
     class Meta(EtlResource.Meta):
         verbose_name = "Extraction"
 
-    # FIXME: Add date range, Add country, Make hazard_type multiple selection
-    # GOAL: We do not need to store URL but we need to store data that can be used to retrigger the data.
-
-    def __str__(self):
-        return str(self.id)
+    # TODO: We do not need to store URL but we need to store data that can be used to retrigger the data.
 
 
 # TODO:
@@ -174,55 +202,48 @@ class ExtractionData(EtlResource):
 # - Rename to TransformData
 # - Rename extraction to extraction_id to make this consistent with PyStacLoadData?
 class Transform(EtlResource):
-    class Status(models.IntegerChoices):
-        PENDING = 1, "Pending"
-        SUCCESS = 2, "Success"
-        FAILED = 3, "Failed"
-        # FIXME: We need to add PARTIAL_SUCCESS
+    Status = Status
 
     # METADATA
+    metadata = models.JSONField(default=dict)
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
-
-    # STATUS
-    status = models.IntegerField(verbose_name=_("transform status"), choices=Status.choices)
-    # FIXME: This might not be necessary
-    is_loaded = models.BooleanField(
-        default=False,
-        help_text="Track whether transformer data has been successfully loaded into the PyStacLoadData table. This flag can be used to re-populate the data in case of any issues with the transformer.",  # noqa: E501
-    )
 
     class Meta(EtlResource.Meta):
         verbose_name = "Transform"
 
+    def __str__(self):
+        return str(self.id)
+
 
 # TODO:
-# - Rename to LoadData
-class PyStacLoadData(EtlResource):
+# - Use partial table index for collection_id
+class PyStacLoadData(EtlTraceResource, Resource):
+    class Status(models.IntegerChoices):
+        PENDING = 1, _("Pending")
+        # IN_PROGRESS = 2, _("In progress")
+        SUCCESS = 3, _("Success")
+        FAILED = 4, _("Failed")
+
     class ItemType(models.IntegerChoices):
         EVENT = 1, "Event"
         HAZARD = 2, "Hazard"
         IMPACT = 3, "Impact"
-
-    class LoadStatus(models.IntegerChoices):
-        PENDING = 1, "Pending"  # XXX: Value 1 is used in Meta.indexes
-        SUCCESS = 2, "Success"
-        FAILED = 3, "Failed"
 
     # METADATA
     transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
     item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
     collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)  # FIXME: Use TextChoices
 
-    # STATUS
-    # FIXME: change to status
-    load_status = models.IntegerField(verbose_name=_("load status"), choices=LoadStatus.choices, default=LoadStatus.PENDING)
-
     # CONTENT
     item = models.JSONField(verbose_name=_("item"), default=dict)
 
-    class Meta(EtlResource.Meta):
+    status = models.IntegerField(verbose_name=_("status"), choices=Status.choices, default=Status.PENDING)
+
+    class Meta(EtlTraceResource.Meta, Resource.Meta):
         indexes = [
-            models.Index(fields=["load_status"], name="partial_index_on_load_status", condition=models.Q(load_status=1)),
+            models.Index(
+                fields=["status"], name="loaddata_pi_status_pending", condition=models.Q(status=Status.PENDING.value)
+            ),
         ]
         verbose_name = "Stac Item"
 

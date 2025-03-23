@@ -10,7 +10,7 @@ from main.celery import app
 logger = logging.getLogger(__name__)
 
 
-class EMDATTransformHandler(BaseTransformerHandler):
+class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSource]):
     transformer_class = EMDATTransformer
     transformer_schema = EMDATDataSource
 
@@ -27,4 +27,4 @@ class EMDATTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        return EMDATTransformHandler().handle_transformation(extraction_id)
+        EMDATTransformHandler().handle_transformation(extraction_id)

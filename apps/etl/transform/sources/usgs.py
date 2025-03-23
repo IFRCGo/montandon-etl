@@ -7,14 +7,12 @@ from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 
 
-class USGSTransformHandler(BaseTransformerHandler):
-    """USGS Transformer handler"""
-
+class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSource]):
     transformer_class = USGSTransformer
     transformer_schema = USGSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj):
         all_children = ExtractionData.objects.filter(parent=extraction_obj)
 
         losses_data = []
@@ -38,4 +36,4 @@ class USGSTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        return USGSTransformHandler().handle_transformation(extraction_id)
+        USGSTransformHandler().handle_transformation(extraction_id)

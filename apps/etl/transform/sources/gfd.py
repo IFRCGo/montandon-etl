@@ -7,7 +7,7 @@ from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 
 
-class GFDTransformHandler(BaseTransformerHandler):
+class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource]):
     transformer_class = GFDTransformer
     transformer_schema = GFDDataSource
 
@@ -23,4 +23,4 @@ class GFDTransformHandler(BaseTransformerHandler):
     @staticmethod
     @app.task
     def task(extraction_id):
-        return GFDTransformHandler().handle_transformation(extraction_id)
+        GFDTransformHandler().handle_transformation(extraction_id)

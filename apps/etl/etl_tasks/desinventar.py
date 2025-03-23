@@ -118,7 +118,7 @@ additional_region_code_to_iso3_map = {
 
 
 @shared_task
-def ext_and_transform_desinventar_data():
+def ext_and_transform_desinventar_historical_data():
     for country_code in country_code_iso3_list:
         # FIXME: Not sure if URL should be passed from outside the Extraction function
         DATA_URL = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
