@@ -30,11 +30,11 @@ def get_url(path):
 
 @shared_task
 def ext_and_transform_ibtracs_historical_data():
-    url = get_url("/ibtracs.ALL.list.v04r01.csv")
+    url = get_url("ibtracs.ALL.list.v04r01.csv")
     extract_and_transform_ibtracs_data(url)
 
 
 @shared_task
 def ext_and_transform_ibtracs_latest_data():
-    url = get_url("/ibtracs.ACTIVE.list.v04r01.csv")
+    url = get_url("ibtracs.ACTIVE.list.v04r01.csv")
     extract_and_transform_ibtracs_data(url)
