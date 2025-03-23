@@ -2,11 +2,11 @@ import logging
 import typing
 
 import requests
-from django.conf import settings
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.configs import etl_config
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
@@ -37,8 +37,8 @@ class EMDATExtraction(BaseExtraction):
         """
         logger.info("Starting data extraction")
 
-        url = f"{settings.EMDAT_URL}"
-        headers = {"Authorization": settings.EMDAT_AUTHORIZATION_KEY}
+        url = f"{etl_config.EMDAT_URL}/v1"
+        headers = {"Authorization": etl_config.EMDAT_AUTHORIZATION_KEY}
 
         instance = cls._create_extraction_instance(url=url, source=source)
 

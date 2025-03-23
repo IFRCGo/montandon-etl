@@ -1,5 +1,7 @@
 import logging
 
+import requests
+
 EXTRA_CONTEXT_KEY = "CONTEXT"
 
 
@@ -22,3 +24,16 @@ def log_extra(extra: dict):
     return {
         EXTRA_CONTEXT_KEY: extra,
     }
+
+
+def log_extra_response(*, response: requests.Response, **kwargs: dict[str, str | int | None]):
+    return log_extra(
+        {
+            **kwargs,
+            "response": {
+                "url": response.url,
+                "status_code": response.status_code,
+                "content": response.content,
+            },
+        }
+    )

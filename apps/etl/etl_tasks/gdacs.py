@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import requests
 from celery import chain, shared_task
-from django.conf import settings
 
 from apps.etl.extraction.sources.base.extract import Extraction
 from apps.etl.extraction.sources.base.utils import store_extraction_data
@@ -19,6 +18,7 @@ from apps.etl.transform.sources.gdacs import (
     transform_geo_data,
     transform_impact_data,
 )
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def ext_and_transform_gdacs_latest_data():
             from_date = ext_object.created_at.date()
         else:
             # Fetch data up to one week at the begining.
-            from_date = datetime.strptime(settings.GDACS_START_DATE, "%Y-%m-%d").date()
+            from_date = etl_config.GDACS_START_DATE
 
         to_date = datetime.now().date()
         ext_and_transform_gdacs_data.delay(hazard_type, hazard_type_str, from_date, to_date)
@@ -77,7 +77,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
     """
     logger.info(f"Importing {hazard_type} data")
 
-    gdacs_url = f"{settings.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
+    gdacs_url = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH?eventlist={hazard_type}&fromDate={from_date}&toDate={to_date}&alertlevel=Green;Orange;Red"  # noqa: E501
 
     # Create a Extraction object in the begining
     instance_id = kwargs.get("instance_id", None)
@@ -133,7 +133,7 @@ def ext_and_transform_gdacs_data(self, hazard_type: str, hazard_type_str: str, f
                 episode_id = feature["properties"]["episodeid"]
                 footprint_url = feature["properties"]["url"]["geometry"]
                 if hazard_type == HazardType.CYCLONE and event_id and episode_id:
-                    footprint_url = f"{settings.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
+                    footprint_url = f"{etl_config.GDACS_URL}/contentdata/resources/{hazard_type_str}/{event_id}/geojson_{event_id}_{episode_id}.geojson"  # noqa: E501
 
                 event_workflow = chain(
                     fetch_event_data.s(

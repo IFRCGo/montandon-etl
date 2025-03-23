@@ -84,7 +84,7 @@ env = environ.Env(
     DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
     EMDAT_AUTHORIZATION_KEY=(str, None),
     EMDAT_START_YEAR=(str, "2024"),
-    EMDAT_URL=(str, "https://api.emdat.be/v1"),
+    EMDAT_URL=(str, "https://api.emdat.be"),
     GDACS_START_DATE=(str, "2025-01-01"),
     GDACS_URL=(str, "https://www.gdacs.org"),
     GFD_CREDENTIAL=(str, None),
@@ -92,10 +92,7 @@ env = environ.Env(
     GFD_START_DATE=(str, "2025-01-01"),
     GLIDE_START_DATE=(str, "2025-01-01"),
     GLIDE_URL=(str, "https://www.glidenumber.net"),
-    IBTRACS_DATA_URL=(
-        str,
-        "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/",
-    ),
+    IBTRACS_DATA_URL=(str, "https://www.ncei.noaa.gov"),
     IDMC_CLIENT_ID=(str, None),
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
     IFRC_DATA_URL=(str, "https://goadmin.ifrc.org"),
@@ -104,8 +101,8 @@ env = environ.Env(
     PDC_ARCGIS_PASSWORD=(str, None),
     PDC_ARCGIS_USERNAME=(str, None),
     PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
-    PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org/hp_srv/services"),
-    USGS_DATA_URL=(str, "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary"),
+    PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org"),
+    USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
 )
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
@@ -167,6 +164,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # External
     "django_celery_beat",
+    "djangoql",
     # - Health-check
     "health_check",  # required
     "health_check.db",

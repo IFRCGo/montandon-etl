@@ -1,8 +1,7 @@
-from django.conf import settings
-
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.models import ExtractionData
 from main.celery import app
+from main.configs import etl_config
 
 
 class GIDDExtraction(BaseExtraction):
@@ -12,8 +11,8 @@ class GIDDExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task():
-        url = f"{settings.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/"
+    def task():  # type: ignore[reportIncompatibleMethodOverride]
+        url = f"{etl_config.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/"
         headers = {"accept": "application/json"}
-        params = {"client_id": settings.IDMC_CLIENT_ID}
+        params = {"client_id": etl_config.IDMC_CLIENT_ID}
         return GIDDExtraction().handle_extraction(url, params, headers, ExtractionData.Source.GIDD)

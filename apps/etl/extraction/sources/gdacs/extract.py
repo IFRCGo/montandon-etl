@@ -5,7 +5,6 @@ import typing
 import numpy as np
 import pandas as pd
 from celery import shared_task
-from django.conf import settings
 from pydantic import ValidationError
 
 from apps.etl.extraction.sources.base.extract import Extraction
@@ -26,6 +25,7 @@ from apps.etl.extraction.sources.gdacs.validators.gdacs_pop_exposure import (
     GdacsPopulationExposureWF,
 )
 from apps.etl.models import ExtractionData, get_trace_id
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ def validate_gdacs_geometry_data(resp_data):
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs):
     # url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
-    url = f"{settings.GDACS_URL}/gdacsapi/api/events/geteventdata?eventtype={hazard_type}&eventid={event_id}"
+    url = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventdata?eventtype={hazard_type}&eventid={event_id}"
 
     # instance_id is passed in this func in kwargs during retry from self.retry() method.
     # It forbids creating new extraction object during retry.
@@ -178,7 +178,7 @@ def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
-    url = f"{settings.GDACS_URL}/report.aspx?eventid={event_id}&eventtype={hazard_type}"
+    url = f"{etl_config.GDACS_URL}/report.aspx?eventid={event_id}&eventtype={hazard_type}"
 
     # instance_id is passed in this func in kwargs during retry from self.retry() method.
     # It forbids creating new extraction object during retry.

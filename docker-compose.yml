@@ -37,6 +37,12 @@ x-server: &base_server_setup
     - redis
     - rabbitmq
 
+x-worker: &base_worker_setup
+  <<: *base_server_setup
+  environment:
+    <<: *base_server_environments
+    DJANGO_APP_TYPE: "worker"
+
 services:
   db:
     image: postgis/postgis:15-3.5-alpine
@@ -70,30 +76,30 @@ services:
 
   web:
     <<: *base_server_setup
-    command: bash -c "/code/scripts/run_develop.sh"
     environment:
       <<: *base_server_environments
       DJANGO_APP_TYPE: "web"
+    command: bash -c "/code/scripts/dev/run_web.sh"
     ports:
       - 8000:8000
-    depends_on:
-      - db
-      - redis
 
-  celery-beat:
-    <<: *base_server_setup
-    environment:
-      <<: *base_server_environments
-      DJANGO_APP_TYPE: "worker"
-    command: bash -c "/code/scripts/run_worker_beat.sh"
+  worker-beat:
+    <<: *base_worker_setup
+    command: bash -c "./scripts/dev/run_worker_beat.sh"
 
   worker:
-    <<: *base_server_setup
-    environment:
-      <<: *base_server_environments
-      DJANGO_APP_TYPE: "worker"
-    # FIXME: Use dev model celery
-    command: bash -c "/code/scripts/run_worker.sh"
+    <<: *base_worker_setup
+    command: bash -c "./scripts/dev/run_worker.sh"
+
+  # NOTE: Use `docker compose exec worker celery -A main events` for basic cli dashboard
+  worker-monitor:
+    <<: *base_worker_setup
+    command: bash -c "celery -A main flower --port=8000"
+    profiles:
+      - extra
+    ports:
+      - 127.0.0.1:8001:8000
+
 
 volumes:
   postgres-data:

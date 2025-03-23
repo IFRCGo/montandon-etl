@@ -11,4 +11,4 @@ class Command(BaseCommand):
     help = "Load data to stac api"
 
     def handle(self, *args, **options):
-        load_data(django_command=self)
+        load_data()

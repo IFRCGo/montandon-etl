@@ -1,10 +1,10 @@
 from datetime import datetime
 
 from celery import chain, shared_task
-from django.conf import settings
 
 from apps.etl.extraction.sources.emdat.extract import EMDATExtraction, EMDATQueryVars
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from main.configs import etl_config
 
 QUERY = """
 query monty(
@@ -81,11 +81,11 @@ query monty(
 # FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
-    # FIXME: Why are we getting data from settings.EMDAT_START_YEAR to get the latest data?
+    # FIXME: Why are we getting data from etl_config.EMDAT_START_YEAR to get the latest data?
     # Also, the filtering only filters using year so we might have lot of duplicate data
     variables: EMDATQueryVars = {
         "limit": -1,
-        "from": int(settings.EMDAT_START_YEAR),
+        "from": etl_config.EMDAT_START_YEAR,
         "to": datetime.now().year,
         "include_hist": None,
     }

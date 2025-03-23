@@ -1,11 +1,9 @@
-from datetime import datetime
-
 from celery import chain, shared_task
-from django.conf import settings
 
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction, IFRCEventQueryVars
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
+from main.configs import etl_config
 
 
 @shared_task
@@ -24,9 +22,9 @@ def ext_and_transform_ifrcevent_latest_data():
     if ext_object:
         start_date = ext_object.created_at.date()
     else:
-        start_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
+        start_date = etl_config.GLIDE_START_DATE
 
-    url = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
+    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
     params: IFRCEventQueryVars = {
         "disaster_start_date__gte": start_date,
         "limit": 50,
@@ -42,7 +40,7 @@ def ext_and_transform_ifrcevent_latest_data():
 
 @shared_task
 def ext_and_transform_ifrcevent_historical_data():
-    url = f"{settings.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
+    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
     params: IFRCEventQueryVars = {
         "disaster_start_date__gte": None,
         "limit": 50,

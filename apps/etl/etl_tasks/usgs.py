@@ -2,11 +2,11 @@ import json
 import logging
 
 from celery import chain, shared_task
-from django.conf import settings
 
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def ext_and_transform_usgs_data(url: str):
 @shared_task
 def ext_and_transform_usgs_latest_data():
     """Extract and Transform USGS latest data"""
-    url = f"{settings.USGS_DATA_URL}/all_day.geojson"
+    url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_day.geojson"
     ext_and_transform_usgs_data(url=url)
 
 
@@ -50,5 +50,5 @@ def ext_and_transform_usgs_latest_data():
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
     # FIXME: Can we only get data for a month?
-    url = f"{settings.USGS_DATA_URL}/all_month.geojson"
+    url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_month.geojson"
     ext_and_transform_usgs_data(url=url)

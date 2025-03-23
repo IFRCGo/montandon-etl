@@ -1,11 +1,11 @@
 from datetime import datetime
 
 from celery import chain, shared_task
-from django.conf import settings
 
 from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideQueryVars
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.glide import GlideTransformHandler
+from main.configs import etl_config
 
 GLIDE_HAZARDS = [
     HazardType.EARTHQUAKE,
@@ -52,12 +52,12 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     if ext_object:
         from_date = ext_object.created_at.date()
     else:
-        from_date = datetime.strptime(settings.GLIDE_START_DATE, "%Y-%m-%d").date()
+        from_date = etl_config.GLIDE_START_DATE
 
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp"
+    url = f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp"
     variables: GlideQueryVars = {
         "fromyear": from_date.year,
         "frommonth": from_date.month,
@@ -76,7 +76,7 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    url = f"{settings.GLIDE_URL}/glide/jsonglideset.jsp"
+    url = f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp"
     variables: GlideQueryVars = {
         "fromyear": None,
         "frommonth": None,
