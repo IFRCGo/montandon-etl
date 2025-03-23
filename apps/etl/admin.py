@@ -1,17 +1,13 @@
 from django.contrib import admin
+from djangoql.admin import DjangoQLSearchMixin
 
-# Register your models here.
+from apps.common.admin import AdminReadOnlyMixin
+
 from .models import EtlTrace, ExtractionData, PyStacLoadData, Transform
 
 
 @admin.register(EtlTrace)
-class EtlTraceAdmin(admin.ModelAdmin):
-    def get_readonly_fields(self, request, obj=None):
-        # Use the model's fields to populate readonly_fields
-        if obj:  # If the object exists (edit page)
-            return [field.name for field in self.model._meta.fields]
-        return []
-
+class EtlTraceAdmin(AdminReadOnlyMixin, admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     list_display = (
@@ -21,13 +17,7 @@ class EtlTraceAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExtractionData)
-class ExtractionDataAdmin(admin.ModelAdmin):
-    def get_readonly_fields(self, request, obj=None):
-        # Use the model's fields to populate readonly_fields
-        if obj:  # If the object exists (edit page)
-            return [field.name for field in self.model._meta.fields]
-        return []
-
+class ExtractionDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "trace_id",
         "id",
@@ -48,13 +38,7 @@ class ExtractionDataAdmin(admin.ModelAdmin):
 
 
 @admin.register(Transform)
-class TransformAdmin(admin.ModelAdmin):
-    def get_readonly_fields(self, request, obj=None):
-        # Use the model's fields to populate readonly_fields
-        if obj:  # If the object exists (edit page)
-            return [field.name for field in self.model._meta.fields]
-        return []
-
+class TransformAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "trace_id",
         "id",
@@ -69,13 +53,7 @@ class TransformAdmin(admin.ModelAdmin):
 
 
 @admin.register(PyStacLoadData)
-class PyStacLoadDataAdmin(admin.ModelAdmin):
-    def get_readonly_fields(self, request, obj=None):
-        # Use the model's fields to populate readonly_fields
-        if obj:  # If the object exists (edit page)
-            return [field.name for field in self.model._meta.fields]
-        return []
-
+class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "trace_id",
         "id",
@@ -91,3 +69,7 @@ class PyStacLoadDataAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ["transform_id"]
     search_fields = ["transform_id"]
+
+    def get_queryset(self, request):
+        # NOTE: item contains heavy json data
+        return super().get_queryset(request).defer("item")

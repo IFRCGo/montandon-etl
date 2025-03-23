@@ -167,6 +167,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # External
     "django_celery_beat",
+    "djangoql",
     # - Health-check
     "health_check",  # required
     "health_check.db",
