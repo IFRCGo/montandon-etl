@@ -149,6 +149,7 @@ class EtlConfig:
         self.checks: list[CheckMessage] = []
 
         self.EOAPI_DOMAIN = self.parse_base_url("EOAPI_DOMAIN")
+        self.EOAPI_SYNC_LIMIT = self.parse_int_value_required("EOAPI_SYNC_LIMIT")
         self.GEOCODER_URL = self.parse_base_url_required("GEOCODER_URL")
 
         self.DESINVENTAR_DATA_URL = self.parse_base_url_required("DESINVENTAR_DATA_URL")

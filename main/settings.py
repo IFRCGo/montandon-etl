@@ -79,6 +79,7 @@ env = environ.Env(
     # External services
     GEOCODER_URL=str,
     EOAPI_DOMAIN=(str, None),
+    EOAPI_SYNC_LIMIT=(int, 10000),
     # Sources
     # FIXME: Check if all start dates are used
     DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
@@ -105,6 +106,7 @@ env = environ.Env(
 )
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
 GEOCODER_URL = env("GEOCODER_URL")
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
@@ -379,7 +381,7 @@ LOGGING = {
     },
     "formatters": {
         "simple": {
-            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s"),
+            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s %(context)s"),
             "datefmt": "%Y-%m-%dT%H:%M:%S",
         },
     },
@@ -415,7 +417,7 @@ if DEBUG:
                 "()": "colorlog.ColoredFormatter",
                 "format": (
                     "%(log_color)s%(asctime)s: %(threadName)s - %(levelname)-s%(red)s %(module)-s%(reset)s "
-                    "%(blue)s%(message)s %(custom_extra)s"
+                    "%(blue)s%(message)s %(context)s"
                 ),
             },
         },
