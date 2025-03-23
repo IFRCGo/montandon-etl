@@ -24,9 +24,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         # Helper packages
         procps \
         wait-for-it \
-    && uv lock --locked --offline \
-        # FIXME: Add condition to skip dev dependencies
-        && uv sync --frozen --no-install-project --all-groups \
+    # FIXME: Add condition to skip dev dependencies
+    && uv sync --frozen --no-install-project --all-groups \
     # Clean-up
     && apt-get remove -y gcc libc-dev libproj-dev \
     && apt-get autoremove -y \
