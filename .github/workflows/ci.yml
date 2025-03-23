@@ -23,16 +23,7 @@ env:
   COMPOSE_FILE: docker-compose.yml:gh-docker-compose.yml
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
   # ETL app configs
-  EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
   GEOCODER_URL: https://geocoder.dummy.com
-  # ETL sources configs
-  EMDAT_AUTHORIZATION_KEY: dummy-key
-  IDMC_CLIENT_ID: dummy-client-id
-  GFD_CREDENTIAL: dummy-gfd-cred
-  GFD_SERVICE_ACCOUNT: dummy-gfd-service-ac
-  PDC_SENTRY_AUTHORIZATION_KEY: dummy-key
-  PDC_ARCGIS_USERNAME: dummy-username
-  PDC_ARCGIS_PASSWORD: dummy-password
 
 jobs:
   pre_commit_checks:
@@ -123,11 +114,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Prep django containers
+        env:
+          DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
+        run: |
+          touch .env && docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
+
       - name: 🕮 Validate if there are no pending django migrations.
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py makemigrations --check --dry-run' || {
+          docker compose run --rm web bash -c './manage.py makemigrations --check --dry-run' || {
             echo 'There are some changes to be reflected in the migration. Make sure to run makemigrations';
             exit 1;
           }
