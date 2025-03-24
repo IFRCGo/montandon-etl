@@ -20,5 +20,5 @@ class IDUExtraction(BaseExtraction):
             url=url,
             params={"client_id": etl_config.IDMC_CLIENT_ID},
             headers={"accept": "application/json"},
-            source=ExtractionData.Source.IDU,
+            source=ExtractionData.Source.IDU.value,
         )

@@ -16,5 +16,5 @@ class GIDDExtraction(BaseExtraction):
             url=f"{etl_config.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/",
             params={"client_id": etl_config.IDMC_CLIENT_ID},
             headers={"accept": "application/json"},
-            source=ExtractionData.Source.GIDD,
+            source=ExtractionData.Source.GIDD.value,
         )

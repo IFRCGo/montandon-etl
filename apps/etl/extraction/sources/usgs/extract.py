@@ -83,6 +83,10 @@ class USGSExtraction(BaseExtraction):
                 for item in detail_data["properties"]["products"]["losspager"]:
                     url = item["contents"]["json/losses.json"]["url"]
                     USGSExtraction.handle_extraction(
-                        url=url, params=None, headers=None, parent_id=details_id, source=ExtractionData.Source.USGS
+                        url=url,
+                        params=None,
+                        headers=None,
+                        parent_id=details_id,
+                        source=ExtractionData.Source.USGS.value,
                     )
         return details_id

@@ -29,5 +29,5 @@ class GlideExtraction(BaseExtraction):
             url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
             params=input_metadata.model_dump(),
             headers={"accept": "application/json"},
-            source=ExtractionData.Source.GLIDE,
+            source=ExtractionData.Source.GLIDE.value,
         )

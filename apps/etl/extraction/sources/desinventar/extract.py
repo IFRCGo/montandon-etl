@@ -76,7 +76,7 @@ class DesinventarExtraction(BaseExtraction):
             url=url,
             params=input_metadata.model_dump(),
             headers=None,
-            source=ExtractionData.Source.DESINVENTAR,
+            source=ExtractionData.Source.DESINVENTAR.value,
             parent_id=None,
             timeout=180,
         )
