@@ -7,6 +7,7 @@ from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.configs import etl_config
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,11 @@ def ext_and_transform_usgs_data(url: str):
                         USGSTransformHandler.task.s(),
                     ).apply_async(countdown=30)
     else:
-        logger.error("Base Extraction ID not found")
+        logger.error(
+            "Base Extraction ID not found",
+            exc_info=True,
+            extra=log_extra({"extraction_id": base_extraction_id}),
+        )
 
 
 # FIXME: This does not work if one of the system is down for more than a day

@@ -61,7 +61,9 @@ class Extraction:
 
                 if not response.status_code == 204:  # bypass exception when content is empty
                     logger.error(
-                        "Request failed with status", exc_info=True, extra=log_extra({"response_code": response.status_code})
+                        "Request failed with status",
+                        exc_info=True,
+                        extra=log_extra({"response_code": response.status_code})
                     )
                     raise Exception("Request failed")
 
@@ -79,6 +81,10 @@ class Extraction:
                 "source_validation_status": source_validation_status,
             }
         except requests.exceptions.RequestException:
-            logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": source}))
+            logger.error(
+                "Extraction failed",
+                exc_info=True,
+                extra=log_extra({"source": source}),
+            )
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise

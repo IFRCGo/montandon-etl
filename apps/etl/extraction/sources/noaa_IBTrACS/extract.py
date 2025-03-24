@@ -47,6 +47,16 @@ class IBTrACSExtraction(BaseExtraction):
             )
         return resp_data.content
 
+    @classmethod
+    def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
+        instance = cls.store_extraction_data(
+            response=response,
+            source=ExtractionData.Source.DESINVENTAR,
+            validate_source_func=None,
+            instance_id=instance.id,
+        )
+        return response
+
     @staticmethod
     @app.task
     def task(url: str):  # type: ignore[reportIncompatibleMethodOverride]

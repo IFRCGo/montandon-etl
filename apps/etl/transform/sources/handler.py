@@ -98,7 +98,11 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
         except Exception as e:
-            logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
+            logger.error(
+                "Transformation failed",
+                exc_info=True,
+                extra=log_extra({"extraction_id": extraction_obj.id}),
+            )
             transform_obj.mark_as_ended(Transform.Status.FAILED)
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e

@@ -74,7 +74,11 @@ class EMDATExtraction(BaseExtraction):
 
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
-            logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": ExtractionData.Source.EMDAT}))
+            logger.error(
+                "Extraction failed",
+                exc_info=True,
+                extra=log_extra({"source": ExtractionData.Source.EMDAT}),
+            )
             raise
 
     @staticmethod

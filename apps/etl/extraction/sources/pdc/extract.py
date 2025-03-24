@@ -229,7 +229,7 @@ class PDCExtraction(BaseExtraction):
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(
-                "extraction failed",
+                "Extraction failed",
                 exc_info=True,
                 extra=log_extra({"source": instance.source}),
             )
