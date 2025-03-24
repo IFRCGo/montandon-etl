@@ -33,7 +33,9 @@ class DesinventarExtraction(BaseExtraction):
 
         # save the additional response data after the data is fetched from api.
         extraction_instance = ExtractionData.objects.get(id=instance_id)
-        extraction_instance.resp_data_type = "application/zip"
+        # extraction_instance.resp_data_type = "application/zip"
+        # FIXME: the server does not support zip so using octet-stream for the time being
+        extraction_instance.resp_data_type = "application/octet-stream"
         extraction_instance.save(update_fields=["resp_data_type"])
 
         # Validate the non empty response data.
