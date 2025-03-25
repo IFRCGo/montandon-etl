@@ -204,5 +204,5 @@ class PDCExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task(data_url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        header = {"Authorization": "Bearer {}".format(etl_config.PDC_AUTHORIZATION_KEY)}
+        header = {"Authorization": "Bearer {}".format(etl_config.PDC_SENTRY_AUTHORIZATION_KEY)}
         return PDCExtraction.handle_extraction(url=data_url, params=None, headers=header, source=ExtractionData.Source.PDC)
