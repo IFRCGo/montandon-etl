@@ -28,8 +28,8 @@ dependencies:
     version: 0.0.1-c9dd1963
     condition: geocoding.enabled
     repository: oci://ghcr.io/ifrcgo/geocoding-service
-  - name: geocoding-helm
+  - name: geocoding-lite-helm
     alias: geocodingLite
-    version: 0.0.1-c598c8dc
+    version: 0.0.1-feature-geocoding-lite.5ed2ac5
     condition: geocodingLite.enabled
     repository: oci://ghcr.io/ifrcgo/geocoding-service
