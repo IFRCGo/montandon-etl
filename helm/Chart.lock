@@ -14,8 +14,8 @@ dependencies:
 - name: geocoding-helm
   repository: oci://ghcr.io/ifrcgo/geocoding-service
   version: 0.0.1-c9dd1963
-- name: geocoding-helm
+- name: geocoding-lite-helm
   repository: oci://ghcr.io/ifrcgo/geocoding-service
-  version: 0.0.1-c598c8dc
-digest: sha256:cead91a6d6d7f9a27cef251644b72f742bd8f79def47a0ec4ad2b91d83351fbb
-generated: "2025-03-25T11:42:13.186253351+05:45"
+  version: 0.0.1-feature-geocoding-lite.5ed2ac5
+digest: sha256:b8f05d91dfe1204e90add107124a07f2545962195d61140bc34e07816bc61b33
+generated: "2025-03-28T18:50:04.829430267+05:45"
