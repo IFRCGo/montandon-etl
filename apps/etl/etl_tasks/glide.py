@@ -65,7 +65,7 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
         tomonth=to_date.month,
         today=to_date.day,
         events=hazard_type.value,
-    )
+    ).model_dump()
 
     chain(
         GlideExtraction.task.s(variables),
@@ -86,7 +86,7 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
         tomonth=to_date.month,
         today=to_date.day,
         events=hazard_type.value,
-    )
+    ).model_dump()
 
     chain(
         GlideExtraction.task.s(variables),
