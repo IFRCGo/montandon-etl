@@ -61,9 +61,7 @@ class Extraction:
 
                 if not response.status_code == 204:  # bypass exception when content is empty
                     logger.error(
-                        "Request failed with status",
-                        exc_info=True,
-                        extra=log_extra({"response_code": response.status_code})
+                        "Request failed with status", exc_info=True, extra=log_extra({"response_code": response.status_code})
                     )
                     raise Exception("Request failed")
 

@@ -4,7 +4,7 @@ import typing
 import uuid
 
 from pystac import Item as PyStacItem
-from pystac_monty.geocoding import GAULGeocoder
+from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
@@ -81,7 +81,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
         transform_obj.mark_as_started()
         try:
-            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=etl_config.GEOCODER_URL)
+            geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
             schema = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)

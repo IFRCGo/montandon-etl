@@ -85,13 +85,7 @@ def store_extraction_data(
 
 # FIXME: move this function
 def store_pdc_exposure_data(
-    response,
-    source=None,
-    validate_source_func=None,
-    instance_id=None,
-    parent_id=None,
-    hazard_type=None,
-    metadata={}
+    response, source=None, validate_source_func=None, instance_id=None, parent_id=None, hazard_type=None, metadata={}
 ):
     file_extension = "json"
     file_name = f"{instance_id}pdc.{file_extension}"
