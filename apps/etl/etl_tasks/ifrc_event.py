@@ -1,6 +1,6 @@
 from celery import chain, shared_task
 
-from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction, IFRCEventQueryVars
+from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction, IfrcEventExtractionInputMetadata
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from main.configs import etl_config
@@ -24,31 +24,30 @@ def ext_and_transform_ifrcevent_latest_data():
     else:
         start_date = etl_config.GLIDE_START_DATE
 
-    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
-    params: IFRCEventQueryVars = {
-        "disaster_start_date__gte": start_date,
-        "limit": 50,
-        "offset": 0,
-        "ordering": "-id",
-        "format": "json",
-    }
+    params = IfrcEventExtractionInputMetadata(
+        disaster_start_date__gte=str(start_date),
+        limit=50,
+        offset=0,
+        ordering="-id",
+        format="json",
+    ).model_dump()
+
     chain(
-        IFRCEventExtraction.task.s(url, params),
+        IFRCEventExtraction.task.s(params),
         IFRCEventTransformHandler.task.s(),
     ).apply_async()
 
 
 @shared_task
 def ext_and_transform_ifrcevent_historical_data():
-    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1"
-    params: IFRCEventQueryVars = {
-        "disaster_start_date__gte": None,
-        "limit": 50,
-        "offset": 0,
-        "ordering": "-id",
-        "format": "json",
-    }
+    params = IfrcEventExtractionInputMetadata(
+        disaster_start_date__gte=None,
+        limit=50,
+        offset=0,
+        ordering="-id",
+        format="json",
+    ).model_dump()
     chain(
-        IFRCEventExtraction.task.s(url, params),
+        IFRCEventExtraction.task.s(params),
         IFRCEventTransformHandler.task.s(),
     ).apply_async()

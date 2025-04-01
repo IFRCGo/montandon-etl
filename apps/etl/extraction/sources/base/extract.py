@@ -79,6 +79,10 @@ class Extraction:
                 "source_validation_status": source_validation_status,
             }
         except requests.exceptions.RequestException:
-            logger.error("Extraction failed", exc_info=True, extra=log_extra({"source": source}))
+            logger.error(
+                "Extraction failed",
+                exc_info=True,
+                extra=log_extra({"source": source}),
+            )
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise

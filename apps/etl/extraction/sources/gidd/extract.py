@@ -12,7 +12,9 @@ class GIDDExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task():  # type: ignore[reportIncompatibleMethodOverride]
-        url = f"{etl_config.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/"
-        headers = {"accept": "application/json"}
-        params = {"client_id": etl_config.IDMC_CLIENT_ID}
-        return GIDDExtraction().handle_extraction(url, params, headers, ExtractionData.Source.GIDD)
+        return GIDDExtraction().handle_extraction(
+            url=f"{etl_config.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/",
+            params={"client_id": etl_config.IDMC_CLIENT_ID},
+            headers={"accept": "application/json"},
+            source=ExtractionData.Source.GIDD.value,
+        )

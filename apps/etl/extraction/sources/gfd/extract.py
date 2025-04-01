@@ -21,9 +21,6 @@ from main.logging import log_extra
 logger = logging.getLogger(__name__)
 
 
-DATA_URL = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/assets/GLOBAL_FLOOD_DB/MODIS_EVENTS/V1"
-
-
 class GFDExtraction(BaseExtraction):
     @classmethod
     def get_json_credentials(cls, content: typing.Any):
@@ -94,7 +91,7 @@ class GFDExtraction(BaseExtraction):
         return response
 
     @classmethod
-    def get_flood_data(cls, collection: ImageCollection, batch_size=1000):
+    def get_flood_data(cls, collection: ImageCollection, batch_size=1000) -> list[typing.Any]:
         """Retrieve flood metadata in batches to avoid memory issues."""
         total_size: int | None = collection.size().getInfo()
 
@@ -133,18 +130,28 @@ class GFDExtraction(BaseExtraction):
         return flood_data
 
     @classmethod
-    def handle_extraction(cls, url: str, source: int, start_date, end_date) -> int:  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_extraction(cls) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        instance = cls._create_extraction_instance(url=url, source=source)
+
+        url = "https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/assets/GLOBAL_FLOOD_DB/MODIS_EVENTS/V1"
+        source = ExtractionData.Source.GFD
+
+        instance = cls._create_extraction_instance(
+            url=url,
+            source=source,
+            metadata={
+                "input": {},
+            },
+        )
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
-            response = cls.extract_data(start_date, end_date)
+            response = cls.extract_data(None, None)
             response_data = cls._save_response_data(instance, response)
             # Check if response contains data
             if response_data:
@@ -164,7 +171,7 @@ class GFDExtraction(BaseExtraction):
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(
-                "extraction failed",
+                "Extraction failed",
                 exc_info=True,
                 extra=log_extra({"source": instance.source}),
             )
@@ -172,5 +179,5 @@ class GFDExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task(start_date: datetime.date | None = None, end_date: datetime.date | None = None):  # type: ignore[reportIncompatibleMethodOverride]
-        return GFDExtraction().handle_extraction(DATA_URL, ExtractionData.Source.GFD, start_date, end_date)
+    def task():  # type: ignore[reportIncompatibleMethodOverride]
+        return GFDExtraction().handle_extraction()

@@ -7,18 +7,17 @@ from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.configs import etl_config
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
 
 def ext_and_transform_usgs_data(url: str):
     """Extract and Transform USGS data"""
-    BATCH_SIZE = 50
-    headers = {"Content-Type": "application/json"}
 
     # Handles base extraction from the all day url
     base_extraction_id = USGSExtraction.handle_extraction(
-        url=url, params=None, headers=headers, source=ExtractionData.Source.USGS
+        url=url, params=None, headers={"Content-Type": "application/json"}, source=ExtractionData.Source.USGS
     )
 
     if base_extraction_id:
@@ -26,16 +25,23 @@ def ext_and_transform_usgs_data(url: str):
         response_data = json.loads(instance_id.resp_data.read())
         # FIXME: We might need to write a simple validator here
         features_list = response_data["features"]
+
+        BATCH_SIZE = 50
         for i in range(0, len(features_list), BATCH_SIZE):
             feature_batch = features_list[i : i + BATCH_SIZE]
             for feature_item in feature_batch:
                 if "detail" in feature_item["properties"]:
+                    detail_url = feature_item["properties"]["detail"]
                     chain(
-                        USGSExtraction.task.s(base_extraction_id, feature_item["properties"]["detail"]),
+                        USGSExtraction.task.s(detail_url, base_extraction_id),
                         USGSTransformHandler.task.s(),
                     ).apply_async(countdown=30)
     else:
-        logger.error("Base Extraction ID not found")
+        logger.error(
+            "Base Extraction ID not found",
+            exc_info=True,
+            extra=log_extra({"extraction_id": base_extraction_id}),
+        )
 
 
 # FIXME: This does not work if one of the system is down for more than a day

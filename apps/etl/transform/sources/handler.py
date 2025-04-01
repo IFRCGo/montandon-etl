@@ -4,7 +4,7 @@ import typing
 import uuid
 
 from pystac import Item as PyStacItem
-from pystac_monty.geocoding import GAULGeocoder
+from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
@@ -81,7 +81,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
         transform_obj.mark_as_started()
         try:
-            geocoder = GAULGeocoder(gpkg_path=None, service_base_url=etl_config.GEOCODER_URL)
+            geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
             schema = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)
@@ -98,7 +98,11 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
         except Exception as e:
-            logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
+            logger.error(
+                "Transformation failed",
+                exc_info=True,
+                extra=log_extra({"extraction_id": extraction_obj.id}),
+            )
             transform_obj.mark_as_ended(Transform.Status.FAILED)
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
@@ -109,6 +113,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
+            # FIXME: We need to check if we have collection_id
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())

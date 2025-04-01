@@ -251,5 +251,6 @@ class PyStacLoadData(EtlTraceResource, Resource):
 def get_trace_id(parent_obj: ExtractionData | Transform | None) -> int | None:
     if parent_obj:
         return parent_obj.trace_id
+
     new_trace = EtlTrace.objects.create()
     return new_trace.pk

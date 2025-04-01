@@ -50,7 +50,11 @@ def transform_event_data(event_extraction_data):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
+        logger.error(
+            "Gdacs transformation failed",
+            exc_info=True,
+            extra=log_extra({"extraction_id": gdacs_instance.id}),
+        )
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
@@ -115,7 +119,11 @@ def transform_geo_data(geo_data_extraction_id, event_extraction_id):
         transform_obj.save(update_fields=["status"])
 
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
+        logger.error(
+            "Gdacs transformation failed",
+            exc_info=True,
+            extra=log_extra({"extraction_id": gdacs_instance.id}),
+        )
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])
@@ -159,7 +167,11 @@ def transform_impact_data(event_data):
         transform_obj.status = Transform.Status.SUCCESS
         transform_obj.save(update_fields=["status"])
     except Exception as e:
-        logger.error("Gdacs transformation failed", exc_info=True, extra=log_extra({"extraction_id": gdacs_instance.id}))
+        logger.error(
+            "Gdacs transformation failed",
+            exc_info=True,
+            extra=log_extra({"extraction_id": gdacs_instance.id}),
+        )
 
         transform_obj.status = Transform.Status.FAILED
         transform_obj.save(update_fields=["status"])

@@ -16,7 +16,9 @@ class IDUExtraction(BaseExtraction):
     @staticmethod
     @app.task
     def task(url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        """IDU Task"""
-        headers = {"accept": "application/json"}
-        params = {"client_id": etl_config.IDMC_CLIENT_ID}
-        return IDUExtraction.handle_extraction(url=url, params=params, headers=headers, source=ExtractionData.Source.IDU)
+        return IDUExtraction.handle_extraction(
+            url=url,
+            params={"client_id": etl_config.IDMC_CLIENT_ID},
+            headers={"accept": "application/json"},
+            source=ExtractionData.Source.IDU.value,
+        )

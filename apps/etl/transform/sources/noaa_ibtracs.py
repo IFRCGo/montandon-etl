@@ -17,7 +17,10 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data.decode("utf-8"))
+        return cls.transformer_schema(
+            source_url=extraction_obj.url,
+            data=data.decode("utf-8"),
+        )
 
     @staticmethod
     @app.task

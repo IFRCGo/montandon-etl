@@ -254,7 +254,7 @@ def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
 
     if response:
         gdacs_instance = store_extraction_data(
-            source=ExtractionData.Source.GDACS,
+            source=ExtractionData.Source.GDACS.value,
             response=response,
             validate_source_func=validate_gdacs_geometry_data,
             instance_id=gdacs_instance.id,

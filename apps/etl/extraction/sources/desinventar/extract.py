@@ -1,15 +1,21 @@
 import logging
 from typing import Any, Callable
 
+import pydantic
 import requests
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from main.celery import app
-from main.logging import log_extra
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
+
+
+class DesInventarExtractionInputMetadata(pydantic.BaseModel):
+    country_code: str
+    iso3: str
 
 
 class DesinventarExtraction(BaseExtraction):
@@ -52,54 +58,25 @@ class DesinventarExtraction(BaseExtraction):
         return resp_data.content
 
     @classmethod
-    def handle_extraction(cls, url: str, params: dict | None, headers: dict | None, source: int) -> int:  # type: ignore[reportIncompatibleMethodOverride]
-        """
-        Process data extraction.
-        Returns:
-            int: ID of the extraction instance
-        """
-        logger.info("Starting data extraction")
-
-        instance = cls._create_extraction_instance(url=url, source=source)
-
-        try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
-
-            response = requests.get(url, params=params, headers=headers, timeout=180)
-            response.raise_for_status()
-            instance.resp_code = response.status_code
-
-            if response.status_code == 200 or response.status_code == 204:
-                response_data = cls.store_extraction_data(
-                    instance_id=instance.id,
-                    source=ExtractionData.Source.DESINVENTAR,
-                    response=response,
-                    validate_source_func=None,
-                )
-                # Check if response contains data
-                if response_data:
-                    cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
-                    logger.info("Data extracted successfully")
-                else:
-                    cls._update_instance_status(
-                        instance,
-                        ExtractionData.Status.SUCCESS,
-                        ExtractionData.ValidationStatus.NO_DATA,
-                        update_validation=True,
-                    )
-                    logger.warning("No hazard data found in response")
-
-            return instance.pk
-        except requests.exceptions.RequestException:
-            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
-            logger.error(
-                "Extraction failed",
-                exc_info=True,
-                extra=log_extra({"source": instance.source}),
-            )
-            raise
+    def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
+        instance = cls.store_extraction_data(
+            response=response,
+            source=ExtractionData.Source.DESINVENTAR,
+            validate_source_func=None,
+            instance_id=instance.id,
+        )
+        return response
 
     @staticmethod
     @app.task
-    def task(url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        return DesinventarExtraction().handle_extraction(url, None, None, ExtractionData.Source.DESINVENTAR)
+    def task(metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
+        input_metadata = DesInventarExtractionInputMetadata(**metadata)
+        url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{input_metadata.country_code}.zip"
+        return DesinventarExtraction().handle_extraction(
+            url=url,
+            params=input_metadata.model_dump(),
+            headers=None,
+            source=ExtractionData.Source.DESINVENTAR.value,
+            parent_id=None,
+            timeout=180,
+        )
