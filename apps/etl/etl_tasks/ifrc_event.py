@@ -25,12 +25,13 @@ def ext_and_transform_ifrcevent_latest_data():
         start_date = etl_config.GLIDE_START_DATE
 
     params = IfrcEventExtractionInputMetadata(
-        disaster_start_date__gte=start_date,
+        disaster_start_date__gte=str(start_date),
         limit=50,
         offset=0,
         ordering="-id",
         format="json",
     ).model_dump()
+
     chain(
         IFRCEventExtraction.task.s(params),
         IFRCEventTransformHandler.task.s(),
@@ -45,7 +46,7 @@ def ext_and_transform_ifrcevent_historical_data():
         offset=0,
         ordering="-id",
         format="json",
-    )
+    ).model_dump()
     chain(
         IFRCEventExtraction.task.s(params),
         IFRCEventTransformHandler.task.s(),

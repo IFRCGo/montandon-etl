@@ -49,8 +49,8 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
 
         data = {
             "hazards_file_path": tmp_hazard_file.name,
-            "exposure_timestamp": extraction_obj.metadata["exposure_id"],
-            "uuid": extraction_obj.metadata["uuid"],
+            "exposure_timestamp": input_metadata.exposure_id,
+            "uuid": input_metadata.hazard_uuid,
             "exposure_detail_file_path": tmp_exposure_detail_file.name,
             "geojson_file_path": tmp_geojson_file.name,
         }
