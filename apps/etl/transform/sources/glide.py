@@ -1,5 +1,8 @@
+import json
+
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
+from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from main.celery import app
 
@@ -18,4 +21,11 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
     @staticmethod
     @app.task
     def task(extraction_id):
-        GlideTransformHandler().handle_transformation(extraction_id)
+        extraction_obj = ExtractionData.objects.get(id=extraction_id)
+        with extraction_obj.resp_data.open() as file_data:
+            data = file_data.read()
+
+        if not json.loads(data)["glideset"]:
+            return
+        else:
+            GlideTransformHandler().handle_transformation(extraction_id)

@@ -3,6 +3,7 @@ import logging
 import typing
 import uuid
 
+from django.conf import settings
 from pystac import Item as PyStacItem
 from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
@@ -69,6 +70,12 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         raise NotImplementedError()
 
     @classmethod
+    def get_success_percentage(cls, failed_rows, total_rows):
+        if not total_rows:
+            return 0
+        return 100 * (1 - (failed_rows / total_rows))
+
+    @classmethod
     def handle_transformation(cls, extraction_id: int):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
@@ -91,14 +98,20 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
             transformed_items = transformer.make_items()
 
-            cls.load_stac_item_to_queue(transform_obj, transformed_items)
-
             summary = transformer.transform_summary
             transform_obj.metadata["summary"] = {
                 "failed_rows": summary.failed_rows,
                 "total_rows": summary.total_rows,
             }
-            transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+
+            success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
+
+            if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
+                transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+                cls.load_stac_item_to_queue(transform_obj, transformed_items)
+            else:
+                transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
+
             logger.info("Transformation ended")
         except Exception as e:
             logger.error(
