@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from celery import chain, shared_task
 
@@ -75,23 +75,30 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
 
 @shared_task
 def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
+    start_date = etl_config.GLIDE_START_DATE
     to_date = datetime.today().date()
 
-    # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
-        fromyear=None,
-        frommonth=None,
-        fromday=None,
-        toyear=to_date.year,
-        tomonth=to_date.month,
-        today=to_date.day,
-        events=hazard_type.value,
-    ).model_dump()
+    while start_date < to_date:
+        end_date = start_date.replace(year=start_date.year + 1) - timedelta(days=1)
+        if end_date > to_date:
+            end_date = to_date
 
-    chain(
-        GlideExtraction.task.s(variables),
-        GlideTransformHandler.task.s(),
-    ).apply_async()
+        variables = GlideExtractionInputMetadata(
+            fromyear=start_date.year,
+            frommonth=start_date.month,
+            fromday=start_date.day,
+            toyear=end_date.year,
+            tomonth=end_date.month,
+            today=end_date.day,
+            events=hazard_type.value,
+        ).model_dump()
+
+        chain(
+            GlideExtraction.task.s(variables),
+            GlideTransformHandler.task.s(),
+        ).apply_async()
+
+        start_date = end_date + timedelta(days=1)
 
 
 @shared_task
