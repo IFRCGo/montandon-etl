@@ -151,7 +151,7 @@ worker:
       replicaCount: 10
       celeryArgs:
         - "-Q"
-        - "celery"
+        - "default"
         - "--concurrency"
         - "4"
         - "--max-tasks-per-child"
