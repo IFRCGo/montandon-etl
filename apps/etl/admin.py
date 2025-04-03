@@ -108,7 +108,7 @@ class TransformAdmin(EtlResourceAdminMixin, AdminReadOnlyMixin, DjangoQLSearchMi
         "success_percentage",
         "total_rows",
     )
-    list_filter = ("status",)
+    list_filter = ("status", "extraction__source")
     autocomplete_fields = ["extraction"]
     search_fields = ["extraction"]
 
@@ -140,6 +140,7 @@ class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
     list_filter = (
         "item_type",
         "status",
+        "transform_id__extraction__source",
     )
     autocomplete_fields = ["transform_id"]
     search_fields = ["transform_id"]

@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timedelta
 
 from celery import chain, shared_task
 
@@ -55,6 +56,15 @@ def ext_and_transform_usgs_latest_data():
 @shared_task
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
-    # FIXME: Can we only get data for a month?
-    url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_month.geojson"
-    ext_and_transform_usgs_data(url=url)
+    start_date = etl_config.USGS_START_DATE
+    end_date = datetime.now().date()
+
+    while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
+        next_date = start_date + timedelta(days=30 * 7)  # Approx. 7 months
+        url = (
+            f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
+            f"&starttime={start_date.strftime('%Y-%m-%d')}"
+            f"&endtime={min(next_date, end_date).strftime('%Y-%m-%d')}"
+        )
+        ext_and_transform_usgs_data(url=url)
+        start_date = next_date
