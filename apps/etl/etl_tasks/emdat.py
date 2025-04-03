@@ -101,16 +101,21 @@ def ext_and_transform_emdat_latest_data(**kwargs):
 # FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
-    variables = EmdatExtractionInputMetadata.model_validate(
-        {
-            "limit": -1,
-            "from": None,
-            "to": None,
-            "include_hist": True,
-        }
-    ).model_dump(by_alias=True)
+    start_year = etl_config.EMDAT_START_YEAR
+    end_year = datetime.now().year
+    year_interval = 2
 
-    chain(
-        EMDATExtraction.task.s(QUERY, variables),
-        EMDATTransformHandler.task.s(),
-    ).apply_async()
+    for year in range(start_year, end_year + 1, year_interval):
+        variables = EmdatExtractionInputMetadata.model_validate(
+            {
+                "limit": -1,
+                "from": year,
+                "to": min(year + year_interval - 1, end_year),
+                "include_hist": True,
+            }
+        ).model_dump(by_alias=True)
+
+        chain(
+            EMDATExtraction.task.s(QUERY, variables),
+            EMDATTransformHandler.task.s(),
+        ).apply_async()
