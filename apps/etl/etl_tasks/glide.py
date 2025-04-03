@@ -36,6 +36,9 @@ GLIDE_HAZARDS = [
 ]
 
 
+URL = f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp"
+
+
 @shared_task
 def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     ext_object = (
@@ -67,8 +70,12 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
         events=hazard_type.value,
     ).model_dump()
 
+    extraction_id = GlideExtraction()._create_extraction_instance(
+        url=URL, source=ExtractionData.Source.GLIDE.value, metadata={"input": variables} if variables else {}
+    )
+
     chain(
-        GlideExtraction.task.s(variables),
+        GlideExtraction.task.s(extraction_id),
         GlideTransformHandler.task.s(),
     ).apply_async()
 
@@ -88,8 +95,12 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
         events=hazard_type.value,
     ).model_dump()
 
+    extraction_id = GlideExtraction()._create_extraction_instance(
+        url=URL, source=ExtractionData.Source.GLIDE.value, metadata={"input": variables} if variables else {}
+    )
+
     chain(
-        GlideExtraction.task.s(variables),
+        GlideExtraction.task.s(extraction_id),
         GlideTransformHandler.task.s(),
     ).apply_async()
 

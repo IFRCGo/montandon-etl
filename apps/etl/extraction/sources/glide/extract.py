@@ -1,9 +1,11 @@
+import logging
+
 import pydantic
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
-from apps.etl.models import ExtractionData
 from main.celery import app
-from main.configs import etl_config
+
+logger = logging.getLogger(__name__)
 
 
 class GlideExtractionInputMetadata(pydantic.BaseModel):
@@ -21,13 +23,10 @@ class GlideExtraction(BaseExtraction):
     Handles data extraction from the GLIDE API.
     """
 
+    def extract(self, extraction_object) -> int:
+        return self.extract_common(extraction_object)
+
     @staticmethod
     @app.task
-    def task(metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
-        input_metadata = GlideExtractionInputMetadata(**metadata)
-        return GlideExtraction().handle_extraction(
-            url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-            params=input_metadata.model_dump(),
-            headers={"accept": "application/json"},
-            source=ExtractionData.Source.GLIDE.value,
-        )
+    def task(extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
+        return GlideExtraction().handle(extraction_id)
