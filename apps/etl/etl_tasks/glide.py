@@ -2,7 +2,7 @@ from datetime import datetime
 
 from celery import chain, shared_task
 
-from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionInputMetadata
+from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionMetadata
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.configs import etl_config
@@ -57,7 +57,7 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
+    metadata = GlideExtractionMetadata(
         fromyear=from_date.year,
         frommonth=from_date.month,
         fromday=from_date.day,
@@ -65,10 +65,12 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
         tomonth=to_date.month,
         today=to_date.day,
         events=hazard_type.value,
-    ).model_dump()
+    )
+
+    extraction_id = GlideExtraction().create_extraction_instance(source=ExtractionData.Source.GLIDE, metadata=metadata)
 
     chain(
-        GlideExtraction.task.s(variables),
+        GlideExtraction.task.s(extraction_id),
         GlideTransformHandler.task.s(),
     ).apply_async()
 
@@ -78,7 +80,7 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
     to_date = datetime.today().date()
 
     # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
+    metadata = GlideExtractionMetadata(
         fromyear=None,
         frommonth=None,
         fromday=None,
@@ -86,10 +88,12 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
         tomonth=to_date.month,
         today=to_date.day,
         events=hazard_type.value,
-    ).model_dump()
+    )
+
+    extraction_id = GlideExtraction().create_extraction_instance(source=ExtractionData.Source.GLIDE, metadata=metadata)
 
     chain(
-        GlideExtraction.task.s(variables),
+        GlideExtraction.task.s(extraction_id),
         GlideTransformHandler.task.s(),
     ).apply_async()
 

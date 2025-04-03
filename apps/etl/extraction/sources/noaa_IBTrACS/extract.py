@@ -27,7 +27,7 @@ class IBTrACSExtraction(BaseExtraction):
         """
         Save extracted data into database. Checks for duplicate content using hashing.
         """
-        file_name = f"{source}.zip"
+        file_name = f"{source}.csv"
         resp_data = response
 
         # save the additional response data after the data is fetched from api.

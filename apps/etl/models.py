@@ -185,7 +185,6 @@ class ExtractionData(EtlResource):
     # OBSOLETE
 
     resp_data_type = models.CharField(verbose_name=_("Response data type"), blank=True)
-    url = models.URLField(verbose_name=_("url"), blank=True)
     hazard_type = models.CharField(
         max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
     )

@@ -2,7 +2,7 @@ import abc
 import json
 import logging
 import typing
-from typing import Any, Callable
+from typing import Any
 
 import requests
 
@@ -16,19 +16,74 @@ from main.logging import log_extra
 logger = logging.getLogger(__name__)
 
 
+ExtractionMetaData = typing.TypeVar("ExtractionMetaData")
+
+
 class ValidationResponse(typing.TypedDict):
     status: str
 
 
-class BaseExtraction:
+class BaseExtraction(abc.ABC, typing.Generic[ExtractionMetaData]):
     """
     Handles data extraction.
     """
 
-    @classmethod
+    metadata_class: typing.Type[ExtractionMetaData]
+
+    # def __init_subclass__(cls, **kwargs):
+    #     super().__init_subclass__(**kwargs)
+    #     if getattr(cls, "metadata_class", None) is None:
+    #         raise NotImplementedError(f"Please define metadata_class for {cls}")
+    #     if getattr(cls, "extract", None) is None:
+    #         raise NotImplementedError(f"Please define extract method for {cls}")
+
+    def get_headers(self) -> dict:
+        return {"accept": "application/json"}
+
+    def get_file_extension(self) -> str:
+        return ".json"
+
+    @abc.abstractmethod
+    def extract(extraction_object: ExtractionData) -> int:
+        """
+        Not Implemented
+        return extraction id
+        """
+        raise NotImplementedError()
+
+    def run_get_request(self, extraction_object: ExtractionData, url: str, params: dict) -> int:
+        response = requests.get(url, params=params, headers=self.get_headers(), timeout=120)
+        response.raise_for_status()
+        extraction_object.resp_code = response.status_code
+        extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["resp_code"])
+
+        # FIXME: Handle 204
+        if response.status_code == 200 or response.status_code == 204:
+            self.store_extraction_data(extraction_object.source, response, extraction_object.id)
+            # Check if response contains data
+            if response.status_code == 204:
+                extraction_object.source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+                extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["source_validation_status"])
+                logger.warning("No hazard data found in response")
+
+        return extraction_object.id
+
+    def handle(self, id: int):
+        extraction_object = ExtractionData.objects.get(id=id)
+        extraction_object.mark_as_started()
+        try:
+            return self.extract(extraction_object)
+        except requests.exceptions.RequestException:
+            extraction_object.mark_as_ended(ExtractionData.Status.FAILED, update_fields=[])
+            logger.error(
+                "Extraction failed",
+                exc_info=True,
+                extra=log_extra({"source": extraction_object.source}),
+            )
+            raise
+
     def store_extraction_data(
-        cls,
-        validate_source_func: Callable[[Any], ValidationResponse] | None,
+        self,
         source: int,
         response: requests.Response,
         instance_id: int | None = None,
@@ -36,22 +91,19 @@ class BaseExtraction:
         """
         Save extracted data into data base. Checks for duplicate conent using hashing.
         """
-        file_extension = "json"
+        extraction_instance = ExtractionData.objects.get(id=instance_id)
+
+        file_extension = self.get_file_extension()
         file_name = f"{source}.{file_extension}"
         resp_data_content = response.content
 
         # save the additional response data after the data is fetched from api.
-        extraction_instance = ExtractionData.objects.get(id=instance_id)
         extraction_instance.resp_data_type = response.headers.get("Content-Type", "")
         extraction_instance.save()
 
         # Validate the non empty response data.
         if resp_data_content:
             # Source validation
-            # FIXME: Is validate_source_func being used?
-            if validate_source_func:
-                extraction_instance.source_validation_status = validate_source_func(resp_data_content)["status"]
-
             # manage duplicate file content.
             hash_content = hash_file_content(resp_data_content)
             manage_duplicate_file_content(
@@ -63,38 +115,34 @@ class BaseExtraction:
             )
         return extraction_instance
 
-    @classmethod
-    def _create_extraction_instance(
-        cls,
-        url: str,
+    def create_extraction_instance(
+        self,
         source: int,
         parent_id: int | None = None,
         status: ExtractionData.Status = ExtractionData.Status.PENDING,
-        hazard_type: str | None = None,
         metadata: dict | None = {},
-    ) -> ExtractionData:
+    ) -> int:
         """
         Create and return a new extraction instance with initial status.
         Returns:
             ExtractionData: The created extraction instance
         """
         parent = ExtractionData.objects.filter(id=parent_id).first()
-        return ExtractionData.objects.create(
+        extraction_object = ExtractionData.objects.create(
             source=source,
-            url=url,
             status=status,
             source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
             trace_id=get_trace_id(parent),
-            hazard_type=hazard_type,
+            hazard_type=metadata.events,
             parent_id=parent_id,
-            metadata=metadata,
+            metadata=metadata.model_dump(),
             attempt_no=0,
             resp_code=0,
         )
+        return extraction_object.id
 
-    @classmethod
     def _update_instance_status(
-        cls, instance: ExtractionData, status: int, validation_status: int | None = None, update_validation: bool = False
+        self, instance: ExtractionData, status: int, validation_status: int | None = None, update_validation: bool = False
     ) -> None:
         """
         Update the status of the extraction instance.
@@ -110,9 +158,9 @@ class BaseExtraction:
             instance.save(update_fields=["status", "source_validation_status"])
         else:
             instance.save(update_fields=["status"])
+        return instance
 
-    @classmethod
-    def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
+    def _save_response_data(self, instance: ExtractionData, response: requests.Response) -> dict:
         """
         Save the response data to the extraction instance.
         Args:
@@ -121,18 +169,16 @@ class BaseExtraction:
         Returns:
             dict: Parsed JSON response content
         """
-        instance = cls.store_extraction_data(
+        instance = self.store_extraction_data(
             response=response,
             source=instance.source,
-            validate_source_func=None,
             instance_id=instance.id,
         )
 
         return json.loads(response.content)
 
-    @classmethod
     def handle_extraction(
-        cls,
+        self,
         url: str,
         params: dict | None,
         headers: dict | None,
@@ -146,7 +192,7 @@ class BaseExtraction:
             int: ID of the extraction instance
         """
         logger.info("Starting data extraction")
-        instance = cls._create_extraction_instance(
+        instance = self._create_extraction_instance(
             url=url,
             source=source,
             parent_id=parent_id,
@@ -154,7 +200,7 @@ class BaseExtraction:
         )
 
         try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+            self._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
             response = requests.get(url, params=params, headers=headers, timeout=timeout)
             response.raise_for_status()
@@ -163,13 +209,13 @@ class BaseExtraction:
 
             # FIXME: Handle 204
             if response.status_code == 200 or response.status_code == 204:
-                response_data = cls._save_response_data(instance, response)
+                response_data = self._save_response_data(instance, response)
                 # Check if response contains data
                 if response_data:
-                    cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
+                    self._update_instance_status(instance, ExtractionData.Status.SUCCESS)
                     logger.info("Data extracted successfully")
                 else:
-                    cls._update_instance_status(
+                    self._update_instance_status(
                         instance,
                         ExtractionData.Status.SUCCESS,
                         ExtractionData.ValidationStatus.NO_DATA,
@@ -181,7 +227,7 @@ class BaseExtraction:
             return instance.id
 
         except requests.exceptions.RequestException:
-            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
+            self._update_instance_status(instance, ExtractionData.Status.FAILED)
             logger.error(
                 "Extraction failed",
                 exc_info=True,
