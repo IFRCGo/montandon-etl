@@ -1,9 +1,14 @@
+import datetime
+import logging
+
 from celery import chain, shared_task
 
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction, IfrcEventExtractionInputMetadata
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from main.configs import etl_config
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -40,14 +45,23 @@ def ext_and_transform_ifrcevent_latest_data():
 
 @shared_task
 def ext_and_transform_ifrcevent_historical_data():
-    params = IfrcEventExtractionInputMetadata(
-        disaster_start_date__gte=None,
-        limit=50,
-        offset=0,
-        ordering="-id",
-        format="json",
-    ).model_dump()
-    chain(
-        IFRCEventExtraction.task.s(params),
-        IFRCEventTransformHandler.task.s(),
-    ).apply_async()
+    end_date = datetime.date.today()  # Today's date
+    start_date = etl_config.IFRC_EVENT_START_DATE  # Start date from config
+
+    while start_date < end_date:
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        params = IfrcEventExtractionInputMetadata(
+            disaster_start_date__gte=start_date_str,
+            disaster_start_date__lte=(start_date + datetime.timedelta(days=60)).strftime("%Y-%m-%d"),
+            limit=50,
+            offset=0,
+            ordering="-id",
+            format="json",
+        ).model_dump()
+        logger.info(f"Starting extraction with parameters: {params}")
+        chain(
+            IFRCEventExtraction.task.s(params),
+            IFRCEventTransformHandler.task.s(),
+        ).apply_async()
+        start_date += datetime.timedelta(days=60)
+        logger.info(f"Processed data for period starting {start_date_str}")

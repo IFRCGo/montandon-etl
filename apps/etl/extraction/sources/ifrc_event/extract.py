@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 class IfrcEventExtractionInputMetadata(pydantic.BaseModel):
     disaster_start_date__gte: typing.Union[datetime.date, str, None]
+    disaster_start_date__lte: typing.Union[datetime.date, str, None]
     limit: int
     offset: int
     ordering: str
