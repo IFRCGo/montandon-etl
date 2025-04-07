@@ -28,6 +28,22 @@ class PdcExposureInputMetadata(pydantic.BaseModel):
     geojson_id: int
 
 
+class Pagination(pydantic.BaseModel):
+    page: int
+    pagesize: int
+
+
+class Restriction(pydantic.BaseModel):
+    searchType: str
+    createDate: typing.Optional[str] | None
+    typeId: typing.Optional[str] | None
+
+
+class PdcHazardInputMetadata(pydantic.BaseModel):
+    pagination: Pagination
+    restrictions: typing.List[typing.List[Restriction]]
+
+
 HAZARD_TYPE_MAP = {
     "AVALANCHE": HazardType.OTHER,
     "DROUGHT": HazardType.DROUGHT,
@@ -185,7 +201,7 @@ class PDCExtraction(BaseExtraction):
             raise exc
 
     @classmethod
-    def handle_extraction(cls, url: str) -> int:  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_extraction(cls, params: dict) -> int:  # type: ignore[reportIncompatibleMethodOverride]
         """
         Process data extraction.
         Returns:
@@ -193,38 +209,46 @@ class PDCExtraction(BaseExtraction):
         """
         logger.info("Starting data extraction")
         source = ExtractionData.Source.PDC
+        url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazards/t/json/search_hazard"
         instance = cls._create_extraction_instance(url=url, source=source)
-
-        headers = {"Authorization": "Bearer {}".format(etl_config.PDC_SENTRY_AUTHORIZATION_KEY)}
-
+        headers = {
+            "Authorization": "Bearer {}".format(etl_config.PDC_SENTRY_AUTHORIZATION_KEY),
+            "Content-Type": "application/json",
+        }
         try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+            while True:
+                cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+                response = requests.post(url,  headers=headers, data=json.dumps(params), timeout=30)
+                if len(response.json()) == 0:
+                    break
+                
+                response.raise_for_status()
+                instance.resp_code = response.status_code
+                instance.save(update_fields=["resp_code"])
 
-            response = requests.get(url, params=None, headers=headers, timeout=30)
-            response.raise_for_status()
-            instance.resp_code = response.status_code
-            instance.save(update_fields=["resp_code"])
 
-            if response.status_code == 200 or response.status_code == 204:
-                response_data = cls._save_response_data(instance, response)
-                # Check if response contains data
-                if response_data:
-                    cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
-                    logger.info("Data extracted successfully")
-                    # FIXME: Call other extraction instead
-                    # FIXME: Might need to add validator here
-                    for hazard in response_data:
-                        cls.process_hazard(instance, hazard)
-                else:
-                    cls._update_instance_status(
-                        instance,
-                        ExtractionData.Status.SUCCESS,
-                        ExtractionData.ValidationStatus.NO_DATA,
-                        update_validation=True,
-                    )
-                    logger.warning("No hazard data found in response")
+                if response.status_code == 200 or response.status_code == 204:
+                    response_data = cls._save_response_data(instance, response)
+                    # Check if response contains data
+                    if response_data:
+                        cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
+                        logger.info("Data extracted successfully")
+                        # FIXME: Call other extraction instead
+                        # FIXME: Might need to add validator here
+                        for hazard in response_data:
+                            cls.process_hazard(instance, hazard)
+                    else:
+                        cls._update_instance_status(
+                            instance,
+                            ExtractionData.Status.SUCCESS,
+                            ExtractionData.ValidationStatus.NO_DATA,
+                            update_validation=True,
+                        )
+                        logger.warning("No hazard data found in response")
+                
+                params['pagination']['page'] += 1
 
-            return instance.id
+                return instance.id
 
         except requests.exceptions.RequestException:
             cls._update_instance_status(instance, ExtractionData.Status.FAILED)
@@ -237,5 +261,5 @@ class PDCExtraction(BaseExtraction):
 
     @staticmethod
     @app.task
-    def task(data_url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        return PDCExtraction.handle_extraction(url=data_url)
+    def task(params: dict):  # type: ignore[reportIncompatibleMethodOverride]
+        return PDCExtraction.handle_extraction(params=params)

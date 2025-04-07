@@ -192,6 +192,7 @@ class EtlConfig:
         # -- Sentry
         self.PDC_SENTRY_BASE_URL = self.parse_base_url_required("PDC_SENTRY_BASE_URL")
         self.PDC_SENTRY_AUTHORIZATION_KEY = self.parse_non_empty_value("PDC_SENTRY_AUTHORIZATION_KEY")
+        self.PDC_START_DATE = self.parse_date_value_required("PDC_START_DATE")
 
     def debug_print(self):
         pprint.pp(self.__dict__, indent=2)
