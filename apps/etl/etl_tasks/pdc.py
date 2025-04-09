@@ -1,10 +1,16 @@
-from celery import shared_task
 from datetime import datetime
+
+from celery import shared_task
+
 from apps.etl.extraction.sources.pdc.extract import (
+    HAZARD_TYPE_MAP,
+    Pagination,
     PDCExtraction,
+    PdcHazardInputMetadata,
+    Restriction,
 )
 from main.configs import etl_config
-from apps.etl.extraction.sources.pdc.extract import PdcHazardInputMetadata, Pagination, Restriction, HAZARD_TYPE_MAP
+
 
 @shared_task
 def extract_and_transform_pdc_data():
@@ -14,43 +20,28 @@ def extract_and_transform_pdc_data():
 
 @shared_task
 def extract_and_transform_historical_pdc_data():
-    pdc_start_date = str(etl_config.PDC_START_DATE)
-    data =   datetime.strptime(pdc_start_date, "%Y-%m-%d")
+    pdc_start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
+    pdc_interval_years = etl_config.PDC_EXTRACTION_INTERVAL_YEARS
 
-# Convert datetime object to Unix timestamp (seconds since epoch)
-    timestamp = str(int(data.timestamp()))
-    print(timestamp)
+    pdc_end_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)
+    if pdc_end_date > datetime.now():
+        pdc_end_date = datetime.now()
 
-    for event in HAZARD_TYPE_MAP:
-        data = {
-    "pagination": {
-        "page": 1,
-        "pagesize": 100
-    },
-    "restrictions": [
-        [
-            {
-                "searchType": "GREATER_THAN",
-                "createDate": timestamp
-            },
-            {
-                "searchType": "EQUALS",
-                "typeId": event
-            }
-        ]
-    ]
-        }
-        # data = PdcHazardInputMetadata(
-        #     pagination=Pagination(page=1, pagesize=100),
-        #     restrictions=[
-        #         [
-        #             Restriction(searchType="GREATER_THAN", createDate=timestamp), # type: ignore
-        #             Restriction(searchType="EQUALS", typeId=event) # type: ignore
+    while pdc_start_date < pdc_end_date:
+        for event in HAZARD_TYPE_MAP:
+            data = PdcHazardInputMetadata(
+                pagination=Pagination(page=1, pagesize=100),
+                restrictions=[
+                    [
+                        Restriction(searchType="GREATER_THAN", createDate=str(int(pdc_start_date.timestamp() * 1000))),  # type: ignore
+                        Restriction(searchType="EQUALS", typeId=event),  # type: ignore
+                        Restriction(searchType="LESS_THAN", createDate=str(int(pdc_end_date.timestamp() * 1000))),
+                    ]
+                ],
+            ).model_dump()
+            PDCExtraction.task.s(data).apply_async()
 
-        #         ]
-        #     ]
-        # ).model_dump()
-        print(data)
-        PDCExtraction.task.s(data).apply_async()
-
-
+        pdc_start_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)
+        pdc_end_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)
+        if pdc_end_date > datetime.now():
+            pdc_end_date = datetime.now()

@@ -34,18 +34,21 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_geojson_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp_geojson_file.write(file_content)
+        tmp_geojson_file.close()
 
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_hazard_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp_hazard_file.write(file_content)
+        tmp_hazard_file.close()
 
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
         tmp_exposure_detail_file.write(file_content)
+        tmp_exposure_detail_file.close()
 
         data = {
             "hazards_file_path": tmp_hazard_file.name,
@@ -54,8 +57,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
             "exposure_detail_file_path": tmp_exposure_detail_file.name,
             "geojson_file_path": tmp_geojson_file.name,
         }
-
-        return cls.transformer_schema(source_url=extraction_obj.url, data=json.dumps(data))
+        return cls.transformer_schema(source_url=extraction_obj.parent.url, data=json.dumps(data))
 
     @staticmethod
     @app.task

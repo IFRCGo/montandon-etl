@@ -102,7 +102,7 @@ env = environ.Env(
     PDC_ARCGIS_USERNAME=(str, None),
     PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
     PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org"),
-    PDC_START_DATE=(str, "1975-01-01"),
+    PDC_START_DATE=(str, "2024-03-30"),
     PDC_EXTRACTION_INTERVAL_YEARS=(int, 1),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
 )
