@@ -60,6 +60,6 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         return cls.transformer_schema(source_url=extraction_obj.parent.url, data=json.dumps(data))
 
     @staticmethod
-    @app.task
+    @app.task(queue="transform")
     def task(extraction_id):
         return PDCTransformHandler().handle_transformation(extraction_id)

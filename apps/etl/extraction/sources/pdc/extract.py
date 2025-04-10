@@ -202,7 +202,7 @@ class PDCExtraction(BaseExtraction):
             raise exc
 
     @classmethod
-    def handle_extraction(cls, params: dict) -> None:
+    def handle_extraction(cls, params: dict, timeout: int = 30) -> None:
         """
         Process PDC data extraction.
         Returns:
@@ -232,7 +232,7 @@ class PDCExtraction(BaseExtraction):
 
                 cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-                response = requests.post(url, headers=headers, data=json.dumps(params), timeout=30)
+                response = requests.post(url, headers=headers, data=json.dumps(params), timeout=timeout)
                 response.raise_for_status()
 
                 instance.resp_code = response.status_code

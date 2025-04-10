@@ -175,6 +175,42 @@ worker:
           cpu: "4"
           memory: 2Gi
 
+    extraction:
+      enabled: true
+      replicaCount: 10
+      celeryArgs:
+        - "-Q"
+        - "extraction"
+        - "--concurrency"
+        - "4"
+        - "--max-tasks-per-child"
+        - "10"
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1Gi
+        limits:
+          cpu: "4"
+          memory: 2Gi
+
+    transform:
+      enabled: true
+      replicaCount: 10
+      celeryArgs:
+        - "-Q"
+        - "transform"
+        - "--concurrency"
+        - "4"
+        - "--max-tasks-per-child"
+        - "10"
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1Gi
+        limits:
+          cpu: "4"
+          memory: 2Gi
+
 argoHooks:
   # NOTE: Make sure keys are lowercase
   db-migrate:

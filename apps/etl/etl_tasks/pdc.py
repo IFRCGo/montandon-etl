@@ -18,7 +18,7 @@ def extract_and_transform_pdc_data():
     PDCExtraction.task.s(data_url).apply_async()
 
 
-@shared_task
+@shared_task(queue="extraction")
 def extract_and_transform_historical_pdc_data():
     pdc_start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
     pdc_interval_years = etl_config.PDC_EXTRACTION_INTERVAL_YEARS
@@ -28,7 +28,7 @@ def extract_and_transform_historical_pdc_data():
         pdc_end_date = datetime.now()
 
     while pdc_start_date < pdc_end_date:
-        for event in HAZARD_TYPE_MAP:
+        for event in HAZARD_TYPE_MAP.keys():
             data = PdcHazardInputMetadata(
                 pagination=Pagination(page=1, pagesize=100),
                 restrictions=[
@@ -39,8 +39,7 @@ def extract_and_transform_historical_pdc_data():
                     ]
                 ],
             ).model_dump()
-            PDCExtraction.task.s(data).apply_async()
-
+            PDCExtraction.task.s(data).apply_async(queue="extraction")
         pdc_start_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)
         pdc_end_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)
         if pdc_end_date > datetime.now():
