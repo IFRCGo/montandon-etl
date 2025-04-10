@@ -32,6 +32,9 @@ dependencies = [
     "celery-types",
     "django-health-check",
     "colorlog",
+    "requests_cache",
+    "termcolor",
+
 ]
 
 [tool.uv.sources]
