@@ -18,13 +18,24 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Default autodiscover (Looks at apps/*/tasks.py)
 app.autodiscover_tasks()
+app.conf.task_queues = {
+    "extraction": {
+        "exchange": "extraction",
+        "routing_key": "extraction",
+    },
+    "transform": {
+        "exchange": "transform",
+        "routing_key": "transform",
+    },
+}
+
+app.conf.task_default_queue = "default"
 
 # ETL tasks autodiscover
 # NOTE: Hinting celery to look at additional files for tasks
 app.autodiscover_tasks(get_all_modules("apps/etl/etl_tasks"))
 
 app.conf.beat_schedule = BEAT_SCHEDULES
-
 
 logger = logging.getLogger(__name__)
 

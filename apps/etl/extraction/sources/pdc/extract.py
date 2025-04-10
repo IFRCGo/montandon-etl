@@ -28,6 +28,22 @@ class PdcExposureInputMetadata(pydantic.BaseModel):
     geojson_id: int
 
 
+class Pagination(pydantic.BaseModel):
+    page: int
+    pagesize: int
+
+
+class Restriction(pydantic.BaseModel):
+    searchType: str
+    createDate: typing.Optional[str] = None
+    typeId: typing.Optional[str] = None
+
+
+class PdcHazardInputMetadata(pydantic.BaseModel):
+    pagination: Pagination
+    restrictions: typing.List[typing.List[Restriction]]
+
+
 HAZARD_TYPE_MAP = {
     "AVALANCHE": HazardType.OTHER,
     "DROUGHT": HazardType.DROUGHT,
@@ -99,7 +115,7 @@ class PDCExtraction(BaseExtraction):
     # FIXME: Write pydantic type for hazard
     def process_hazard(cls, instance: ExtractionData, hazard: dict):
         try:
-            if hazard["type_ID"] not in HAZARD_TYPE_MAP:
+            if hazard["type_ID"] not in HAZARD_TYPE_MAP.keys():
                 logger.warning(
                     "Skipping extraction because hazard is not supported",
                     extra=log_extra(
@@ -182,37 +198,61 @@ class PDCExtraction(BaseExtraction):
                 )
                 PDCTransformHandler.task.delay(exposure_detail.id)
         except Exception as exc:
+            logger.error("Error processing PDC data", extra=log_extra(dict(extraction_id=instance.id, error=str(exc))))
             raise exc
 
     @classmethod
-    def handle_extraction(cls, url: str) -> int:  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_extraction(cls, params: dict, timeout: int = 30) -> None:
         """
-        Process data extraction.
+        Process PDC data extraction.
         Returns:
             int: ID of the extraction instance
         """
-        logger.info("Starting data extraction")
+        logger.info("Starting PDC data extraction")
+
         source = ExtractionData.Source.PDC
-        instance = cls._create_extraction_instance(url=url, source=source)
+        url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazards/t/json/search_hazard"
+        headers = {
+            "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
+            "Content-Type": "application/json",
+        }
+        page = params["pagination"]["page"]
+        while True:
+            instance = cls._create_extraction_instance(url=url, source=source)
+            try:
+                logger.info(
+                    f"Extracting page {page}",
+                    extra=log_extra(
+                        {
+                            "source": instance.source,
+                            "page": params["pagination"]["page"],
+                        }
+                    ),
+                )
 
-        headers = {"Authorization": "Bearer {}".format(etl_config.PDC_SENTRY_AUTHORIZATION_KEY)}
+                cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
-        try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+                response = requests.post(url, headers=headers, data=json.dumps(params), timeout=timeout)
+                response.raise_for_status()
 
-            response = requests.get(url, params=None, headers=headers, timeout=30)
-            response.raise_for_status()
-            instance.resp_code = response.status_code
-            instance.save(update_fields=["resp_code"])
+                instance.resp_code = response.status_code
+                instance.metadata = params
+                instance.save(update_fields=["resp_code", "metadata"])
 
-            if response.status_code == 200 or response.status_code == 204:
                 response_data = cls._save_response_data(instance, response)
-                # Check if response contains data
+
                 if response_data:
                     cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
-                    logger.info("Data extracted successfully")
-                    # FIXME: Call other extraction instead
-                    # FIXME: Might need to add validator here
+                    logger.info(
+                        "Data extracted successfully",
+                        extra=log_extra(
+                            {
+                                "extraction_id": instance.id,
+                                "hazard_count": len(response_data),
+                            }
+                        ),
+                    )
+
                     for hazard in response_data:
                         cls.process_hazard(instance, hazard)
                 else:
@@ -222,20 +262,35 @@ class PDCExtraction(BaseExtraction):
                         ExtractionData.ValidationStatus.NO_DATA,
                         update_validation=True,
                     )
-                    logger.warning("No hazard data found in response")
+                    logger.warning(
+                        "No hazard data found in response",
+                        extra=log_extra(
+                            {
+                                "extraction_id": instance.id,
+                            }
+                        ),
+                    )
+                    break  # no data, stop paginating
 
-            return instance.id
+                # Go to next page
+                page += 1
+                params["pagination"]["page"] = page
 
-        except requests.exceptions.RequestException:
-            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
-            logger.error(
-                "Extraction failed",
-                exc_info=True,
-                extra=log_extra({"source": instance.source}),
-            )
-            raise
+            except requests.exceptions.RequestException as e:
+                cls._update_instance_status(instance, ExtractionData.Status.FAILED)
+                logger.error(
+                    "Extraction failed due to request error",
+                    exc_info=True,
+                    extra=log_extra(
+                        {
+                            "extraction_id": instance.id,
+                            "error": str(e),
+                        }
+                    ),
+                )
+                raise
 
     @staticmethod
     @app.task
-    def task(data_url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        return PDCExtraction.handle_extraction(url=data_url)
+    def task(params: dict):  # type: ignore[reportIncompatibleMethodOverride]
+        return PDCExtraction.handle_extraction(params=params)
