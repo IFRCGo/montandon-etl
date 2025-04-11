@@ -73,13 +73,19 @@ class PDCExtraction(BaseExtraction):
     def fetch_exposure_data(hazard_uuid: str):
         url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{hazard_uuid}/exposure"
         headers = {"Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}"}
-        return (requests.get(url, headers=headers).json(), url)
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return (response.json(), url)
+        return ([], url)
 
     @staticmethod
     def fetch_exposure_detail(hazard_uuid: str, exposure_id: int):
         url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{hazard_uuid}/exposure/{exposure_id}"
         headers = {"Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}"}
-        return (requests.get(url, headers=headers).json(), url)
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return (response.json(), url)
+        return ({}, url)
 
     @classmethod
     def store_pdc_data(
@@ -147,7 +153,7 @@ class PDCExtraction(BaseExtraction):
             )
 
             exposure_ids, exposure_url = cls.fetch_exposure_data(hazard_uuid)
-            if not len(exposure_ids):
+            if not exposure_ids:
                 logger.warning(
                     "Skipping extraction because hazard is not supported",
                     extra=log_extra(
