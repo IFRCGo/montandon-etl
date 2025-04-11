@@ -34,6 +34,6 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
         return cls.transformer_schema(source_url=extraction_obj.url, data=data, losses_data=losses_data)
 
     @staticmethod
-    @app.task
+    @app.task(queue="usgs-transform")
     def task(extraction_id):
         USGSTransformHandler().handle_transformation(extraction_id)
