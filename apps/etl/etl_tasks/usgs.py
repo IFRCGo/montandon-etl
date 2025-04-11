@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime, timedelta
 
 from celery import chain, shared_task
 
@@ -12,6 +13,7 @@ from main.logging import log_extra
 logger = logging.getLogger(__name__)
 
 
+@shared_task(queue="usgs-transform", rate_limit="20/m")  # Note: This is the extraction task  for child class
 def ext_and_transform_usgs_data(url: str):
     """Extract and Transform USGS data"""
 
@@ -35,7 +37,8 @@ def ext_and_transform_usgs_data(url: str):
                     chain(
                         USGSExtraction.task.s(detail_url, base_extraction_id),
                         USGSTransformHandler.task.s(),
-                    ).apply_async(countdown=30)
+                    ).apply_async()
+
     else:
         logger.error(
             "Base Extraction ID not found",
@@ -52,9 +55,18 @@ def ext_and_transform_usgs_latest_data():
     ext_and_transform_usgs_data(url=url)
 
 
-@shared_task
+@shared_task(queue="usgs-extraction", rate_limit="20/m")
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
-    # FIXME: Can we only get data for a month?
-    url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_month.geojson"
-    ext_and_transform_usgs_data(url=url)
+    start_date = etl_config.USGS_START_DATE
+    end_date = datetime.now().date()
+
+    while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
+        next_date = start_date + timedelta(days=30 * 1)  # Approx. 7 months
+        url = (
+            f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
+            f"&starttime={start_date.strftime('%Y-%m-%d')}"
+            f"&endtime={min(next_date, end_date).strftime('%Y-%m-%d')}"
+        )
+        ext_and_transform_usgs_data.s(url=url).apply_async()
+        start_date = next_date

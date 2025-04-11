@@ -68,7 +68,7 @@ class USGSExtraction(BaseExtraction):
             raise
 
     @staticmethod
-    @app.task
+    @app.task(queue="usgs-extraction", rate_limit="60/m")
     def task(url: str, parent_id: int | None):  # type: ignore[reportIncompatibleMethodOverride]
         """USGS Task"""
         details_id = USGSExtraction.handle_extraction(

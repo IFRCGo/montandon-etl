@@ -31,6 +31,14 @@ app.conf.task_queues = {
         "exchange": "transform",
         "routing_key": "transform",
     },
+    "usgs-extraction": {
+        "exchange": "usgs-extraction",
+        "routing_key": "usgs-extraction",
+    },
+    "usgs-transform": {
+        "exchange": "usgs-transform",
+        "routing_key": "usgs-transform",
+    },
 }
 
 app.conf.task_default_queue = "default"
