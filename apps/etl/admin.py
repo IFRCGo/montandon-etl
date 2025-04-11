@@ -136,6 +136,8 @@ class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
         "item_type",
         "status",
         "created_at",
+        "item_id",
+        "item_datetime",
     )
     list_filter = (
         "item_type",
