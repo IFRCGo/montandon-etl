@@ -126,13 +126,13 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
     @classmethod
     def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items: list[PyStacItem]):
         logger.info("Loading data into queue")
-
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
             # FIXME: We need to check if we have collection_id
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+
             bulk_mgr.add(
                 PyStacLoadData(
                     transform_id=transform_obj,
@@ -140,6 +140,8 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                     collection_id=item.collection_id,
                     item_type=item_type,
                     trace_id=get_trace_id(transform_obj),
+                    item_id=transformed_item_dict["id"],
+                    item_datetime=transformed_item_dict["properties"]["datetime"],
                 )
             )
 
