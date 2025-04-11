@@ -19,6 +19,10 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 # Default autodiscover (Looks at apps/*/tasks.py)
 app.autodiscover_tasks()
 app.conf.task_queues = {
+    "default": {
+        "exchange": "default",
+        "routing_key": "default",
+    },
     "extraction": {
         "exchange": "extraction",
         "routing_key": "extraction",
