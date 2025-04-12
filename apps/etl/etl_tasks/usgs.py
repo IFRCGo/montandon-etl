@@ -7,13 +7,14 @@ from celery import chain, shared_task
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
+from main.celery import CeleryQueue
 from main.configs import etl_config
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(queue="usgs-transform", rate_limit="20/m")  # Note: This is the extraction task  for child class
+@shared_task(queue=CeleryQueue.USGS_EXTRACTION, rate_limit="20/m")  # Note: This is the extraction task  for child class
 def ext_and_transform_usgs_data(url: str):
     """Extract and Transform USGS data"""
 
@@ -55,7 +56,7 @@ def ext_and_transform_usgs_latest_data():
     ext_and_transform_usgs_data(url=url)
 
 
-@shared_task(queue="usgs-extraction", rate_limit="20/m")
+@shared_task(queue=CeleryQueue.USGS_EXTRACTION, rate_limit="20/m")
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
     start_date = etl_config.USGS_START_DATE
