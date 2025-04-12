@@ -4,7 +4,7 @@ from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 
 class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSource]):
@@ -34,6 +34,6 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
         return cls.transformer_schema(source_url=extraction_obj.url, data=data, losses_data=losses_data)
 
     @staticmethod
-    @app.task(queue="usgs-transform")
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         USGSTransformHandler().handle_transformation(extraction_id)

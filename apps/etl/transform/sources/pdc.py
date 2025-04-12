@@ -5,7 +5,7 @@ import tempfile
 from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
 
 from apps.etl.models import ExtractionData
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 from .handler import BaseTransformerHandler
 
@@ -60,6 +60,6 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         return cls.transformer_schema(source_url=extraction_obj.parent.url, data=json.dumps(data))
 
     @staticmethod
-    @app.task(queue="transform")
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         return PDCTransformHandler().handle_transformation(extraction_id)

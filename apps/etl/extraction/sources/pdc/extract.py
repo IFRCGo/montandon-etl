@@ -10,7 +10,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from apps.etl.utils import AccessTokenManager
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from main.logging import log_extra
 
@@ -291,6 +291,6 @@ class PDCExtraction(BaseExtraction):
                 raise
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.EXTRACTION)
     def task(params: dict):  # type: ignore[reportIncompatibleMethodOverride]
         return PDCExtraction.handle_extraction(params=params)
