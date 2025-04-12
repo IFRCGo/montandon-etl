@@ -5,7 +5,7 @@ import requests
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction
 from apps.etl.models import ExtractionData
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class USGSExtraction(BaseExtraction):
             raise
 
     @staticmethod
-    @app.task(queue="usgs-extraction", rate_limit="60/m")
+    @app.task(queue=CeleryQueue.USGS_EXTRACTION, rate_limit="60/m")
     def task(url: str, parent_id: int | None):  # type: ignore[reportIncompatibleMethodOverride]
         """USGS Task"""
         details_id = USGSExtraction.handle_extraction(
