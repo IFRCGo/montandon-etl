@@ -40,7 +40,7 @@ class DesinventarExtraction(BaseExtraction):
         # save the additional response data after the data is fetched from api.
         extraction_instance = ExtractionData.objects.get(id=instance_id)
         # extraction_instance.resp_data_type = "application/zip"
-        # FIXME: the server does not support zip so using octet-stream for the time being
+        # FIXME(tnagorra): the eoAPI server does not support zip so using octet-stream for the time being
         extraction_instance.resp_data_type = "application/octet-stream"
         extraction_instance.save(update_fields=["resp_data_type"])
 
@@ -49,7 +49,7 @@ class DesinventarExtraction(BaseExtraction):
             # manage duplicate file content.
             manage_duplicate_file_content(
                 source=extraction_instance.source,
-                # FIXME: We need to calculate has for zip file
+                # FIXME(tnagorra): We need to calculate hash for zip file
                 hash_content=None,
                 instance=extraction_instance,
                 response_data=resp_data.content,
