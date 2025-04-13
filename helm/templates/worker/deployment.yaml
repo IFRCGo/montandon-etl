@@ -50,12 +50,16 @@ spec:
             {{- toYaml $config.celeryArgs | nindent 12 }}
           # TODO: livenessProbe
           resources:
-            {{- toYaml $config.resources | nindent 12 }}
+            {{- toYaml
+                (merge
+                    (dict)
+                    (deepCopy (default dict $config.resources))
+                    (deepCopy $.Values.worker.queueDefaultResources)
+                ) | nindent 12
+            }}
           env:
             - name: DJANGO_APP_TYPE
               value: worker
-            - name: CELERY_ARGS
-              value: {{ required "worker.queues.*.celeryArgs" $config.celeryArgs | quote }}
           envFrom:
             - secretRef:
                 name: {{ template "montandon-etl.secretname" $ }}
