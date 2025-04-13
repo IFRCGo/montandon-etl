@@ -22,6 +22,7 @@ class Status(models.IntegerChoices):
     IN_PROGRESS = 2, _("In progress")
     SUCCESS = 3, _("Success")
     FAILED = 4, _("Failed")
+    ON_RETRY = 5, _("On Retry")
 
 
 class EtlTraceResource(models.Model):
@@ -51,7 +52,7 @@ class EtlResource(Resource, EtlTraceResource):
 
     def mark_as_ended(
         self,
-        status: typing.Literal[Status.FAILED, Status.SUCCESS],
+        status: typing.Literal[Status.FAILED, Status.SUCCESS, Status.ON_RETRY],
         *,
         update_fields: list[str] = [],
     ):
@@ -107,7 +108,12 @@ class HazardType(models.TextChoices):
 
 def extract_data_upload_to(instance: "ExtractionData", filename: str):
     today = timezone.now().strftime("%Y-%m-%d")
-    return f"extract-raw-data/source-{int(instance.source)}/{today}/{filename}"
+    if instance.source in ExtractionData.Source:
+        source_label = ExtractionData.Source(instance.source).name.lower()
+    else:
+        # Fallback
+        source_label = instance.source
+    return f"extract-raw-data/source-{source_label}/{today}/{filename}"
 
 
 # TODO:
