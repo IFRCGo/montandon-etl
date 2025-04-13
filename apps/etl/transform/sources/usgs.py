@@ -13,15 +13,15 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
 
     @classmethod
     def get_schema_data(cls, extraction_obj):
-        all_children = ExtractionData.objects.filter(parent=extraction_obj)
+        losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
 
         losses_data = []
-        for child_item in all_children:
-            obj = ExtractionData.objects.filter(id=child_item.id).first()
-            if obj and obj.resp_data:
-                with obj.resp_data.open() as file_data:
-                    data = json.loads(file_data.read())
-                losses_data.append(data)
+        for losses_data_obj in losses_data_qs.all():
+            if losses_data_obj.resp_data is None:
+                continue
+            with losses_data_obj.resp_data.open() as file_data:
+                data = json.loads(file_data.read())
+            losses_data.append(data)
 
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
