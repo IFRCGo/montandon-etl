@@ -144,97 +144,33 @@ worker:
       limits:
         cpu: "1"
         memory: 1Gi
+
+  queueDefaultResources:
+    requests:
+      cpu: "0.1"
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 2Gi
   queues:
     # NOTE: Make sure keys are lowercase
     default:
       enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "default"
-        - "--concurrency"
-        - "4"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
-
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "4", "--max-tasks-per-child", "10", "-Q", "default"]
     extraction:
       enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "extraction"
-        - "--concurrency"
-        - "4"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
-
+      replicaCount: 5
+      celeryArgs: ["--concurrency", "4", "--max-tasks-per-child", "10", "-Q", "extraction"]
     transform:
       enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "transform"
-        - "--concurrency"
-        - "4"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
-
-    usgs-transform:
-      enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "usgs-transform"
-        - "--concurrency"
-        - "2"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
-
+      replicaCount: 5
+      celeryArgs: ["--concurrency", "4", "--max-tasks-per-child", "10", "-Q", "transform"]
+    # By source
     usgs-extraction:
       enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "usgs-extraction"
-        - "--concurrency"
-        - "2"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "2", "--max-tasks-per-child", "10", "-Q", "usgs-extraction"]
 
 argoHooks:
   # NOTE: Make sure keys are lowercase
