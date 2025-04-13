@@ -19,7 +19,7 @@ from azure.identity import DefaultAzureCredential
 
 from main import sentry
 
-from .logging import log_render_extra_context
+from .logging import log_render_custom_field
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -389,12 +389,12 @@ LOGGING = {
     "filters": {
         "render_extra_context": {
             "()": "django.utils.log.CallbackFilter",
-            "callback": log_render_extra_context,
+            "callback": log_render_custom_field,
         }
     },
     "formatters": {
         "simple": {
-            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s %(context)s"),
+            "format": ("%(asctime)s: - %(short_name)s - %(message)s %(context)s"),
             "datefmt": "%Y-%m-%dT%H:%M:%S",
         },
     },
@@ -428,10 +428,8 @@ if DEBUG:
             **LOGGING["formatters"],
             "colored_verbose": {
                 "()": "colorlog.ColoredFormatter",
-                "format": (
-                    "%(log_color)s%(asctime)s: %(threadName)s - %(levelname)-s%(red)s %(module)-s%(reset)s "
-                    "%(blue)s%(message)s %(context)s"
-                ),
+                "format": ("%(log_color)s%(asctime)s: %(red)s %(short_name)-s%(reset)s %(blue)s%(message)s %(context)s"),
+                "datefmt": "%m/%d %H:%M:%S",
             },
         },
         "handlers": {
