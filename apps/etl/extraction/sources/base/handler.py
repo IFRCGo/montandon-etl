@@ -21,6 +21,9 @@ from utils.requests import RateLimitError
 logger = logging.getLogger(__name__)
 
 
+class NoDataException(Exception): ...
+
+
 class ValidationResponse(typing.TypedDict):
     status: str
 
@@ -210,6 +213,7 @@ ExtractionMetadataTypeVar = typing.TypeVar("ExtractionMetadataTypeVar", bound=py
 
 class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     MAX_RETRY_LIMIT = 5
+    MAX_RATE_LIMIT_RETRY_LIMIT = 10
     MIN_RETRY_DELAY = 30
     MAX_RETRY_DELAY = 60
 
@@ -316,9 +320,20 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         raise NotImplementedError()
 
     def handle_extract_error(self, exc: Exception):
-        retries = self.celery_task.request.retries
+        if isinstance(exc, NoDataException):
+            logger.warning("NoDataException raised for extraction %s", self.extraction_object.pk)
+            self.extraction_object.source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+            self.extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS)
+            return
 
+        # Retry Exception
+        retries = self.celery_task.request.retries
         if isinstance(exc, RateLimitError):
+            if retries >= self.MAX_RATE_LIMIT_RETRY_LIMIT:
+                logger.warning("Max retries reached for request error.")
+                self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+                return
+
             if exc.retry_after:
                 try:
                     delay = max(self.MIN_RETRY_DELAY, int(exc.retry_after))
@@ -339,6 +354,11 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 logger.warning(f"Rate limited. Retrying in {delay:.2f} seconds (backoff).")
 
         elif isinstance(exc, requests.exceptions.RequestException):
+            if retries >= self.MAX_RETRY_LIMIT:
+                logger.warning("Max retries reached for request error.")
+                self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+                return
+
             # Fewer retries for generic request exceptions
             delay = self.celery_task.exponential_backoff_with_jitter(
                 retries,
@@ -350,10 +370,6 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 extra=log_extra({"source": self.extraction_object.source}),
                 exc_info=True,
             )
-            if retries >= self.MAX_RETRY_LIMIT:
-                logger.warning("Max retries reached for request error.")
-                self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
-                raise exc
 
         else:
             self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
