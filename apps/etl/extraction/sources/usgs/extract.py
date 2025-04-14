@@ -6,7 +6,7 @@ from enum import Enum
 import pydantic
 from celery import chord
 
-from apps.etl.extraction.sources.base.handler import BaseExtractionV2
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2, NoDataException
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.celery import CeleryQueue, app
@@ -68,9 +68,8 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             detail_data = json.loads(file_data.read())
 
         if "losspager" not in detail_data["properties"]["products"]:
-            logger.warning(f"Skipping extraction <{self.extraction_object.pk}> due to no losspager data")
-            # TODO: Just call transformer?
-            return
+            # TODO: Or just call transformer?
+            raise NoDataException()
 
         losses_tasks = []
         for item in detail_data["properties"]["products"]["losspager"]:
@@ -86,14 +85,13 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
 
         if losses_tasks:
-            logger.warning(f"****** Data <{self.extraction_object.pk}> with lossess")
             chord(
                 losses_tasks,
                 # NOTE: After all losses_tasks are done, then USGSTransformHandler is called by celery
                 USGSTransformHandler.task.si(self.extraction_object.pk),
             ).apply_async()
         else:
-            logger.warning(f"****** Data <{self.extraction_object.pk}> without lossess")
+            # TODO: Or raise NoDataException()?
             USGSTransformHandler.task.delay(self.extraction_object.pk)
 
     def handle_type_losse(self):
