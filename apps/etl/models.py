@@ -244,8 +244,15 @@ class PyStacLoadData(EtlTraceResource, Resource):
 
     # CONTENT
     item = models.JSONField(verbose_name=_("item"), default=dict)
-    item_id = models.CharField(verbose_name="item Id", max_length=150, db_index=True, default="1")
-    item_datetime = models.DateTimeField(verbose_name="item datetime", db_index=True, default=timezone.now)
+    item_id = models.CharField(
+        verbose_name="item Id",
+        max_length=150,
+        db_index=True,
+    )
+    item_datetime = models.DateTimeField(
+        verbose_name="item datetime",
+        db_index=True,
+    )
 
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices, default=Status.PENDING)
 
