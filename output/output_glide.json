@@ -1,0 +1,851 @@
+[
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 400,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 2,
+            "collection_id": "glide-hazards",
+            "load_status": 1,
+            "item": {
+                "id": "glide-hazard-EQ-2025-000001-ETH",
+                "bbox": [
+                    40.169,
+                    9.5045,
+                    40.169,
+                    9.5045
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    },
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-hazards/glide-hazards.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Hazards"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23422",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        40.169,
+                        9.5045
+                    ]
+                },
+                "collection": "glide-hazards",
+                "properties": {
+                    "docid": 23422,
+                    "roles": [
+                        "source",
+                        "hazard"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 4",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-04T00:00:00Z",
+                    "magnitude": 5.8,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 5.8M",
+                    "monty:etl_id": "9c5df829-a749-43eb-a5c6-5d82b113e473",
+                    "monty:corr_id": "20250104-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:hazard_detail": {
+                        "cluster": "nat-geo-ear-gro",
+                        "estimate_type": "primary",
+                        "severity_unit": "glide",
+                        "severity_value": 5.8
+                    },
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 399,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 1,
+            "collection_id": "glide-events",
+            "load_status": 1,
+            "item": {
+                "id": "glide-event-EQ-2025-000001-ETH",
+                "bbox": [
+                    40.169,
+                    9.5045,
+                    40.169,
+                    9.5045
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-events/glide-events.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Events"
+                    },
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23422",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        40.169,
+                        9.5045
+                    ]
+                },
+                "collection": "glide-events",
+                "properties": {
+                    "docid": 23422,
+                    "roles": [
+                        "source",
+                        "event"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 4",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-04T00:00:00Z",
+                    "magnitude": 5.8,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 5.8M",
+                    "monty:etl_id": "71de0a03-1838-450e-9d66-8b36981a7aa0",
+                    "monty:corr_id": "20250104-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 398,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 2,
+            "collection_id": "glide-hazards",
+            "load_status": 1,
+            "item": {
+                "id": "glide-hazard-EQ-2025-000003-ETH",
+                "bbox": [
+                    40.4246,
+                    9.2986,
+                    40.4246,
+                    9.2986
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    },
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-hazards/glide-hazards.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Hazards"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23424",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        40.4246,
+                        9.2986
+                    ]
+                },
+                "collection": "glide-hazards",
+                "properties": {
+                    "docid": 23424,
+                    "roles": [
+                        "source",
+                        "hazard"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 3",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-03T00:00:00Z",
+                    "magnitude": 5.5,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 5.5M",
+                    "monty:etl_id": "1e479741-ace5-488e-b700-9b091e7c14cc",
+                    "monty:corr_id": "20250103-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:hazard_detail": {
+                        "cluster": "nat-geo-ear-gro",
+                        "estimate_type": "primary",
+                        "severity_unit": "glide",
+                        "severity_value": 5.5
+                    },
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 397,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 1,
+            "collection_id": "glide-events",
+            "load_status": 1,
+            "item": {
+                "id": "glide-event-EQ-2025-000003-ETH",
+                "bbox": [
+                    40.4246,
+                    9.2986,
+                    40.4246,
+                    9.2986
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-events/glide-events.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Events"
+                    },
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23424",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        40.4246,
+                        9.2986
+                    ]
+                },
+                "collection": "glide-events",
+                "properties": {
+                    "docid": 23424,
+                    "roles": [
+                        "source",
+                        "event"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 3",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-03T00:00:00Z",
+                    "magnitude": 5.5,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 5.5M",
+                    "monty:etl_id": "a5df899d-e97e-4d61-8b51-695e11cdb18f",
+                    "monty:corr_id": "20250103-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 396,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 2,
+            "collection_id": "glide-hazards",
+            "load_status": 1,
+            "item": {
+                "id": "glide-hazard-EQ-2025-000004-NPL",
+                "bbox": [
+                    86.5849455,
+                    28.0075710053486,
+                    86.5849455,
+                    28.0075710053486
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    },
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-hazards/glide-hazards.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Hazards"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23426",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        86.5849455,
+                        28.0075710053486
+                    ]
+                },
+                "collection": "glide-hazards",
+                "properties": {
+                    "docid": 23426,
+                    "roles": [
+                        "source",
+                        "hazard"
+                    ],
+                    "title": "EQ in  on 2025, 1, 7",
+                    "source": "",
+                    "status": "A",
+                    "datetime": "2025-01-07T00:00:00Z",
+                    "magnitude": null,
+                    "description": "A powerful earthquake struck a remote region of Tibet on Tuesday morning, with tremors felt across the Himalayas in neighboring Nepal, Bhutan and parts of northern India.\r\n\r\nThe 7.1-magnitude quake struck in Tibet, China, at 9:05 a.m. local time at a depth of 10 kilometers (6.2 miles) and was followed by multiple aftershocks, according to the United States Geological Survey (USGS).",
+                    "monty:etl_id": "9d220c44-c81d-41de-8f45-2b4ac3cd8457",
+                    "monty:corr_id": "20250107-NPL-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "NPL"
+                    ],
+                    "monty:hazard_detail": {
+                        "cluster": "nat-geo-ear-gro",
+                        "estimate_type": "primary",
+                        "severity_unit": "glide"
+                    },
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 395,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 1,
+            "collection_id": "glide-events",
+            "load_status": 1,
+            "item": {
+                "id": "glide-event-EQ-2025-000004-NPL",
+                "bbox": [
+                    86.5849455,
+                    28.0075710053486,
+                    86.5849455,
+                    28.0075710053486
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-events/glide-events.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Events"
+                    },
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23426",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        86.5849455,
+                        28.0075710053486
+                    ]
+                },
+                "collection": "glide-events",
+                "properties": {
+                    "docid": 23426,
+                    "roles": [
+                        "source",
+                        "event"
+                    ],
+                    "title": "EQ in  on 2025, 1, 7",
+                    "source": "",
+                    "status": "A",
+                    "datetime": "2025-01-07T00:00:00Z",
+                    "magnitude": null,
+                    "description": "A powerful earthquake struck a remote region of Tibet on Tuesday morning, with tremors felt across the Himalayas in neighboring Nepal, Bhutan and parts of northern India.\r\n\r\nThe 7.1-magnitude quake struck in Tibet, China, at 9:05 a.m. local time at a depth of 10 kilometers (6.2 miles) and was followed by multiple aftershocks, according to the United States Geological Survey (USGS).",
+                    "monty:etl_id": "37f49618-7c61-4696-8ed6-1b8271c4646e",
+                    "monty:corr_id": "20250107-NPL-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "NPL"
+                    ],
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 394,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 2,
+            "collection_id": "glide-hazards",
+            "load_status": 1,
+            "item": {
+                "id": "glide-hazard-EQ-2025-000004-CHN",
+                "bbox": [
+                    87.3608,
+                    28.639,
+                    87.3608,
+                    28.639
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    },
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-hazards/glide-hazards.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Hazards"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23425",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        87.3608,
+                        28.639
+                    ]
+                },
+                "collection": "glide-hazards",
+                "properties": {
+                    "docid": 23425,
+                    "roles": [
+                        "source",
+                        "hazard"
+                    ],
+                    "title": "EQ in China on 2025, 1, 7",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-07T00:00:00Z",
+                    "magnitude": 7.1,
+                    "description": "GDACS - magnitude 7.1M.  \r\nMore than 120 people have been killed after a powerful earthquake struck a remote region of Tibet on Tuesday morning, with tremors felt across the Himalayas in neighboring Nepal, Bhutan and parts of northern India.\r\n\r\nThe 7.1-magnitude quake struck at 9:05 a.m. local time at a depth of 10 kilometers (6.2 miles) and was followed by multiple aftershocks, according to the United States Geological Survey (USGS).",
+                    "monty:etl_id": "c8430582-b366-4ff8-870f-962f65c48a1c",
+                    "monty:corr_id": "20250107-CHN-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "CHN"
+                    ],
+                    "monty:hazard_detail": {
+                        "cluster": "nat-geo-ear-gro",
+                        "estimate_type": "primary",
+                        "severity_unit": "glide",
+                        "severity_value": 7.1
+                    },
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 393,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 1,
+            "collection_id": "glide-events",
+            "load_status": 1,
+            "item": {
+                "id": "glide-event-EQ-2025-000004-CHN",
+                "bbox": [
+                    87.3608,
+                    28.639,
+                    87.3608,
+                    28.639
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-events/glide-events.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Events"
+                    },
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23425",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        87.3608,
+                        28.639
+                    ]
+                },
+                "collection": "glide-events",
+                "properties": {
+                    "docid": 23425,
+                    "roles": [
+                        "source",
+                        "event"
+                    ],
+                    "title": "EQ in China on 2025, 1, 7",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-07T00:00:00Z",
+                    "magnitude": 7.1,
+                    "description": "GDACS - magnitude 7.1M.  \r\nMore than 120 people have been killed after a powerful earthquake struck a remote region of Tibet on Tuesday morning, with tremors felt across the Himalayas in neighboring Nepal, Bhutan and parts of northern India.\r\n\r\nThe 7.1-magnitude quake struck at 9:05 a.m. local time at a depth of 10 kilometers (6.2 miles) and was followed by multiple aftershocks, according to the United States Geological Survey (USGS).",
+                    "monty:etl_id": "b6837b9f-6934-408d-a53e-a489c167c527",
+                    "monty:corr_id": "20250107-CHN-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "CHN"
+                    ],
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 392,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 2,
+            "collection_id": "glide-hazards",
+            "load_status": 1,
+            "item": {
+                "id": "glide-hazard-EQ-2025-000006-ETH",
+                "bbox": [
+                    39.914,
+                    8.8947,
+                    39.914,
+                    8.8947
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    },
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-hazards/glide-hazards.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Hazards"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23428",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        39.914,
+                        8.8947
+                    ]
+                },
+                "collection": "glide-hazards",
+                "properties": {
+                    "docid": 23428,
+                    "roles": [
+                        "source",
+                        "hazard"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 10",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-10T00:00:00Z",
+                    "magnitude": 4.7,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 4.7M",
+                    "monty:etl_id": "28573966-596b-427d-a609-83cdbfd0ec41",
+                    "monty:corr_id": "20250110-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:hazard_detail": {
+                        "cluster": "nat-geo-ear-gro",
+                        "estimate_type": "primary",
+                        "severity_unit": "glide",
+                        "severity_value": 4.7
+                    },
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    },
+    {
+        "model": "etl.pystacloaddata",
+        "pk": 391,
+        "fields": {
+            "created_at": "2025-04-14T11:55:58.240Z",
+            "modified_at": "2025-04-14T11:55:58.240Z",
+            "trace": 25,
+            "transform_id": 25,
+            "item_type": 1,
+            "collection_id": "glide-events",
+            "load_status": 1,
+            "item": {
+                "id": "glide-event-EQ-2025-000006-ETH",
+                "bbox": [
+                    39.914,
+                    8.8947,
+                    39.914,
+                    8.8947
+                ],
+                "type": "Feature",
+                "links": [
+                    {
+                        "rel": "collection",
+                        "href": "/code/libs/pystac-monty/monty-stac-extension/examples/glide-events/glide-events.json",
+                        "type": "application/json",
+                        "title": "GLIDE Source Events"
+                    },
+                    {
+                        "rel": "via",
+                        "href": "https://xx.com/glide/jsonglideset.jsp",
+                        "type": "application/json",
+                        "title": "Glide Event Data"
+                    }
+                ],
+                "assets": {
+                    "report": {
+                        "href": "https://www.glidenumber.net/glide/public/search/details.jsp?glide=23428",
+                        "type": "application/json",
+                        "title": "Report"
+                    }
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        39.914,
+                        8.8947
+                    ]
+                },
+                "collection": "glide-events",
+                "properties": {
+                    "docid": 23428,
+                    "roles": [
+                        "source",
+                        "event"
+                    ],
+                    "title": "EQ in Ethiopia on 2025, 1, 10",
+                    "source": "GDACS",
+                    "status": "A",
+                    "datetime": "2025-01-10T00:00:00Z",
+                    "magnitude": 4.7,
+                    "description": "GDACS - Medium humanitarian impact, magnitude 4.7M",
+                    "monty:etl_id": "eb184105-f6a8-4338-b318-824c5b719947",
+                    "monty:corr_id": "20250110-ETH-NAT-GEO-EAR-GRO-1-GCDB",
+                    "monty:hazard_codes": [
+                        "GH0001",
+                        "GH0002",
+                        "GH0003",
+                        "GH0004",
+                        "GH0005"
+                    ],
+                    "monty:country_codes": [
+                        "ETH"
+                    ],
+                    "monty:episode_number": 1
+                },
+                "stac_version": "1.0.0",
+                "stac_extensions": [
+                    "https://ifrcgo.github.io/monty/v0.1.0/schema.json"
+                ]
+            }
+        }
+    }
+]
