@@ -4,27 +4,22 @@ import django.utils.timezone
 from django.db import migrations, models
 
 def populate_fields(apps, schema_editor):
-    Pystacmodel = apps.get_model('etl','PyStacLoadData')
-    Pystacobjects = Pystacmodel.objects.all()
-    for component in Pystacobjects:
+    pystacmodel = apps.get_model('etl','PyStacLoadData')
+    pystac_objects = pystacmodel.objects.all()
+    for component in pystac_objects:
         data = component.item or {}
         item_id = data.get('id')
         item_datetime = data.get('properties',{}).get('datetime')
-        if item_id:
-            component.item_id = item_id
-
-        if item_datetime:
-            component.item_datetime = item_datetime
-
-        if item_id and item_datetime:
-            component.save()
+        component.item_id = item_id
+        component.item_datetime = item_datetime
+        component.save(update_fields = ["item_id","item_datetime"])
 
 def unpopulate_fields(apps, schema_editor):
-    PyStacLoadData = apps.get_model('etl', 'PyStacLoadData')
-    for component in PyStacLoadData.objects.all():
+    pystacmodel = apps.get_model('etl', 'PyStacLoadData')
+    for component in pystacmodel.objects.all():
         component.item_id = None
         component.item_datetime = None
-        component.save()
+        component.save(update_fields = ["item_id","item_datetime"])
 
 class Migration(migrations.Migration):
 
