@@ -2,6 +2,7 @@ import abc
 import json
 import logging
 import typing
+from datetime import datetime, timedelta
 from typing import Any, Callable
 
 import pydantic
@@ -275,6 +276,39 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             retry_after = response.headers.get("Retry-After", None)
             retry_after = retry_after and int(retry_after)
             raise RateLimitError(retry_after=retry_after)
+
+        # NOTE: Handle bad request for more than 20k data in response
+        if response.status_code == 400 and self.source_enum == ExtractionData.Source.USGS:
+            try:
+                start_date_str = url.split("starttime=")[1].split("&")[0]
+                end_date_str = url.split("endtime=")[1].split("&")[0]
+            except IndexError:
+                logger.error("starttime or endtime not found in URL")
+                return False
+
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+            # Stop condition to prevent infinite recursion
+            if start_date >= end_date:
+                logger.error(f"Cannot split further: start_date ({start_date_str}) >= end_date ({end_date_str})")
+                return False
+
+            mid_date = start_date + (end_date - start_date) / 2
+            mid_date_str = mid_date.strftime("%Y-%m-%d")
+            second_half_start = (mid_date + timedelta(days=1)).strftime("%Y-%m-%d")
+
+            # First half
+            first_half_url = url.replace(f"starttime={start_date_str}", f"starttime={start_date_str}")
+            first_half_url = first_half_url.replace(f"endtime={end_date_str}", f"endtime={mid_date_str}")
+            self._extraction_fetch_url(first_half_url, headers=headers)
+
+            # Second half
+            second_half_url = url.replace(f"starttime={start_date_str}", f"starttime={second_half_start}")
+            second_half_url = second_half_url.replace(f"endtime={end_date_str}", f"endtime={end_date_str}")
+            self._extraction_fetch_url(second_half_url, headers=headers)
+
+            return True
 
         response.raise_for_status()
         self.extraction_object.resp_code = response.status_code
