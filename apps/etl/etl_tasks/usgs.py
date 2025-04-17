@@ -30,7 +30,8 @@ def ext_and_transform_usgs_historical_data():
     end_date = datetime.now().date()
 
     while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
-        next_date = start_date + timedelta(days=30 * 1)  # Approx. 7 months
+        next_date = start_date + timedelta(days=20)
+        end_date = etl_config.USGS_END_DATE or datetime.now().date
         url = (
             f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
             f"&starttime={start_date.strftime('%Y-%m-%d')}"
@@ -43,3 +44,4 @@ def ext_and_transform_usgs_historical_data():
             ),
         )
         start_date = next_date
+    logger.info("USGS historical data extraction completed")
