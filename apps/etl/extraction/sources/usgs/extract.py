@@ -6,7 +6,7 @@ from enum import Enum
 import pydantic
 from celery import chord
 
-from apps.etl.extraction.sources.base.handler import BaseExtractionV2, NoDataException
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.celery import CeleryQueue, app
@@ -67,22 +67,23 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         with self.extraction_object.resp_data.open() as file_data:
             detail_data = json.loads(file_data.read())
 
-        if "losspager" not in detail_data["properties"]["products"]:
-            # TODO: Or just call transformer?
-            raise NoDataException()
+        # if "losspager" not in detail_data["properties"]["products"]:
+        #     # TODO: Or just call transformer?
+        #     raise NoDataException()
 
         losses_tasks = []
-        for item in detail_data["properties"]["products"]["losspager"]:
-            url = item["contents"]["json/losses.json"]["url"]
-            losses_extraction_obj = self.init_extraction(
-                metadata=USGSExtractionMetadata(
-                    url=url,
-                    type=USGSExtractionMetadataType.LOSSE,
-                ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=False,
-            )
-            losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
+        if "losspager" in detail_data["properties"]["products"]:
+            for item in detail_data["properties"]["products"]["losspager"]:
+                url = item["contents"]["json/losses.json"]["url"]
+                losses_extraction_obj = self.init_extraction(
+                    metadata=USGSExtractionMetadata(
+                        url=url,
+                        type=USGSExtractionMetadataType.LOSSE,
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
+                losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
 
         if losses_tasks:
             chord(
