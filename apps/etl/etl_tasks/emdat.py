@@ -85,8 +85,8 @@ def ext_and_transform_emdat_latest_data(**kwargs):
     # Also, the filtering only filters using year so we might have lot of duplicate data
     metadata = EmdatExtractionInputMetadata(
         limit=-1,
-        from_=etl_config.EMDAT_START_YEAR,
-        to=datetime.now().year,
+        from_year=etl_config.EMDAT_START_YEAR,
+        to_year=datetime.now().year,
         include_hist=None,
     )
 
@@ -96,14 +96,14 @@ def ext_and_transform_emdat_latest_data(**kwargs):
 # FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
-    for i in range(1900, datetime.now().year):
+    for i in range(etl_config.EMDAT_START_YEAR, etl_config.EMDAT_END_YEAR + 1):
         metadata = EmdatExtractionInputMetadata(
             limit=-1,
-            from_=i,
-            to=i,
+            from_year=i,
+            to_year=i,
             include_hist=True,
         )
-        _ = chain(
+        chain(
             EMDATExtraction.task.s(QUERY, metadata.model_dump()),
             EMDATTransformHandler.task.s(),
         ).apply_async()

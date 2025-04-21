@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 class EmdatExtractionInputMetadata(pydantic.BaseModel):
     limit: int | None
-    from_: int | None = pydantic.Field(..., alias="from")
-    to: int | None
+    from_year: int | None
+    to_year: int | None
     include_hist: bool | None
 
 
