@@ -161,6 +161,7 @@ class EtlConfig:
         # EMDAT
         self.EMDAT_URL = self.parse_base_url_required("EMDAT_URL")
         self.EMDAT_START_YEAR = self.parse_int_value_required("EMDAT_START_YEAR")
+        self.EMDAT_END_YEAR = self.parse_int_value_required("EMDAT_END_YEAR")
         self.EMDAT_AUTHORIZATION_KEY = self.parse_non_empty_value("EMDAT_AUTHORIZATION_KEY")
 
         # GDACS
