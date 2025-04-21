@@ -1,5 +1,7 @@
 import typing
 
+from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -248,11 +250,14 @@ class PyStacLoadData(EtlTraceResource, Resource):
         verbose_name="item Id",
         max_length=150,
         db_index=True,
+        null=True,
     )
     item_datetime = models.DateTimeField(
         verbose_name="item datetime",
         db_index=True,
+        null=True,
     )
+    item_primary_country = ArrayField(models.CharField(max_length=150), null=True)
 
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices, default=Status.PENDING)
 
@@ -261,6 +266,7 @@ class PyStacLoadData(EtlTraceResource, Resource):
             models.Index(
                 fields=["status"], name="loaddata_pi_status_pending", condition=models.Q(status=Status.PENDING.value)
             ),
+            GinIndex(fields=["item_primary_country"]),
         ]
         verbose_name = "Stac Item"
 
