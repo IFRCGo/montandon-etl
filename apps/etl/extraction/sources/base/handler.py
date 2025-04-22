@@ -16,6 +16,7 @@ from apps.etl.extraction.sources.base.utils import (
 from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import app
 from main.logging import log_extra
+from main.sentry import SentryTag
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
 
@@ -161,6 +162,7 @@ class BaseExtraction:
             parent_id=parent_id,
             metadata={"input": params} if params else {},
         )
+        SentryTag.set_tags({SentryTag.Tag.SOURCE: source, SentryTag.Tag.TRACE_ID: instance.trace_id})
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
