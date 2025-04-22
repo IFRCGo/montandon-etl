@@ -18,6 +18,7 @@ from main.celery import app
 from main.logging import log_extra
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
+from main.sentry import SentryTag
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +162,7 @@ class BaseExtraction:
             parent_id=parent_id,
             metadata={"input": params} if params else {},
         )
+        SentryTag.set_tags({SentryTag.Tag.SOURCE: source, SentryTag.Tag.TRACE_ID: instance.trace_id})
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)

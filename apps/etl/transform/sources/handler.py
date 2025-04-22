@@ -14,6 +14,7 @@ from main.celery import app
 from main.configs import etl_config
 from main.logging import log_extra
 from main.managers import BulkCreateManager
+from main.sentry import SentryTag
 
 logger = logging.getLogger(__name__)
 
@@ -84,12 +85,13 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         if not extraction_obj.resp_data:
             logger.info("Transformation ended because there is no data")
             return
-
+        trace_id = get_trace_id(extraction_obj)
         transform_obj = Transform.objects.create(
             extraction=extraction_obj,
-            trace_id=get_trace_id(extraction_obj),
+            trace_id=trace_id,
         )
 
+        SentryTag.set_tags({SentryTag.Tag.SOURCE: extraction_obj.source, SentryTag.Tag.TRACE_ID: extraction_obj.trace_id})
         transform_obj.mark_as_started()
         try:
             geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
