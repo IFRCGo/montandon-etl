@@ -1,12 +1,23 @@
 import datetime
 import logging
+import os
+from pathlib import Path
 
+import pandas as pd
 import requests
 from django.core.files import File
 
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
+
+
+def get_cluster_codes():
+    hazard_profiles_path = Path("./libs/pystac-monty/pystac_monty/HazardProfiles.csv")
+    if os.path.exists(hazard_profiles_path):
+        df = pd.read_csv(hazard_profiles_path)
+        return list(df.emdat_key.dropna().unique())
+    return []
 
 
 def read_file_data(file: File) -> str:
