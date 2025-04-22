@@ -4,6 +4,7 @@ from celery import chain, shared_task
 
 from apps.etl.extraction.sources.emdat.extract import EMDATExtraction, EmdatExtractionInputMetadata
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from apps.etl.utils import get_cluster_codes
 from main.configs import etl_config
 
 QUERY = """
@@ -13,11 +14,12 @@ query monty(
     $include_hist: Boolean
     $from: Int
     $to: Int
+    $classif: [String!]
 ) {
     api_version
     public_emdat(
         cursor: { offset: $offset, limit: $limit }
-        filters: { include_hist: $include_hist, from: $from, to: $to }
+        filters: { include_hist: $include_hist, from: $from, to: $to , classif: $classif}
     ) {
         total_available
         info {
@@ -84,10 +86,7 @@ def ext_and_transform_emdat_latest_data(**kwargs):
     # FIXME: Why are we getting data from etl_config.EMDAT_START_YEAR to get the latest data?
     # Also, the filtering only filters using year so we might have lot of duplicate data
     metadata = EmdatExtractionInputMetadata(
-        limit=-1,
-        from_year=etl_config.EMDAT_START_YEAR,
-        to_year=datetime.now().year,
-        include_hist=None,
+        limit=-1, from_=etl_config.EMDAT_START_YEAR, to=datetime.now().year, include_hist=None, classif=get_cluster_codes()
     )
 
     chain(EMDATExtraction.task.s(QUERY, metadata.model_dump()), EMDATTransformHandler.task.s()).apply_async()
@@ -97,12 +96,7 @@ def ext_and_transform_emdat_latest_data(**kwargs):
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
     for i in range(etl_config.EMDAT_START_YEAR, etl_config.EMDAT_END_YEAR + 1):
-        metadata = EmdatExtractionInputMetadata(
-            limit=-1,
-            from_year=i,
-            to_year=i,
-            include_hist=True,
-        )
+        metadata = EmdatExtractionInputMetadata(limit=-1, from_=i, to=i, include_hist=True, classif=get_cluster_codes())
         chain(
             EMDATExtraction.task.s(QUERY, metadata.model_dump()),
             EMDATTransformHandler.task.s(),
