@@ -9,7 +9,7 @@ from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
-from apps.etl.utils import get_items
+from apps.etl.utils import generate_item_index_fields_values
 from main.celery import app
 from main.configs import etl_config
 from main.logging import log_extra
@@ -133,19 +133,22 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-            item_id, item_datetime, item_primary_country = get_items(transformed_item_dict)
-            bulk_mgr.add(
-                PyStacLoadData(
-                    transform_id=transform_obj,
-                    collection_id=item.collection_id,
-                    trace_id=get_trace_id(transform_obj),
-                    item=transformed_item_dict,
-                    item_type=item_type,
-                    item_id=item_id,
-                    item_datetime=item_datetime,
-                    item_primary_country=item_primary_country,
+            try:
+                item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
+                bulk_mgr.add(
+                    PyStacLoadData(
+                        transform_id=transform_obj,
+                        collection_id=item.collection_id,
+                        trace_id=get_trace_id(transform_obj),
+                        item=transformed_item_dict,
+                        item_type=item_type,
+                        item_id=item_id,
+                        item_datetime=item_datetime,
+                        item_primary_country=item_primary_country,
+                    )
                 )
-            )
+            except KeyError:
+                logging.error("Missing key information", exc_info=True)
 
         bulk_mgr.done()
 

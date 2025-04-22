@@ -246,6 +246,8 @@ class PyStacLoadData(EtlTraceResource, Resource):
 
     # CONTENT
     item = models.JSONField(verbose_name=_("item"), default=dict)
+
+    # Custom indexed fields for Aggregation
     item_id = models.CharField(
         verbose_name="item Id",
         max_length=150,
@@ -266,7 +268,7 @@ class PyStacLoadData(EtlTraceResource, Resource):
             models.Index(
                 fields=["status"], name="loaddata_pi_status_pending", condition=models.Q(status=Status.PENDING.value)
             ),
-            GinIndex(fields=["item_primary_country"]),
+            GinIndex(fields=["item_primary_country"]),  # GinIndex for ArrayField
         ]
         verbose_name = "Stac Item"
 
