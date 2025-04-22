@@ -53,6 +53,7 @@ class SentryTag:
     class Tag(str, Enum):
         _BASE = "MONTY-ETL."
         SOURCE = _BASE + "SOURCE"
+        TRACE_ID = _BASE + "TRACE_ID"
 
     @staticmethod
     def set_tags(kwargs: dict[Tag, int | str]):
