@@ -107,13 +107,10 @@ class AccessTokenManager:
         return (response.json(), url)
 
 
-def get_items(transformed_item_dict: dict):
-    try:
-        item_id = transformed_item_dict["id"]
-        item_datetime = transformed_item_dict["properties"]["datetime"]
-        item_primary_country = transformed_item_dict["properties"]["monty:country_codes"]
-    except KeyError as e:
-        logger.error("Missing key in transformed_item_dict: %s", e)
-        raise
+def generate_item_index_fields_values(transformed_item: dict):
+    item_id = transformed_item["id"]
+    item_datetime = transformed_item["properties"]["datetime"]
+    item_primary_country = transformed_item["properties"]["monty:country_codes"]
+
     logger.info("Item extracted: id=%s, datetime=%s, country=%s", item_id, item_datetime, item_primary_country)
     return item_id, item_datetime, item_primary_country
