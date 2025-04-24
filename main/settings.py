@@ -84,7 +84,8 @@ env = environ.Env(
     # FIXME: Check if all start dates are used
     DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
     EMDAT_AUTHORIZATION_KEY=(str, None),
-    EMDAT_START_YEAR=(str, "2024"),
+    EMDAT_START_YEAR=(str, 1900),
+    EMDAT_END_YEAR=(str, 2024),
     EMDAT_URL=(str, "https://api.emdat.be"),
     GDACS_START_DATE=(str, "2025-01-01"),
     GDACS_URL=(str, "https://www.gdacs.org"),
@@ -115,6 +116,7 @@ GEOCODER_URL = env("GEOCODER_URL")
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 EMDAT_START_YEAR = env("EMDAT_START_YEAR")
+EMDAT_END_YEAR = env("EMDAT_END_YEAR")
 EMDAT_URL = env("EMDAT_URL")
 GDACS_START_DATE = env("GDACS_START_DATE")
 GDACS_URL = env("GDACS_URL")

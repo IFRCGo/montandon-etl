@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 class EmdatExtractionInputMetadata(pydantic.BaseModel):
     limit: int | None
-    from_: int | None = pydantic.Field(..., alias="from")
+    from_: int | None
     to: int | None
     include_hist: bool | None
+    classif: list
 
 
 class EMDATExtraction(BaseExtraction):
@@ -54,6 +55,9 @@ class EMDATExtraction(BaseExtraction):
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
 
             paylod = {"query": query, "variables": input_metadata}
+            # NOTE Checkout EmdatExtractionInputMetadata class for reference
+            paylod["variables"]["from"] = paylod["variables"].pop("from_")
+
             response = requests.post(url, json=paylod, headers=headers)
             response.raise_for_status()
             response_data = cls._save_response_data(instance, response)
