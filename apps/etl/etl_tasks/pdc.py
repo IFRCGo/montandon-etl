@@ -13,13 +13,14 @@ from main.configs import etl_config
 
 
 @shared_task
-def extract_and_transform_pdc_data():
+def ext_and_transform_pdc_latest_data():
+    # TODO Fix according to latest extraction logic that accepts Metadata
     data_url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazards/t/json/get_active_hazards"
     PDCExtraction.task.s(data_url).apply_async()
 
 
 @shared_task(queue="extraction")
-def extract_and_transform_historical_pdc_data():
+def ext_and_transform_pdc_historical_data():
     pdc_start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
     pdc_interval_years = etl_config.PDC_EXTRACTION_INTERVAL_YEARS
 
