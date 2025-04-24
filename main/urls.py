@@ -19,10 +19,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.decorators.csrf import csrf_exempt
+
+from main.graphql.schema import CustomAsyncGraphQLView, schema
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("health-check/", include("health_check.urls")),
+    path("graphql/", csrf_exempt(CustomAsyncGraphQLView.as_view(schema=schema))),
 ]
 
 if settings.DEBUG:

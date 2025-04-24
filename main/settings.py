@@ -204,6 +204,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "main.urls"
 
+# Strawberry
+# -- Pagination
+STRAWBERRY_ENUM_TO_STRAWBERRY_ENUM_MAP = "main.graphql.enums.ENUM_TO_STRAWBERRY_ENUM_MAP"
+STRAWBERRY_DEFAULT_PAGINATION_LIMIT = 50
+STRAWBERRY_MAX_PAGINATION_LIMIT = 100
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
