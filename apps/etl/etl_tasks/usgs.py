@@ -27,11 +27,10 @@ def ext_and_transform_usgs_latest_data():
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
     start_date = etl_config.USGS_START_DATE
-    end_date = datetime.now().date()
+    end_date = etl_config.USGS_END_DATE or datetime.now().date
 
     while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
         next_date = start_date + timedelta(days=20)
-        end_date = etl_config.USGS_END_DATE or datetime.now().date
         url = (
             f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
             f"&starttime={start_date.strftime('%Y-%m-%d')}"
