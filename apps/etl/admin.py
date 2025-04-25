@@ -142,8 +142,13 @@ class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
         "status",
         "transform_id__extraction_id__source",
     )
+    list_filter = ("item_type", "status", "transform_id__extraction_id__source")
     autocomplete_fields = ["transform_id"]
     search_fields = ["transform_id"]
+
+    @admin.display(description="Source", ordering="source")
+    def source(self, instance):
+        return ExtractionData.Source(instance.source).label
 
     def get_queryset(self, request):
         # NOTE: item contains heavy json data

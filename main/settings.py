@@ -19,7 +19,7 @@ from azure.identity import DefaultAzureCredential
 
 from main import sentry
 
-from .logging import log_render_extra_context
+from .logging import log_render_custom_field
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,11 +103,14 @@ env = environ.Env(
     PDC_ARCGIS_USERNAME=(str, None),
     PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
     PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org"),
-    PDC_START_DATE=(str, "2000-01-01"),
-    PDC_EXTRACTION_INTERVAL_YEARS=(int, 1),
+    PDC_START_DATE=(str, "2025-01-01"),
+    PDC_EXTRACTION_INTERVAL_YEARS=(int, 2),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
     TRANSFORM_SUCCESS_RATE=(int, 80),
+    USGS_START_DATE=(str, "1900-01-01"),
+    USGS_END_DATE=(str, "1985-01-01"),
 )
+
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
@@ -136,8 +139,11 @@ PDC_SENTRY_BASE_URL = env("PDC_SENTRY_BASE_URL")
 PDC_START_DATE = env("PDC_START_DATE")
 PDC_EXTRACTION_INTERVAL_YEARS = env("PDC_EXTRACTION_INTERVAL_YEARS")
 USGS_DATA_URL = env("USGS_DATA_URL")
-IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")
+USGS_START_DATE = env("USGS_START_DATE")
+USGS_END_DATE = env("USGS_END_DATE")
 
+
+IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")
 TRANSFORM_SUCCESS_RATE = env("TRANSFORM_SUCCESS_RATE")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
@@ -384,12 +390,12 @@ LOGGING = {
     "filters": {
         "render_extra_context": {
             "()": "django.utils.log.CallbackFilter",
-            "callback": log_render_extra_context,
+            "callback": log_render_custom_field,
         }
     },
     "formatters": {
         "simple": {
-            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s %(context)s"),
+            "format": ("%(asctime)s: - %(short_name)s - %(message)s %(context)s"),
             "datefmt": "%Y-%m-%dT%H:%M:%S",
         },
     },
@@ -423,10 +429,8 @@ if DEBUG:
             **LOGGING["formatters"],
             "colored_verbose": {
                 "()": "colorlog.ColoredFormatter",
-                "format": (
-                    "%(log_color)s%(asctime)s: %(threadName)s - %(levelname)-s%(red)s %(module)-s%(reset)s "
-                    "%(blue)s%(message)s %(context)s"
-                ),
+                "format": ("%(log_color)s%(asctime)s: %(red)s %(short_name)-s%(reset)s %(blue)s%(message)s %(context)s"),
+                "datefmt": "%m/%d %H:%M:%S",
             },
         },
         "handlers": {

@@ -155,6 +155,8 @@ class EtlConfig:
         self.DESINVENTAR_DATA_URL = self.parse_base_url_required("DESINVENTAR_DATA_URL")
 
         self.USGS_DATA_URL = self.parse_base_url_required("USGS_DATA_URL")
+        self.USGS_START_DATE = self.parse_date_value_required("USGS_START_DATE")
+        self.USGS_END_DATE = self.parse_date_value_required("USGS_END_DATE")
 
         self.IBTRACS_DATA_URL = self.parse_base_url_required("IBTRACS_DATA_URL")
 
