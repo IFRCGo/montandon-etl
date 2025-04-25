@@ -112,9 +112,6 @@ env = environ.Env(
 )
 
 
-
-
-
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
 GEOCODER_URL = env("GEOCODER_URL")

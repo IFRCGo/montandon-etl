@@ -67,23 +67,20 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         with self.extraction_object.resp_data.open() as file_data:
             detail_data = json.loads(file_data.read())
 
-        # if "losspager" not in detail_data["properties"]["products"]:
-        #     # TODO: Or just call transformer?
-        #     raise NoDataException()
-
         losses_tasks = []
         if "losspager" in detail_data["properties"]["products"]:
             for item in detail_data["properties"]["products"]["losspager"]:
-                url = item["contents"]["json/losses.json"]["url"]
-                losses_extraction_obj = self.init_extraction(
-                    metadata=USGSExtractionMetadata(
-                        url=url,
-                        type=USGSExtractionMetadataType.LOSSE,
-                    ),
-                    parent_extraction=self.extraction_object,
-                    add_to_queue=False,
-                )
-                losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
+                if "json/losses.json" in item["content"]:
+                    url = item["contents"]["json/losses.json"]["url"]
+                    losses_extraction_obj = self.init_extraction(
+                        metadata=USGSExtractionMetadata(
+                            url=url,
+                            type=USGSExtractionMetadataType.LOSSE,
+                        ),
+                        parent_extraction=self.extraction_object,
+                        add_to_queue=False,
+                    )
+                    losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
 
         if losses_tasks:
             chord(
