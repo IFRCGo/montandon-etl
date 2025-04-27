@@ -284,10 +284,12 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         return False
 
     def _extraction_fetch_url(
-        self, url: str, params: dict[str, typing.Any] | None = None, headers: dict[str, typing.Any] | None = None
+        self, url: str, headers: dict[str, typing.Any] | None = None, data: dict | None = None, method: str = "get"
     ) -> bool:
-        response = requests.get(url, params=params, headers=headers, timeout=30)
-
+        if method == "get":
+            response = requests.get(url, headers=headers, timeout=30)
+        elif method == "post":
+            response = requests.post(url, headers=headers, data=data, timeout=30)
         # NOTE: Handle Ratelimit manually
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After", None)
@@ -424,6 +426,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
 
         else:
             self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+
             raise exc
 
         self.extraction_object.mark_as_ended(ExtractionData.Status.ON_RETRY)
