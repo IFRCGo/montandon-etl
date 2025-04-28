@@ -1,6 +1,13 @@
+from urllib.parse import urlencode
+
 from celery import chain, shared_task
 
-from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction, IfrcEventExtractionInputMetadata
+from apps.etl.extraction.sources.ifrc_event.extract import (
+    IfrcEventExtractionInputMetadata,
+    IFRCEventExtractionV2,
+    IFRCExtractionMetadata,
+    IFRCExtractionMetadataType,
+)
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from main.configs import etl_config
@@ -30,11 +37,17 @@ def ext_and_transform_ifrcevent_latest_data():
         offset=0,
         ordering="-id",
         format="json",
-    ).model_dump()
-
+    )
+    params_dict = {k: v for k, v in params.model_dump().items() if v is not None}
+    # Encode parameters into URL query string
+    query_string = urlencode(params_dict)
+    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&{query_string}"
+    extraction_obj = IFRCEventExtractionV2.init_extraction(
+        metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY)
+    )
     chain(
-        IFRCEventExtraction.task.s(params),
-        IFRCEventTransformHandler.task.s(),
+        IFRCEventExtractionV2.task.s(extraction_obj.id),
+        IFRCEventTransformHandler.task.s(extraction_obj.id),
     ).apply_async()
 
 
@@ -46,8 +59,16 @@ def ext_and_transform_ifrcevent_historical_data():
         offset=0,
         ordering="-id",
         format="json",
-    ).model_dump()
+    )
+    # Convert params to dict and filter out None values
+    params_dict = {k: v for k, v in params.model_dump().items() if v is not None}
+    # Encode parameters into URL query string
+    query_string = urlencode(params_dict)
+    url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&{query_string}"
+    extraction_obj = IFRCEventExtractionV2.init_extraction(
+        metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY)
+    )
     chain(
-        IFRCEventExtraction.task.s(params),
-        IFRCEventTransformHandler.task.s(),
+        IFRCEventExtractionV2.task.s(extraction_obj.id),
+        IFRCEventTransformHandler.task.s(extraction_obj.id),
     ).apply_async()
