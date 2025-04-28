@@ -70,7 +70,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         losses_tasks = []
         if "losspager" in detail_data["properties"]["products"]:
             for item in detail_data["properties"]["products"]["losspager"]:
-                if "json/losses.json" in item["content"]:
+                if "json/losses.json" in item["contents"]:
                     url = item["contents"]["json/losses.json"]["url"]
                     losses_extraction_obj = self.init_extraction(
                         metadata=USGSExtractionMetadata(
