@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
-from celery import chain, shared_task
+from celery import chord, shared_task
 
-from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionInputMetadata
+from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionMetadata
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.configs import etl_config
@@ -56,20 +56,28 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
 
     to_date = datetime.today().date()
 
-    # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
-        fromyear=from_date.year,
-        frommonth=from_date.month,
-        fromday=from_date.day,
-        toyear=to_date.year,
-        tomonth=to_date.month,
-        today=to_date.day,
-        events=hazard_type.value,
-    ).model_dump()
+    url = (
+        f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp?"
+        f"&fromyear={from_date.year}"
+        f"&frommonth={from_date.month}"
+        f"&fromday={from_date.day}"
+        f"&toyear={to_date.year}"
+        f"&tomonth={to_date.month}"
+        f"&today={to_date.day}"
+        f"&events={hazard_type.value}"
+    )
+    extraction_object = GlideExtraction.init_extraction(
+        metadata=GlideExtractionMetadata(
+            url=url,
+        ),
+        add_to_queue=False,
+    )
 
-    chain(
-        GlideExtraction.task.s(variables),
-        GlideTransformHandler.task.s(),
+    chord(
+        [
+            GlideExtraction.task.si(extraction_object.pk),
+        ],
+        GlideTransformHandler.task.si(extraction_object.pk),
     ).apply_async()
 
 
@@ -83,19 +91,26 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
         if end_date > to_date:
             end_date = to_date
 
-        variables = GlideExtractionInputMetadata(
-            fromyear=start_date.year,
-            frommonth=start_date.month,
-            fromday=start_date.day,
-            toyear=end_date.year,
-            tomonth=end_date.month,
-            today=end_date.day,
-            events=hazard_type.value,
-        ).model_dump()
-
-        chain(
-            GlideExtraction.task.s(variables),
-            GlideTransformHandler.task.s(),
+        url = (
+            f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp?"
+            f"&fromyear={start_date.year}"
+            f"&frommonth={start_date.month}"
+            f"&fromday={start_date.day}"
+            f"&toyear={end_date.year}"
+            f"&tomonth={end_date.month}"
+            f"&today={end_date.day}"
+            f"&events={hazard_type.value}"
+        )
+        extraction_object = GlideExtraction.init_extraction(
+            metadata=GlideExtractionMetadata(
+                url=url,
+            ),
+        )
+        chord(
+            [
+                GlideExtraction.task.si(extraction_object.pk),
+            ],
+            GlideTransformHandler.task.si(extraction_object.pk),
         ).apply_async()
 
         start_date = end_date + timedelta(days=1)
