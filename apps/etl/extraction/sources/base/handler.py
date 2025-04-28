@@ -16,9 +16,9 @@ from apps.etl.extraction.sources.base.utils import (
 from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import app
 from main.logging import log_extra
+from main.sentry import SentryTag
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
-from main.sentry import SentryTag
 
 logger = logging.getLogger(__name__)
 
