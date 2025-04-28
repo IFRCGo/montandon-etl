@@ -1,33 +1,34 @@
+import logging
+
 import pydantic
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
-from main.configs import etl_config
+from main.celery import CeleryQueue, app
+from utils.celery import RetryableTask
+
+logger = logging.getLogger(__name__)
 
 
-class GlideExtractionInputMetadata(pydantic.BaseModel):
-    fromyear: int | None
-    frommonth: int | None
-    fromday: int | None
-    toyear: int | None
-    tomonth: int | None
-    today: int | None
-    events: str | None
+class GlideExtractionMetadata(pydantic.BaseModel):
+    url: str
 
 
-class GlideExtraction(BaseExtraction):
-    """
-    Handles data extraction from the GLIDE API.
-    """
+class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
+    source_enum = ExtractionData.Source.GLIDE
+    extraction_metadata_class = GlideExtractionMetadata
+
+    def handle_extract(self):
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        url = self.extraction_metadata.url
+        headers = {"Content-Type": "application/json"}
+        self._extraction_fetch_url(url, headers)
 
     @staticmethod
-    @app.task
-    def task(metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
-        input_metadata = GlideExtractionInputMetadata(**metadata)
-        return GlideExtraction().handle_extraction(
-            url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-            params=input_metadata.model_dump(),
-            headers={"accept": "application/json"},
-            source=ExtractionData.Source.GLIDE.value,
-        )
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.DEFAULT,
+    )
+    def task(celery_task, extraction_id):
+        GlideExtraction(celery_task, extraction_id).handle()
