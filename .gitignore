@@ -133,4 +133,5 @@ dmypy.json
 
 # Media/Data
 assets/
+media/
 *.gpkg
