@@ -3,7 +3,7 @@ import json
 import logging
 import typing
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import pydantic
 import requests
@@ -264,10 +264,29 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             )
         return extraction_object
 
+    def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None) -> bool:
+        if not payload or "query" not in payload:
+            return False
+        response = requests.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        self.extraction_object.resp_code = response.status_code
+
+        if response.status_code in [200, 204]:
+            response_data = self._extraction_store_data(
+                extraction_object=self.extraction_object,
+                response=response,
+            )
+            # Check if response contains data
+            if response_data:
+                logger.info("Data extracted successfully")
+                return True
+            logger.warning("No data found in response")
+        return False
+
     def _extraction_fetch_url(
-        self, url: str, headers: dict[str, typing.Any] | None = None, params: dict[str, typing.Any] | None = None
+        self, url: str, params: dict[str, typing.Any] | None = None, headers: dict[str, typing.Any] | None = None
     ) -> bool:
-        response = requests.get(url, headers=headers, params=params, timeout=30)
+        response = requests.get(url, params=params, headers=headers, timeout=30)
 
         # NOTE: Handle Ratelimit manually
         if response.status_code == 429:
