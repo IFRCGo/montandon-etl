@@ -1,0 +1,138 @@
+type AppEnumCollection {
+  ExtractionDataSource: [AppEnumCollectionExtractionDataSource!]!
+  ExtractionDataStatus: [AppEnumCollectionExtractionDataStatus!]!
+  ExtractionDataSourceValidationStatus: [AppEnumCollectionExtractionDataSourceValidationStatus!]!
+  PyStacLoadDataStatus: [AppEnumCollectionPyStacLoadDataStatus!]!
+  PyStacLoadDataItemType: [AppEnumCollectionPyStacLoadDataItemType!]!
+}
+
+type AppEnumCollectionExtractionDataSource {
+  key: ExtractionSourceTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionExtractionDataSourceValidationStatus {
+  key: ExtractionDataValidationStatusTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionExtractionDataStatus {
+  key: ExtractionDataStatusTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionPyStacLoadDataItemType {
+  key: PyStacLoadDataItemTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionPyStacLoadDataStatus {
+  key: PyStacLoadDataStatusEnum!
+  label: String!
+}
+
+enum ExtractionDataStatusTypeEnum {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  ON_RETRY
+}
+
+enum ExtractionDataValidationStatusTypeEnum {
+  SUCCESS
+  FAILED
+  NO_DATA
+  NO_CHANGE
+  NO_VALIDATION
+}
+
+enum ExtractionSourceTypeEnum {
+  GDACS
+  PDC
+  GLIDE
+  IBTRACS
+  EMDAT
+  GIDD
+  IDU
+  USGS
+  GFD
+  DFO
+  STORM
+  DREF
+  WFPADAM
+  DESINVENTAR
+}
+
+type Mutation {
+  public: PublicMutation!
+  private: PrivateMutation!
+}
+
+type PrivateMutation {
+  id: ID!
+}
+
+type PrivateQuery {
+  id: ID!
+}
+
+type PublicMutation {
+  id: ID!
+}
+
+type PublicQuery {
+  allExtractionData: [RawExtractiondata!]!
+  totalCount: [StatusCount!]!
+  statusSourceCounts: [StatusSourceCount!]!
+  validationStatusSourceCounts: [ValStatusSourceCount!]!
+  id: ID!
+}
+
+enum PyStacLoadDataItemTypeEnum {
+  EVENT
+  HAZARD
+  IMPACT
+}
+
+enum PyStacLoadDataStatusEnum {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+type Query {
+  public: PublicQuery!
+  private: PrivateQuery!
+  enums: AppEnumCollection!
+}
+
+type RawExtractiondata {
+  status: ExtractionDataStatusTypeEnum!
+  source: ExtractionSourceTypeEnum!
+  sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
+}
+
+type StatusCount {
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type StatusSourceCount {
+  source: ExtractionSourceTypeEnum!
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type ValStatusSourceCount {
+  source: ExtractionSourceTypeEnum!
+  successCount: Int!
+  failedCount: Int!
+  noDataCount: Int!
+  noChangeCount: Int!
+  noValidationCount: Int!
+}
