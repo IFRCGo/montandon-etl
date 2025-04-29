@@ -27,7 +27,9 @@ class PublicQuery(
 
 
 @strawberry.type
-class PrivateQuery:
+class PrivateQuery(
+    etl_queries.PrivateQuery,
+):
     id: strawberry.ID = strawberry.ID("private")
 
 
@@ -63,6 +65,6 @@ schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
     extensions=[
-        DjangoOptimizerExtension,  # not required, but highly recommended
+        DjangoOptimizerExtension,
     ],
 )

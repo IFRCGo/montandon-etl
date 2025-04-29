@@ -31,6 +31,65 @@ type AppEnumCollectionPyStacLoadDataStatus {
   label: String!
 }
 
+"""Date with time (isoformat)"""
+scalar DateTime
+
+input DatetimeDatetimeFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: DateTime
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [DateTime!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: DateTime
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: DateTime
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: DateTime
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: DateTime
+
+  """Inclusive range test (between)"""
+  range: DatetimeRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+  hour: IntComparisonFilterLookup
+  minute: IntComparisonFilterLookup
+  second: IntComparisonFilterLookup
+  date: IntComparisonFilterLookup
+  time: IntComparisonFilterLookup
+}
+
+input DatetimeRangeLookup {
+  start: DateTime = null
+  end: DateTime = null
+}
+
+input ExtractionDataFilter {
+  createdAt: DatetimeDatetimeFilterLookup
+  source: ExtractionSourceTypeEnum!
+  status: ExtractionDataStatusTypeEnum!
+  AND: ExtractionDataFilter
+  OR: ExtractionDataFilter
+  NOT: ExtractionDataFilter
+  DISTINCT: Boolean
+}
+
 enum ExtractionDataStatusTypeEnum {
   PENDING
   IN_PROGRESS
@@ -64,9 +123,47 @@ enum ExtractionSourceTypeEnum {
   DESINVENTAR
 }
 
+input IntComparisonFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Int
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Int!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Int
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Int
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Int
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Int
+
+  """Inclusive range test (between)"""
+  range: IntRangeLookup
+}
+
+input IntRangeLookup {
+  start: Int = null
+  end: Int = null
+}
+
 type Mutation {
   public: PublicMutation!
   private: PrivateMutation!
+}
+
+input OffsetPaginationInput {
+  offset: Int! = 0
+  limit: Int
 }
 
 type PrivateMutation {
@@ -74,6 +171,10 @@ type PrivateMutation {
 }
 
 type PrivateQuery {
+  extractionList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): RawExtractiondatatypeCountList!
+  totalCount: [StatusCount!]!
+  statusSourceCounts: [StatusSourceCount!]!
+  validationStatusSourceCounts: [ValStatusSourceCount!]!
   id: ID!
 }
 
@@ -82,10 +183,7 @@ type PublicMutation {
 }
 
 type PublicQuery {
-  allExtractionData: [RawExtractiondata!]!
-  totalCount: [StatusCount!]!
-  statusSourceCounts: [StatusSourceCount!]!
-  validationStatusSourceCounts: [ValStatusSourceCount!]!
+  noop: ID!
   id: ID!
 }
 
@@ -107,10 +205,24 @@ type Query {
   enums: AppEnumCollection!
 }
 
-type RawExtractiondata {
-  status: ExtractionDataStatusTypeEnum!
+type RawExtractiondatatype {
+  id: ID!
   source: ExtractionSourceTypeEnum!
-  sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
+  status: ExtractionDataStatusTypeEnum!
+  url: String!
+  respCode: Int
+  respDataType: String!
+  parentId: Int
+  sourceValidationStatus: Int!
+  hazardType: String
+  traceId: Int!
+}
+
+type RawExtractiondatatypeCountList {
+  limit: Int!
+  offset: Int!
+  count: Int!
+  items: [RawExtractiondatatype!]!
 }
 
 type StatusCount {
