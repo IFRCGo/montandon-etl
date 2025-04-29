@@ -1,10 +1,12 @@
 from datetime import datetime
 
-from celery import chain, shared_task, chord
+from celery import chain, shared_task
 
 from apps.etl.extraction.sources.emdat.extract import (
     EmdatExtraction,
     EmdatExtractionMetadata,
+    EmdatExtractionMetadataType,
+    EmdatExtractionParamsMetadata,
 )
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from apps.etl.utils import get_cluster_codes
@@ -83,31 +85,40 @@ query monty(
 """
 
 
-# FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
     extraction_object = EmdatExtraction.init_extraction(
         metadata=EmdatExtractionMetadata(
-            limit=-1,
-            from_=etl_config.EMDAT_START_YEAR,
-            to=datetime.now().year,
-            include_hist=None,
-            classif=get_cluster_codes(),
-            url=f"{etl_config.EMDAT_URL}/v1"
+            params=EmdatExtractionParamsMetadata(
+                limit=-1,
+                from_=etl_config.EMDAT_START_YEAR,
+                to=datetime.now().year,
+                include_hist=None,
+                classif=get_cluster_codes(),
+            ),
+            url=f"{etl_config.EMDAT_URL}/v1",
+            type=EmdatExtractionMetadataType.QUERY,
         ),
         add_to_queue=False,
     )
-    print("ETl TAsk***************************")
-
-    EmdatExtraction.task.delay(extraction_object.id)
+    chain(EmdatExtraction.task.s(extraction_object.id), EMDATTransformHandler.task.s()).apply_async()
 
 
-# FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
     for i in range(etl_config.EMDAT_START_YEAR, etl_config.EMDAT_END_YEAR + 1):
-        metadata = EmdatExtractionInputMetadata(limit=-1, from_=i, to=i, include_hist=True, classif=get_cluster_codes())
-        chain(
-            EMDATExtraction.task.s(QUERY, metadata.model_dump()),
-            EMDATTransformHandler.task.s(),
-        ).apply_async()
+        extraction_object = EmdatExtraction.init_extraction(
+            metadata=EmdatExtractionMetadata(
+                params=EmdatExtractionParamsMetadata(
+                    limit=-1,
+                    from_=i,
+                    to=i,
+                    include_hist=True,
+                    classif=get_cluster_codes(),
+                ),
+                url=f"{etl_config.EMDAT_URL}/v1",
+                type=EmdatExtractionMetadataType.QUERY,
+            ),
+            add_to_queue=False,
+        )
+        chain(EmdatExtraction.task.s(extraction_object.id), EMDATTransformHandler.task.s()).apply_async()
