@@ -162,9 +162,9 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
     extraction_metadata_class = IFRCExtractionMetadata
 
     def handle_type_query(self):
-        next_url = self.extraction_metadata.url
+        url = self.extraction_metadata.url
         self._extraction_fetch_url(
-            next_url,
+            url,
             headers={"Content-Type": "application/json"},
         )
         response_data = json.loads(self.extraction_object.resp_data.read())
@@ -176,8 +176,6 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
                     url=next_url,
                     type=IFRCExtractionMetadataType.QUERY,
                 ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=True,
             )
 
     def handle_extract(self):
