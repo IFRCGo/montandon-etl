@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from celery import chain, shared_task
+from celery import shared_task
 
 from apps.etl.extraction.sources.ifrc_event.extract import (
     IfrcEventExtractionInputMetadata,
@@ -9,7 +9,6 @@ from apps.etl.extraction.sources.ifrc_event.extract import (
     IFRCExtractionMetadataType,
 )
 from apps.etl.models import ExtractionData
-from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from main.configs import etl_config
 
 
@@ -42,20 +41,14 @@ def ext_and_transform_ifrcevent_latest_data():
     # Encode parameters into URL query string
     query_string = urlencode(params_dict)
     url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&{query_string}"
-    extraction_obj = IFRCEventExtractionV2.init_extraction(
-        metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY)
-    )
-    chain(
-        IFRCEventExtractionV2.task.s(extraction_obj.id),
-        IFRCEventTransformHandler.task.s(extraction_obj.id),
-    ).apply_async()
+    IFRCEventExtractionV2.init_extraction(metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY))
 
 
 @shared_task
 def ext_and_transform_ifrcevent_historical_data():
     params = IfrcEventExtractionInputMetadata(
         disaster_start_date__gte=None,
-        limit=50,
+        limit=500,
         offset=0,
         ordering="-id",
         format="json",
@@ -65,10 +58,4 @@ def ext_and_transform_ifrcevent_historical_data():
     # Encode parameters into URL query string
     query_string = urlencode(params_dict)
     url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&{query_string}"
-    extraction_obj = IFRCEventExtractionV2.init_extraction(
-        metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY)
-    )
-    chain(
-        IFRCEventExtractionV2.task.s(extraction_obj.id),
-        IFRCEventTransformHandler.task.s(extraction_obj.id),
-    ).apply_async()
+    IFRCEventExtractionV2.init_extraction(metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY))
