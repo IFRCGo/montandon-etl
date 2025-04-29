@@ -3,13 +3,12 @@ from asgiref.sync import sync_to_async
 from django.db.models import Count, Q
 
 from apps.etl.models import ExtractionData, Status
-from apps.etl.types import StatusCount, StatusSourceCount, ValStatusSourceCount, RawExtractiondata
+from apps.etl.types import RawExtractiondata, StatusCount, StatusSourceCount, ValStatusSourceCount
 from main.graphql.context import Info
 
 
 @strawberry.type
 class PublicQuery:
-
     @strawberry.field()
     async def all_extraction_data(self, info: Info) -> list[RawExtractiondata]:
         qs = RawExtractiondata.get_queryset(None, None, info).order_by("id")
