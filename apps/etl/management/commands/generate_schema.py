@@ -1,15 +1,21 @@
 import argparse
+
 from django.core.management.base import BaseCommand
 from strawberry.printer import print_schema
+
 from main.graphql.schema import schema
+
+
 class Command(BaseCommand):
     help = "Create schema.graphql file"
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--out",
             type=argparse.FileType("w"),
             default="schema.graphql",
         )
+
     def handle(self, *args, **options):
         file = options["out"]
         file.write(print_schema(schema))
