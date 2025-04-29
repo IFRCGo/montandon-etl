@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import socket
 import typing
 from pathlib import Path
 
@@ -34,6 +35,7 @@ env = environ.Env(
     DJANGO_APP_ENVIRONMENT=(str, "development"),
     DJANGO_APP_TYPE=str,  # web/worker
     DJANGO_TIME_ZONE=(str, "UTC"),
+    ENABLE_DEBUG_TOOLBAR=(bool, False),
     # Database
     DB_NAME=str,
     DB_USER=str,
@@ -461,6 +463,15 @@ if DEBUG:
             "handlers": ["colored_console"],
         },
     }
+
+ENABLE_DEBUG_TOOLBAR = env("ENABLE_DEBUG_TOOLBAR")
+if DEBUG and ENABLE_DEBUG_TOOLBAR:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = [
+        "127.0.0.1",
+        ".".join(socket.gethostbyname(socket.gethostname()).rsplit(".")[:-1]) + ".1",
+    ]
 
 # Manual checks
 import main.checks  # noqa: F401 E402
