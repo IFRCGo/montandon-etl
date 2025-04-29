@@ -1,20 +1,24 @@
 import strawberry
 from django.db import models
 
-from apps.etl.enums import ExtractionSourceTypeEnum, ExtractionDataStatusTypeEnum, ExtractionValidationTypeEnum
+from apps.etl.enums import ExtractionDataStatusTypeEnum, ExtractionSourceTypeEnum, ExtractionValidationTypeEnum
 from apps.etl.models import ExtractionData
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model
+
+
 class ExtractionDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
         return get_queryset_for_model(ExtractionData, queryset)
+
 
 @strawberry.type
 class RawExtractiondata(ExtractionDataQuerysetMixin):
     status: ExtractionDataStatusTypeEnum
     source: ExtractionSourceTypeEnum
     source_validation_status: ExtractionValidationTypeEnum
+
 
 @strawberry.type
 class StatusCount(ExtractionDataQuerysetMixin):
@@ -41,6 +45,7 @@ class ValStatusSourceCount(ExtractionDataQuerysetMixin):
     no_data_count: int
     no_change_count: int
     no_validation_count: int
+
 
 @strawberry.type()
 class CountbytraceID:
