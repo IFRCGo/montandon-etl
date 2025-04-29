@@ -1,18 +1,22 @@
 import strawberry
 import strawberry_django
-from typing import Optional
-from utils.strawberry.enums import enum_field
-from apps.etl.models import PyStacLoadData,ExtractionData
-from apps.etl.enums import PyStacLoadDataItemTypeEnum,PyStacLoadDataStatusEnum,ExtractionDataStatusTypeEnum,ExtractionSourceTypeEnum
+
+from apps.etl.enums import (
+    ExtractionDataStatusTypeEnum,
+    ExtractionSourceTypeEnum,
+    PyStacLoadDataItemTypeEnum,
+    PyStacLoadDataStatusEnum,
+)
+from apps.etl.models import ExtractionData, PyStacLoadData
+
 
 @strawberry_django.filters.filter(PyStacLoadData, lookups=True)
 class PyStacLoadDataFilter:
     id: strawberry.auto
-    status:PyStacLoadDataStatusEnum
-    item_type:PyStacLoadDataItemTypeEnum
-    trace_id:int
+    status: PyStacLoadDataStatusEnum
+    item_type: PyStacLoadDataItemTypeEnum
+    trace_id: int
 
-    
 
 @strawberry_django.filters.filter(ExtractionData, lookups=True)
 class ExtractionDataFilter:
@@ -20,3 +24,8 @@ class ExtractionDataFilter:
     source: ExtractionSourceTypeEnum
     status: ExtractionDataStatusTypeEnum
 
+
+@strawberry_django.filters.filter(ExtractionData, lookups=True)
+class TestFilter:
+    source: ExtractionSourceTypeEnum
+    status: ExtractionDataStatusTypeEnum
