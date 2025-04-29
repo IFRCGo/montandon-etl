@@ -2,7 +2,6 @@ import dataclasses
 
 import strawberry
 
-from apps import etl
 from apps.etl.enums import enum_map as etl_enum_map
 
 ENUM_TO_STRAWBERRY_ENUM_MAP: dict[str, type] = {
