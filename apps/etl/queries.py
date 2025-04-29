@@ -2,17 +2,19 @@ import strawberry
 from asgiref.sync import sync_to_async
 from django.db.models import Count, Q
 
+from apps.etl.filters import ExtractionDataFilter
 from apps.etl.models import ExtractionData, Status
-from apps.etl.types import RawExtractiondata, StatusCount, StatusSourceCount, ValStatusSourceCount
+from apps.etl.types import RawExtractiondatatype, StatusCount, StatusSourceCount, ValStatusSourceCount
 from main.graphql.context import Info
+from utils.strawberry.paginations import CountList, pagination_field
 
 
 @strawberry.type
-class PublicQuery:
-    @strawberry.field()
-    async def all_extraction_data(self, info: Info) -> list[RawExtractiondata]:
-        qs = RawExtractiondata.get_queryset(None, None, info).order_by("id")
-        return [data async for data in qs]
+class PrivateQuery:
+    extraction_list: CountList[RawExtractiondatatype] = pagination_field(
+        pagination=True,
+        filters=ExtractionDataFilter,
+    )
 
     @strawberry.field()
     async def total_count(self, info: Info) -> list[StatusCount]:
@@ -85,3 +87,8 @@ class PublicQuery:
             )
             async for event in query_countby_valstatus_source
         ]
+
+
+@strawberry.type
+class PublicQuery:
+    noop: strawberry.ID = strawberry.ID("noop")
