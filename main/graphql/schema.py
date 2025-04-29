@@ -1,11 +1,12 @@
 import strawberry
 from strawberry.django.views import AsyncGraphQLView
+from strawberry_django.optimizer import DjangoOptimizerExtension
 
 from apps.etl import queries as etl_queries
+from main.graphql.enums import AppEnumCollection, AppEnumCollectionData
 
 from .context import GraphQLContext
 from .dataloaders import GlobalDataLoader
-from main.graphql.enums import AppEnumCollection, AppEnumCollectionData
 from .permissions import IsAuthenticated
 
 
@@ -22,28 +23,22 @@ class CustomAsyncGraphQLView(AsyncGraphQLView):
 class PublicQuery(
     etl_queries.PublicQuery,
 ):
-    id: strawberry.ID = strawberry.ID('public')
+    id: strawberry.ID = strawberry.ID("public")
 
 
 @strawberry.type
-class PrivateQuery(
-   
-):
-    id: strawberry.ID = strawberry.ID('private')
+class PrivateQuery:
+    id: strawberry.ID = strawberry.ID("private")
 
 
 @strawberry.type
-class PublicMutation(
-   
-):
-    id: strawberry.ID = strawberry.ID('public')
+class PublicMutation:
+    id: strawberry.ID = strawberry.ID("public")
 
 
 @strawberry.type
-class PrivateMutation(
-   
-):
-    id: strawberry.ID = strawberry.ID('private')
+class PrivateMutation:
+    id: strawberry.ID = strawberry.ID("private")
 
 
 @strawberry.type
@@ -67,4 +62,7 @@ class Mutation:
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
+    extensions=[
+        DjangoOptimizerExtension,  # not required, but highly recommended
+    ],
 )
