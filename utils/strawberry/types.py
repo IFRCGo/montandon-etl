@@ -43,7 +43,7 @@ def string_field(
         DjangoBaseField,
         models.query_utils.DeferredAttribute,
         "_FieldDescriptor",
-    ]
+    ],
 ):
     """
     Behaviour:
