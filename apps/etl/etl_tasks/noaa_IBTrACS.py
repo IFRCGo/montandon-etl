@@ -1,21 +1,16 @@
 import logging
 from urllib.parse import urljoin
 
-from celery import chain, shared_task
+from celery import shared_task
 
-from apps.etl.extraction.sources.noaa_IBTrACS.extract import IBTrACSExtraction
-from apps.etl.transform.sources.noaa_ibtracs import IbtracsTransformHandler
+from apps.etl.extraction.sources.noaa_IBTrACS.extract import (
+    IBTrACSExtraction,
+    IBTrACSExtractionMetadata,
+    IBTrACSExtractionMetadataType,
+)
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
-
-
-@shared_task
-def extract_and_transform_ibtracs_data(url):
-    chain(
-        IBTrACSExtraction.task.s(url),
-        IbtracsTransformHandler.task.s(),
-    ).apply_async()
 
 
 def get_url(path: str):
@@ -31,10 +26,20 @@ def get_url(path: str):
 @shared_task
 def ext_and_transform_ibtracs_historical_data():
     url = get_url("ibtracs.ALL.list.v04r01.csv")
-    extract_and_transform_ibtracs_data(url)
+    IBTrACSExtraction.init_extraction(
+        metadata=IBTrACSExtractionMetadata(
+            url=url,
+            type=IBTrACSExtractionMetadataType.QUERY,
+        ),
+    )
 
 
 @shared_task
 def ext_and_transform_ibtracs_latest_data():
     url = get_url("ibtracs.ACTIVE.list.v04r01.csv")
-    extract_and_transform_ibtracs_data(url)
+    IBTrACSExtraction.init_extraction(
+        metadata=IBTrACSExtractionMetadata(
+            url=url,
+            type=IBTrACSExtractionMetadataType.QUERY,
+        ),
+    )
