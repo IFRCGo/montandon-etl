@@ -21,11 +21,9 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         metadata: dict | None = extraction_obj.metadata
         if not metadata:
             raise Exception("Metadata is not defined")
-        input_metadata = metadata.get("transform_args", {})
+        from apps.etl.extraction.sources.pdc.extract import PdcExposureMetadata
 
-        from apps.etl.extraction.sources.pdc.extract import PdcExposureInputMetadata
-
-        input_metadata = PdcExposureInputMetadata(**input_metadata)
+        input_metadata = PdcExposureMetadata(**metadata.get("exposure_detail", {}))
 
         geo_json_obj = ExtractionData.objects.get(id=input_metadata.geojson_id)
 

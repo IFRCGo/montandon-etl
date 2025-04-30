@@ -6,7 +6,7 @@ from enum import Enum
 import pydantic
 from celery import chord
 
-from apps.etl.extraction.sources.base.handler import BaseExtractionV2
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2, NoDataException
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from main.celery import app
@@ -23,19 +23,11 @@ class PDCExtractionMetaDataType(str, Enum):
     HAZARD = "HAZARD"
 
 
-class PDCExtractionMetadata(pydantic.BaseModel):
-    extraction_args: typing.Optional[dict] | None = None
-    transform_args: typing.Optional[dict] | None = None
-    url: str
-    type: PDCExtractionMetaDataType
+class PdcPolygonMetadata(pydantic.BaseModel):
+    hazard_id: int
 
 
-class PdcPolygonInputMetadata(pydantic.BaseModel):
-    hazard_uuid: str
-    hazard_type_id: str
-
-
-class PdcExposureInputMetadata(pydantic.BaseModel):
+class PdcExposureMetadata(pydantic.BaseModel):
     exposure_id: str | None = None
     hazard_uuid: str | None = None
     geojson_id: int | None = None
@@ -55,6 +47,39 @@ class Restriction(pydantic.BaseModel):
 class PdcHazardInputMetadata(pydantic.BaseModel):
     pagination: Pagination
     restrictions: typing.List[typing.List[Restriction]]
+
+
+class PDCExposurelistMetadata(pydantic.BaseModel):
+    hazard_uuid: str | None
+    hazard_id: int | None
+    geo_obj_id: int | None
+
+
+class PdcHazardMetadata(pydantic.BaseModel):
+    hazard_id: int | None = None
+
+
+class PDCExtractionMetadata(pydantic.BaseModel):
+    url: str
+    type: PDCExtractionMetaDataType
+    exposure_detail: typing.Optional[PdcExposureMetadata] = None
+    hazard: typing.Optional[PdcHazardInputMetadata] = None
+    exposure_list: typing.Optional[PDCExposurelistMetadata] = None
+    polygon: typing.Optional[PdcPolygonMetadata] = None
+
+    @pydantic.model_validator(mode="after")
+    def check_required_by_type(self) -> "PDCExtractionMetadata":
+        if self.type == PDCExtractionMetaDataType.EXPOSURE_DETAIL and not self.exposure_detail:
+            raise ValueError("exposure_detail is required when type is 'exposure'")
+        if self.type == PDCExtractionMetaDataType.EXPOSURE_LIST and not self.exposure_list:
+            raise ValueError("exposure_list is required when type is 'exposure_list'")
+        if self.type == PDCExtractionMetaDataType.HAZARD and not self.hazard:
+            raise ValueError("hazard is required when type is 'hazard'")
+        if self.type == PDCExtractionMetaDataType.EXPOSURE_LIST and not self.exposure_list:
+            raise ValueError("exposure_list is required when type is 'exposure_list'")
+        if self.type == PDCExtractionMetaDataType.POLYGON and not self.polygon:
+            raise ValueError("polygon is required when type is 'polygon'")
+        return self
 
 
 HAZARD_TYPE_MAP = {
@@ -84,27 +109,42 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     source_enum = ExtractionData.Source.PDC
     extraction_metadata_class = PDCExtractionMetadata
 
+    @classmethod
+    def _get_request_headers(cls, headers: dict[str, typing.Any] | None = None) -> dict[str, str]:
+        default_headers = {
+            "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
+            "Content-Type": "application/json",
+        }
+        if headers:
+            return {**default_headers, **headers}
+        return default_headers
+
     def handle_type_hazard(self):
         self._extraction_fetch_url(
             self.extraction_metadata.url,
-            data=json.dumps(self.extraction_metadata.extraction_args),
-            headers={
-                "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
-                "Content-Type": "application/json",
-            },
+            data=json.dumps(self.extraction_metadata.hazard.model_dump()),
+            headers=self._get_request_headers(),
             method="post",
         )
         response_data = json.loads(self.extraction_object.resp_data.read())
 
         for item in response_data:
+            geo_object = self.init_extraction(
+                metadata=PDCExtractionMetadata(
+                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",
+                    type=PDCExtractionMetaDataType.POLYGON,
+                    polygon=PdcPolygonMetadata(hazard_id=item["hazard_ID"]),
+                ),
+                parent_extraction=self.extraction_object,
+            )
+
             self.init_extraction(
                 metadata=PDCExtractionMetadata(
                     url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{item['uuid']}/exposure",
                     type=PDCExtractionMetaDataType.EXPOSURE_LIST,
-                    extraction_args={
-                        "hazard_uuid": item["uuid"],
-                        "hazard_id": item["hazard_ID"],
-                    },
+                    exposure_list=PDCExposurelistMetadata(
+                        hazard_uuid=item["uuid"], hazard_id=item["hazard_ID"], geo_obj_id=geo_object.id
+                    ),
                 ),
                 parent_extraction=self.extraction_object,
             )
@@ -112,45 +152,32 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def handle_exposure_list(self):
         self._extraction_fetch_url(
             self.extraction_metadata.url,
-            headers={
-                "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
-                "Content-Type": "application/json",
-            },
+            headers=self._get_request_headers(),
         )
+
         if not self.extraction_object.resp_data:
-            return None
+            raise NoDataException
 
         response_data = json.loads(self.extraction_object.resp_data.read())
         if not response_data:
-            return None
-
-        # Create geojson only once (if all exposures share the same hazard_id)
-        geo_json_obj = self.init_extraction(
-            metadata=PDCExtractionMetadata(
-                url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={self.extraction_metadata.extraction_args['hazard_id']}",
-                type=PDCExtractionMetaDataType.POLYGON,
-                extraction_args={"hazard_id": self.extraction_metadata.extraction_args["hazard_id"]},
-            ),
-            parent_extraction=self.extraction_object.parent,
-        )
+            raise NoDataException
 
         for item in response_data:
             exposure_extraction_obj = self.init_extraction(
                 metadata=PDCExtractionMetadata(
-                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.extraction_args['hazard_uuid']}/exposure/{item}",
+                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",
                     type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
-                    transform_args={
-                        "exposure_id": item,
-                        "hazard_uuid": self.extraction_metadata.extraction_args["hazard_uuid"],
-                        "geojson_id": geo_json_obj.id,
-                    },
+                    exposure_detail=PdcExposureMetadata(
+                        exposure_id=item,
+                        hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,
+                        geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,
+                    ),
                 ),
                 parent_extraction=self.extraction_object.parent,
                 add_to_queue=False,
             )
             chord(
-                [PDCExtractionV2.task.si(exposure_extraction_obj.id)],
-                PDCTransformHandler.task.si(exposure_extraction_obj.id),
+                PDCExtractionV2.task.si(exposure_extraction_obj.pk), PDCTransformHandler.task.si(exposure_extraction_obj.id)
             ).apply_async()
 
     def handle_polygon(self):
@@ -161,12 +188,10 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def handle_exposure_detail(self):
         self._extraction_fetch_url(
             self.extraction_metadata.url,
-            headers={
-                "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
-                "Content-Type": "application/json",
-            },
+            headers=self._get_request_headers(),
         )
 
+    @typing.override
     def handle_extract(self):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")

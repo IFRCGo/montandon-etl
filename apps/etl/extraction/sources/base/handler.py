@@ -284,12 +284,18 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         return False
 
     def _extraction_fetch_url(
-        self, url: str, headers: dict[str, typing.Any] | None = None, data: dict | None = None, method: str = "get"
+        self,
+        url: str,
+        headers: dict[str, typing.Any] | None = None,
+        data: dict | None = None,
+        method: typing.Literal["get", "post"] = "get",
     ) -> bool:
         if method == "get":
             response = requests.get(url, headers=headers, timeout=30)
         elif method == "post":
             response = requests.post(url, headers=headers, data=data, timeout=30)
+        else:
+            typing.assert_never(method)
         # NOTE: Handle Ratelimit manually
         if response.status_code == 429:
             retry_after = response.headers.get("Retry-After", None)
@@ -343,6 +349,11 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 return True
             logger.warning("No data found in response")
         return False
+
+    @classmethod
+    def _get_request_headers(cls, headers: dict[str, typing.Any] | None = None):
+        if headers:
+            return headers
 
     @classmethod
     def init_extraction(
