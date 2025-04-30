@@ -6,7 +6,7 @@ from django.db import models
 from strawberry import auto
 
 from apps.etl.enums import DataStatusTypeEnum, SourceTypeEnum
-from apps.etl.models import ExtractionData, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model
 
@@ -15,7 +15,8 @@ class ExtractionDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
         return get_queryset_for_model(ExtractionData, queryset)
-    
+
+
 class TransformDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
@@ -41,6 +42,37 @@ class RawExtractiondatatype:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
         return get_queryset_for_model(ExtractionData, queryset)
+
+
+@strawberry_django.type(Transform)
+class RawTransformdatatype:
+    id: auto
+    status: DataStatusTypeEnum
+    trace_id: int
+    metadata: auto
+    extraction: auto
+    created_at: auto
+    started_at: auto
+    ended_at: auto
+
+    @staticmethod
+    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
+        return get_queryset_for_model(Transform, queryset)
+
+
+@strawberry_django.type(PyStacLoadData)
+class RawPystacdatatype:
+    id: auto
+    status: DataStatusTypeEnum
+    trace_id: int
+    item_type: auto
+    created_at: auto
+    modified_at: auto
+    transform_id: auto
+
+    @staticmethod
+    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
+        return get_queryset_for_model(Transform, queryset)
 
 
 @strawberry.type
@@ -78,12 +110,14 @@ class CountbytraceID(ExtractionDataQuerysetMixin):
     transform_count: int
     stac_count: int
 
+
 @strawberry.type
 class StatusCountTransform(TransformDataQuerysetMixin):
     in_progress_count: int
     success_count: int
     failed_count: int
     pending_count: int
+
 
 @strawberry.type
 class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
