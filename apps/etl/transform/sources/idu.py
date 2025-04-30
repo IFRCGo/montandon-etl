@@ -1,7 +1,7 @@
 from pystac_monty.sources.idu import IDUDataSource, IDUTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 
 class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource]):
@@ -16,6 +16,6 @@ class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource])
         return cls.transformer_schema(source_url=extraction_obj.url, data=data)
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.DEFAULT)
     def task(extraction_id):
         IDUTransformHandler().handle_transformation(extraction_id)

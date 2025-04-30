@@ -1,7 +1,7 @@
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 
 class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSource]):
@@ -16,6 +16,6 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
         return cls.transformer_schema(source_url=extraction_obj.url, data=data)
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.DEFAULT)
     def task(extraction_id):
         GIDDTransformHandler().handle_transformation(extraction_id)

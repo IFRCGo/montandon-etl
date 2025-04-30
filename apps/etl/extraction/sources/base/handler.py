@@ -265,11 +265,9 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         return extraction_object
 
     def _extraction_fetch_url(
-        self,
-        url: str,
-        headers: dict[str, typing.Any] | None = None,
+        self, url: str, headers: dict[str, typing.Any] | None = None, params: dict[str, typing.Any] | None = None
     ) -> bool:
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(url, headers=headers, params=params, timeout=30)
 
         # NOTE: Handle Ratelimit manually
         if response.status_code == 429:
