@@ -33,10 +33,10 @@ def extract_and_transform_pdc_data():
                 Restriction(searchType="GREATER_THAN", createDate=str(int(start_date.timestamp() * 1000))),  # type: ignore
             ]
         ],
-    ).model_dump()
+    )
     PDCExtractionV2.init_extraction(
         metadata=PDCExtractionMetadata(
-            extraction_args=data,
+            hazard=data,
             url=data_url,
             type=PDCExtractionMetaDataType.HAZARD,
         ),
@@ -63,10 +63,10 @@ def extract_and_transform_historical_pdc_data():
                         Restriction(searchType="LESS_THAN", createDate=str(int(pdc_end_date.timestamp() * 1000))),
                     ]
                 ],
-            ).model_dump()
+            )
             PDCExtractionV2.init_extraction(
                 metadata=PDCExtractionMetadata(
-                    extraction_args=data,
+                    hazard=data,
                     url=url,
                     type=PDCExtractionMetaDataType.HAZARD,
                 ),
