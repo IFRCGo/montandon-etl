@@ -1,10 +1,8 @@
-import json
-
 from pystac_monty.sources.gfd import GFDDataSource, GFDTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 
 class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource]):
@@ -16,11 +14,10 @@ class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource])
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
             data = data.decode("utf-8")
-            data = json.loads(data)
 
         return cls.transformer_schema(source_url=extraction_obj.url, data=data)
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.DEFAULT)
     def task(extraction_id):
         GFDTransformHandler().handle_transformation(extraction_id)
