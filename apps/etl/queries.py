@@ -8,6 +8,8 @@ from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
 from apps.etl.types import (
     CountbytraceID,
     RawExtractiondatatype,
+    RawPystacdatatype,
+    RawTransformdatatype,
     StatusCountExtraction,
     StatusCountTransform,
     StatusSourceCountExtraction,
@@ -21,6 +23,16 @@ from utils.strawberry.paginations import CountList, pagination_field
 @strawberry.type
 class PrivateQuery:
     extraction_list: CountList[RawExtractiondatatype] = pagination_field(
+        pagination=True,
+        filters=ExtractionDataFilter,
+    )
+
+    transform_list: CountList[RawTransformdatatype] = pagination_field(
+        pagination=True,
+        filters=ExtractionDataFilter,
+    )
+
+    pystac_list: CountList[RawPystacdatatype] = pagination_field(
         pagination=True,
         filters=ExtractionDataFilter,
     )
