@@ -7,7 +7,7 @@ type AppEnumCollection {
 }
 
 type AppEnumCollectionExtractionDataSource {
-  key: ExtractionSourceTypeEnum!
+  key: SourceTypeEnum!
   label: String!
 }
 
@@ -17,7 +17,7 @@ type AppEnumCollectionExtractionDataSourceValidationStatus {
 }
 
 type AppEnumCollectionExtractionDataStatus {
-  key: ExtractionDataStatusTypeEnum!
+  key: DataStatusTypeEnum!
   label: String!
 }
 
@@ -29,6 +29,22 @@ type AppEnumCollectionPyStacLoadDataItemType {
 type AppEnumCollectionPyStacLoadDataStatus {
   key: PyStacLoadDataStatusEnum!
   label: String!
+}
+
+type CountbytraceID {
+  source: SourceTypeEnum!
+  traceId: Int!
+  extractionCount: Int!
+  transformCount: Int!
+  stacCount: Int!
+}
+
+enum DataStatusTypeEnum {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  ON_RETRY
 }
 
 """Date with time (isoformat)"""
@@ -80,22 +96,19 @@ input DatetimeRangeLookup {
   end: DateTime = null
 }
 
+type DjangoModelType {
+  pk: ID!
+}
+
 input ExtractionDataFilter {
   createdAt: DatetimeDatetimeFilterLookup
-  source: ExtractionSourceTypeEnum!
-  status: ExtractionDataStatusTypeEnum!
+  source: SourceTypeEnum
+  status: DataStatusTypeEnum
+  traceId: IDBaseFilterLookup
   AND: ExtractionDataFilter
   OR: ExtractionDataFilter
   NOT: ExtractionDataFilter
   DISTINCT: Boolean
-}
-
-enum ExtractionDataStatusTypeEnum {
-  PENDING
-  IN_PROGRESS
-  SUCCESS
-  FAILED
-  ON_RETRY
 }
 
 enum ExtractionDataValidationStatusTypeEnum {
@@ -106,21 +119,17 @@ enum ExtractionDataValidationStatusTypeEnum {
   NO_VALIDATION
 }
 
-enum ExtractionSourceTypeEnum {
-  GDACS
-  PDC
-  GLIDE
-  IBTRACS
-  EMDAT
-  GIDD
-  IDU
-  USGS
-  GFD
-  DFO
-  STORM
-  DREF
-  WFPADAM
-  DESINVENTAR
+input IDBaseFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: ID
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [ID!]
 }
 
 input IntComparisonFilterLookup {
@@ -156,6 +165,11 @@ input IntRangeLookup {
   end: Int = null
 }
 
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
+
 type Mutation {
   public: PublicMutation!
   private: PrivateMutation!
@@ -172,9 +186,14 @@ type PrivateMutation {
 
 type PrivateQuery {
   extractionList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): RawExtractiondatatypeCountList!
-  totalCount: [StatusCount!]!
-  statusSourceCounts: [StatusSourceCount!]!
+  transformList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): RawTransformdatatypeCountList!
+  pystacList(filters: ExtractionDataFilter, pagination: OffsetPaginationInput): RawPystacdatatypeCountList!
+  statusCountExtraction: [StatusCountExtraction!]!
+  statusSourceCountsExtraction: [StatusSourceCountExtraction!]!
   validationStatusSourceCounts: [ValStatusSourceCount!]!
+  countTraceId: [CountbytraceID!]!
+  statusCountTransform: [StatusCountTransform!]!
+  statusSourceCountsTransform: [StatusSourceCountTransform!]!
   id: ID!
 }
 
@@ -207,8 +226,8 @@ type Query {
 
 type RawExtractiondatatype {
   id: ID!
-  source: ExtractionSourceTypeEnum!
-  status: ExtractionDataStatusTypeEnum!
+  source: SourceTypeEnum!
+  status: DataStatusTypeEnum!
   url: String!
   respCode: Int
   respDataType: String!
@@ -225,15 +244,82 @@ type RawExtractiondatatypeCountList {
   items: [RawExtractiondatatype!]!
 }
 
-type StatusCount {
+type RawPystacdatatype {
+  id: ID!
+  status: DataStatusTypeEnum!
+  traceId: Int!
+  itemType: Int!
+  createdAt: DateTime!
+  modifiedAt: DateTime!
+  transformId: ID!
+}
+
+type RawPystacdatatypeCountList {
+  limit: Int!
+  offset: Int!
+  count: Int!
+  items: [RawPystacdatatype!]!
+}
+
+type RawTransformdatatype {
+  id: ID!
+  status: DataStatusTypeEnum!
+  traceId: Int!
+  metadata: JSON!
+  extraction: DjangoModelType!
+  createdAt: DateTime!
+  startedAt: DateTime
+  endedAt: DateTime
+}
+
+type RawTransformdatatypeCountList {
+  limit: Int!
+  offset: Int!
+  count: Int!
+  items: [RawTransformdatatype!]!
+}
+
+enum SourceTypeEnum {
+  GDACS
+  PDC
+  GLIDE
+  IBTRACS
+  EMDAT
+  GIDD
+  IDU
+  USGS
+  GFD
+  DFO
+  STORM
+  DREF
+  WFPADAM
+  DESINVENTAR
+}
+
+type StatusCountExtraction {
   inProgressCount: Int!
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
 }
 
-type StatusSourceCount {
-  source: ExtractionSourceTypeEnum!
+type StatusCountTransform {
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type StatusSourceCountExtraction {
+  source: SourceTypeEnum!
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type StatusSourceCountTransform {
+  source: SourceTypeEnum!
   inProgressCount: Int!
   successCount: Int!
   failedCount: Int!
@@ -241,7 +327,7 @@ type StatusSourceCount {
 }
 
 type ValStatusSourceCount {
-  source: ExtractionSourceTypeEnum!
+  source: SourceTypeEnum!
   successCount: Int!
   failedCount: Int!
   noDataCount: Int!
