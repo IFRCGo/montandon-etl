@@ -1,9 +1,14 @@
 import logging
 
-from celery import chain, shared_task
+from celery import shared_task
 
-from apps.etl.extraction.sources.desinventar.extract import DesinventarExtraction, DesInventarExtractionInputMetadata
-from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
+from apps.etl.extraction.sources.desinventar.extract import (
+    DesinventarExtractionMetadata,
+    DesInventarExtractionParamsMetadata,
+    DesinventarExtractionV2,
+    DesiventarMetadataType,
+)
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -116,25 +121,47 @@ additional_region_code_to_iso3_map = {
 }
 
 
+# @shared_task
+# def ext_and_transform_desinventar_historical_data():
+#     for country_code in country_code_iso3_list:
+#         metadata = DesInventarExtractionInputMetadata(
+#             country_code=country_code,
+#             iso3=country_code,
+#         ).model_dump()
+#         chain(
+#             DesinventarExtraction.task.s(metadata),
+#             DesinventarTransformHandler.task.s(),
+#         ).apply_async()
+
+#     # FIXME: country_code should be region_code
+#     for country_code, iso3 in additional_region_code_to_iso3_map.items():
+#         metadata = DesInventarExtractionInputMetadata(
+#             country_code=country_code,
+#             iso3=iso3,
+#         ).model_dump()
+#         chain(
+#             DesinventarExtraction.task.s(metadata),
+#             DesinventarTransformHandler.task.s(),
+#         ).apply_async()
+
+
 @shared_task
 def ext_and_transform_desinventar_historical_data():
     for country_code in country_code_iso3_list:
-        metadata = DesInventarExtractionInputMetadata(
-            country_code=country_code,
-            iso3=country_code,
-        ).model_dump()
-        chain(
-            DesinventarExtraction.task.s(metadata),
-            DesinventarTransformHandler.task.s(),
-        ).apply_async()
-
-    # FIXME: country_code should be region_code
+        url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
+        DesinventarExtractionV2.init_extraction(
+            metadata=DesinventarExtractionMetadata(
+                url=url,
+                type=DesiventarMetadataType.QUERY,
+                params=DesInventarExtractionParamsMetadata(country_code=country_code, iso3=country_code),
+            )
+        )
     for country_code, iso3 in additional_region_code_to_iso3_map.items():
-        metadata = DesInventarExtractionInputMetadata(
-            country_code=country_code,
-            iso3=iso3,
-        ).model_dump()
-        chain(
-            DesinventarExtraction.task.s(metadata),
-            DesinventarTransformHandler.task.s(),
-        ).apply_async()
+        url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
+        DesinventarExtractionV2.init_extraction(
+            metadata=DesinventarExtractionMetadata(
+                url=url,
+                type=DesiventarMetadataType.QUERY,
+                params=DesInventarExtractionParamsMetadata(country_code=country_code, iso3=country_code),
+            )
+        )
