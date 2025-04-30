@@ -1,6 +1,6 @@
 import strawberry
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, Status
 from utils.strawberry.enums import get_enum_name_from_django_field
 
 DataStatusTypeEnum = strawberry.enum(Status, name="DataStatusTypeEnum")
