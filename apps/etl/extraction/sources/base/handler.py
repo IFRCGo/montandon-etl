@@ -217,6 +217,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     MAX_RATE_LIMIT_RETRY_LIMIT = 10
     MIN_RETRY_DELAY = 30
     MAX_RETRY_DELAY = 60
+    RETRY_STATUS_CODE = [403, 429]
 
     source_enum: ExtractionData.Source
     extraction_metadata_class: type[ExtractionMetadataTypeVar]
@@ -300,7 +301,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         else:
             typing.assert_never(method)
         # NOTE: Handle Ratelimit manually
-        if response.status_code == 429:
+        if response.status_code in self.RETRY_STATUS_CODE:
             retry_after = response.headers.get("Retry-After", None)
             retry_after = retry_after and int(retry_after)
             raise RateLimitError(retry_after=retry_after)
