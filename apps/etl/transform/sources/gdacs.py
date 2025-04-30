@@ -35,7 +35,6 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                 episodes_data_dict[GDACSDataSourceType.GEOMETRY] = (geometry_detail.url, json.loads(geometry_episode_data))
 
             episodes.append(episodes_data_dict)
-
         return cls.transformer_schema(source_url=extraction_object.url, data=json.loads(data), episodes=episodes)
 
     @staticmethod
