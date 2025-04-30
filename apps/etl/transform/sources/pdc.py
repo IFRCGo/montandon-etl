@@ -21,11 +21,11 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         metadata: dict | None = extraction_obj.metadata
         if not metadata:
             raise Exception("Metadata is not defined")
-        from apps.etl.extraction.sources.pdc.extract import PdcExposureMetadata
+        from apps.etl.extraction.sources.pdc.extract import PDCExtractionMetadata
 
-        input_metadata = PdcExposureMetadata(**metadata.get("exposure_detail", {}))
+        input_metadata = PDCExtractionMetadata(**metadata)
 
-        geo_json_obj = ExtractionData.objects.get(id=input_metadata.geojson_id)
+        geo_json_obj = ExtractionData.objects.get(id=input_metadata.exposure_detail.geojson_id)
 
         with geo_json_obj.resp_data.open("rb") as f:
             file_content = f.read()
@@ -50,8 +50,8 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
 
         data = {
             "hazards_file_path": tmp_hazard_file.name,
-            "exposure_timestamp": input_metadata.exposure_id,
-            "uuid": input_metadata.hazard_uuid,
+            "exposure_timestamp": input_metadata.exposure_detail.exposure_id,
+            "uuid": input_metadata.exposure_detail.hazard_uuid,
             "exposure_detail_file_path": tmp_exposure_detail_file.name,
             "geojson_file_path": tmp_geojson_file.name,
         }
