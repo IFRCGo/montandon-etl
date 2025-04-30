@@ -1,17 +1,22 @@
-from pyproj import transform
 import strawberry
 from asgiref.sync import sync_to_async
-from django.db.models import Count, Q
+from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 
-from apps.etl import extraction
 from apps.etl.filters import ExtractionDataFilter
 from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
-from apps.etl.types import RawExtractiondatatype, StatusCountExtraction, StatusCountTransform, StatusSourceCountExtraction, StatusSourceCountTransform, ValStatusSourceCount, CountbytraceID
+from apps.etl.types import (
+    CountbytraceID,
+    RawExtractiondatatype,
+    StatusCountExtraction,
+    StatusCountTransform,
+    StatusSourceCountExtraction,
+    StatusSourceCountTransform,
+    ValStatusSourceCount,
+)
 from main.graphql.context import Info
 from utils.strawberry.paginations import CountList, pagination_field
 
-from django.db.models import Count, OuterRef, Subquery, IntegerField, Value, F
-from django.db.models.functions import Coalesce
 
 @strawberry.type
 class PrivateQuery:
@@ -93,22 +98,41 @@ class PrivateQuery:
         ]
 
     @strawberry.field()
-    async def count_trace_id(self,info: Info) -> list[CountbytraceID]:
-    
-        # final_counts = PyStacLoadData.objects.filter( trace_id=OuterRef('trace_id')).aggregate(count = Count('id'))
-
-        # processing_counts = Transform.objects.filter( trace_id=OuterRef('trace_id')).aggregate(count = Count('id'))
-
-        qs = CountbytraceID.get_queryset(None,None,info).values('trace_id','source').annotate(     
-            extraction_count=Count('id'),
-            transform_count=Coalesce(Subquery(PyStacLoadData.objects.filter( trace_id=OuterRef('trace_id')).aggregate(count = Count('id')).values('count'), output_field=IntegerField()), Value(0)),
-            stac_count=Coalesce(Subquery(Transform.objects.filter( trace_id=OuterRef('trace_id')).aggregate(count = Count('id')).values('count'), output_field=IntegerField()), Value(0)),
+    async def count_trace_id(self, info: Info) -> list[CountbytraceID]:
+        final_counts = (
+            PyStacLoadData.objects.filter(trace_id=OuterRef("trace_id"))
+            .values("trace_id")
+            .annotate(count=Count("id"))
+            .values("count")[:1]
         )
 
-        return [CountbytraceID(trace_id= item['trace_id'], source = item['source'], extraction_count= item['extraction_count'],
-                               transform_count= item['transform_count'], stac_count= item['stac_count'])async for item in qs]
+        processing_counts = (
+            Transform.objects.filter(trace_id=OuterRef("trace_id"))
+            .values("trace_id")
+            .annotate(count=Count("id"))
+            .values("count")[:1]
+        )
 
+        qs = (
+            CountbytraceID.get_queryset(None, None, info)
+            .values("trace_id", "source")
+            .annotate(
+                extraction_count=Count("id"),
+                transform_count=Coalesce(Subquery(processing_counts, output_field=IntegerField()), Value(0)),
+                stac_count=Coalesce(Subquery(final_counts, output_field=IntegerField()), Value(0)),
+            )
+        )
 
+        return [
+            CountbytraceID(
+                trace_id=item["trace_id"],
+                source=item["source"],
+                extraction_count=item["extraction_count"],
+                transform_count=item["transform_count"],
+                stac_count=item["stac_count"],
+            )
+            async for item in qs
+        ]
 
     # @strawberry.field()
     # async def count_trace_id(self, info: Info) -> list[CountbytraceID]:
@@ -147,8 +171,6 @@ class PrivateQuery:
 
     #     return await get_trace_counts()
 
-            
-
     @strawberry.field()
     async def status_count_transform(self, info: Info) -> list[StatusCountTransform]:
         query_total_count = await sync_to_async(
@@ -168,7 +190,7 @@ class PrivateQuery:
                 pending_count=query_total_count["pending_count"],
             )
         ]
-    
+
     @strawberry.field()
     async def status_source_counts_transform(self, info: Info) -> list[StatusSourceCountTransform]:
         query_countby_status_source = (
@@ -193,7 +215,7 @@ class PrivateQuery:
             )
             for item in results
         ]
-    
+
 
 @strawberry.type
 class PublicQuery:
