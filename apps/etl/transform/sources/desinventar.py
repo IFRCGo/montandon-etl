@@ -36,11 +36,13 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             iso3=iso3,
         )
 
-    # FIXME: Get country_code and iso3 from ExtractionData.metadata and remove method
     @classmethod
-    def handle_transformation(cls, extraction_id: int, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_transformation(cls, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
+        from apps.etl.extraction.sources.desinventar.extract import DesInventarExtractionMetadata
+
+        metadata = DesInventarExtractionMetadata(**extraction_obj.metadata)
 
         if not extraction_obj.resp_data:
             logger.info("Transformation ended because there is no data")
@@ -55,7 +57,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
         try:
-            schema = cls.get_schema_data(extraction_obj, country_code, iso3)
+            schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
             transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.make_items()
 
@@ -74,8 +76,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
-    # FIXME: Get country_code and iso3 from ExtractionData.metadata and remove parameters
     @staticmethod
     @app.task
-    def task(extraction_id: int, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
-        DesinventarTransformHandler().handle_transformation(extraction_id, country_code, iso3)
+    def task(extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
+        DesinventarTransformHandler().handle_transformation(extraction_id)
