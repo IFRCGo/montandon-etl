@@ -3,8 +3,12 @@ import math
 
 from termcolor import colored
 
-from apps.etl.etl_tasks.gdacs import extract_and_transform_data
-from apps.etl.extraction.sources.gdacs.extract import GdacsExtractionInputMetadata
+from apps.etl.extraction.sources.gdacs.extract import (
+    GdacsExtraction,
+    GdacsExtractionMetadata,
+    GdacsExtractionMetadataType,
+    GdacsExtractionParamsMetadata,
+)
 from main.configs import etl_config
 
 URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
@@ -333,18 +337,20 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                                     "green",
                                                 )
                                             )
-                                            variables = GdacsExtractionInputMetadata(
-                                                fromDate=str(iter_date),
-                                                toDate=str(session_end_date),
-                                                alertlevel=alert_level,
-                                                eventlist=hazard,
-                                                country=country,
+                                            GdacsExtraction.init_extraction(
+                                                metadata=GdacsExtractionMetadata(
+                                                    params=GdacsExtractionParamsMetadata(
+                                                        fromDate=str(iter_date),
+                                                        toDate=str(session_end_date),
+                                                        alertlevel=alert_level,
+                                                        eventlist=hazard,
+                                                        country=country,
+                                                    ),
+                                                    url=URL,
+                                                    type=GdacsExtractionMetadataType.QUERY,
+                                                ),
                                             )
-                                            extract_and_transform_data(
-                                                url=URL,
-                                                metadata=variables.model_dump(),
-                                                input_metadata_class=GdacsExtractionInputMetadata,
-                                            )
+
                                             total_items += items
                                     elif response.status_code == 204:
                                         print(
@@ -364,17 +370,18 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                         "green",
                                     )
                                 )
-                                variables = GdacsExtractionInputMetadata(
-                                    fromDate=str(iter_date),
-                                    toDate=str(session_end_date),
-                                    alertlevel=alert_level,
-                                    eventlist=hazard,
-                                    country=None,
-                                )
-                                extract_and_transform_data(
-                                    url=URL,
-                                    metadata=variables.model_dump(),
-                                    input_metadata_class=GdacsExtractionInputMetadata,
+                                GdacsExtraction.init_extraction(
+                                    metadata=GdacsExtractionMetadata(
+                                        params=GdacsExtractionParamsMetadata(
+                                            fromDate=str(iter_date),
+                                            toDate=str(session_end_date),
+                                            alertlevel=alert_level,
+                                            eventlist=hazard,
+                                            country=None,
+                                        ),
+                                        url=URL,
+                                        type=GdacsExtractionMetadataType.QUERY,
+                                    ),
                                 )
                                 total_items += items
                         elif response.status_code == 204:
@@ -401,18 +408,20 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                 print(
                     colored(f"{indent}Good: {iter_date} to {session_end_date} for {hazard} and got {items} items", "green")
                 )
-                variables = GdacsExtractionInputMetadata(
-                    fromDate=str(iter_date),
-                    toDate=str(session_end_date),
-                    alertlevel="Green;Orange;Red",
-                    eventlist=hazard,
-                    country=None,
+                GdacsExtraction.init_extraction(
+                    metadata=GdacsExtractionMetadata(
+                        params=GdacsExtractionParamsMetadata(
+                            fromDate=str(iter_date),
+                            toDate=str(session_end_date),
+                            alertlevel="Green;Orange;Red",
+                            eventlist=hazard,
+                            country=None,
+                        ),
+                        url=URL,
+                        type=GdacsExtractionMetadataType.QUERY,
+                    ),
                 )
-                extract_and_transform_data(
-                    url=URL,
-                    metadata=variables.model_dump(),
-                    input_metadata_class=GdacsExtractionInputMetadata,
-                )
+
                 total_items = items
         elif response.status_code == 204:
             print(colored(f"{indent}Good: {iter_date} to {session_end_date} for {hazard} and got 0 items", "green"))
