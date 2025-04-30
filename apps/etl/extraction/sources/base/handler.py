@@ -290,11 +290,13 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         headers: dict[str, typing.Any] | None = None,
         data: dict | None = None,
         method: typing.Literal["get", "post"] = "get",
+        timeout: int = 30,
+        file_extension: str = "json",
     ) -> bool:
         if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=30)
+            response = requests.get(url, params=params, headers=headers, timeout=timeout)
         elif method == "post":
-            response = requests.post(url, headers=headers, data=data, timeout=30)
+            response = requests.post(url, headers=headers, data=data, timeout=timeout)
         else:
             typing.assert_never(method)
         # NOTE: Handle Ratelimit manually
@@ -343,6 +345,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             response_data = self._extraction_store_data(
                 extraction_object=self.extraction_object,
                 response=response,
+                file_extension=file_extension,
             )
             # Check if response contains data
             if response_data:
