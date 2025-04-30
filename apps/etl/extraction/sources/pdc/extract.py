@@ -4,7 +4,7 @@ import typing
 from enum import Enum
 
 import pydantic
-from celery import chord
+from celery import chord, group
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2, NoDataException
 from apps.etl.models import ExtractionData, HazardType
@@ -122,12 +122,14 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def handle_type_hazard(self):
         self._extraction_fetch_url(
             self.extraction_metadata.url,
-            data=json.dumps(self.extraction_metadata.hazard.model_dump()),
+            data=json.dumps(self.extraction_metadata.hazard.model_dump()),  # type: ignore
             headers=self._get_request_headers(),
             method="post",
         )
         response_data = json.loads(self.extraction_object.resp_data.read())
 
+        geo_objects = []
+        hazard_extraction_objects = []
         for item in response_data:
             geo_object = self.init_extraction(
                 metadata=PDCExtractionMetadata(
@@ -136,9 +138,11 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     polygon=PdcPolygonMetadata(hazard_id=item["hazard_ID"]),
                 ),
                 parent_extraction=self.extraction_object,
+                add_to_queue=False,
             )
+            geo_objects.append(PDCExtractionV2.task.s(geo_object.pk))
 
-            self.init_extraction(
+            exposure_extraction_obj = self.init_extraction(
                 metadata=PDCExtractionMetadata(
                     url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{item['uuid']}/exposure",
                     type=PDCExtractionMetaDataType.EXPOSURE_LIST,
@@ -147,7 +151,11 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     ),
                 ),
                 parent_extraction=self.extraction_object,
+                add_to_queue=False,
             )
+            hazard_extraction_objects.append(PDCExtractionV2.task.si(exposure_extraction_obj.pk))
+        if hazard_extraction_objects:
+            chord(geo_objects)(group(hazard_extraction_objects))
 
     def handle_exposure_list(self):
         self._extraction_fetch_url(
@@ -165,7 +173,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         for item in response_data:
             exposure_extraction_obj = self.init_extraction(
                 metadata=PDCExtractionMetadata(
-                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",
+                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",  # type: ignore
                     type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
                     exposure_detail=PdcExposureMetadata(
                         exposure_id=item,
