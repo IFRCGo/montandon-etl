@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import json
 import logging
@@ -59,13 +58,13 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         extraction_object: ExtractionData,
         response_data: list,
         file_extension: str = "json",
-        content_type: str | None = None,
+        content_type: str = "application/json",
     ):
         """
         Save extracted data into database. Checks for duplicate content using hashing.
         """
         file_name = f"{extraction_object.source}.{file_extension}"
-        extraction_object.resp_data_type = content_type or "application/json"
+        extraction_object.resp_data_type = content_type
 
         extraction_object.save()
 
@@ -97,7 +96,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
 
         return all_data
 
-    def _get_flood_data(self, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
+    def _get_flood_data(self, start_date: str | None = None, end_date: str | None = None):
         # Set up authentication
         service_account = etl_config.GFD_SERVICE_ACCOUNT
 
@@ -108,6 +107,8 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         # Authenticate
         credentials = ServiceAccountCredentials(service_account, credential_file_path)
 
+        flood_data = []
+
         try:
             ee.Initialize(credentials)
 
@@ -116,12 +117,16 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
 
             # Filter flood events by date
             if start_date and end_date:
-                flood_img_collection = flood_img_collection.filterDate(str(start_date), str(end_date))
+                flood_img_collection = flood_img_collection.filterDate(start_date, end_date)
 
             flood_data = self._pull_data(collection=flood_img_collection)
-        except Exception:
+        except Exception as exc:
             self.num_retries += 1
-            raise RateLimitError(retry_after=self.num_retries)
+
+            if not flood_data:
+                raise RateLimitError(retry_after=self.num_retries)
+            else:
+                raise Exception(f"Exception occurred: {exc}")
         return flood_data
 
     def _handle_type_query(self):
