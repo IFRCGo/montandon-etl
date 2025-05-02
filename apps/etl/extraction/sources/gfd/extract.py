@@ -18,6 +18,7 @@ from apps.etl.transform.sources.gfd import GFDTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from utils.celery import RetryableTask
+from utils.requests import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -38,24 +39,23 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
 
     source_enum = ExtractionData.Source.GFD
     extraction_metadata_class = GFDExtractionMetadata
+    FLOOD_DATASET = "GLOBAL_FLOOD_DB/MODIS_EVENTS/V1"
+    num_retries = 0
 
-    @classmethod
-    def get_json_credentials(cls, content: typing.Any):
+    def get_json_credentials(self, content: typing.Any):
         with tempfile.NamedTemporaryFile(delete=False, mode="w") as temp_file:
             json_string = json.dumps(content, sort_keys=True)
             temp_file.write(json_string)
             temp_path = temp_file.name
         return temp_path
 
-    @classmethod
-    def hash_json_content(cls, json_data: typing.Any):
+    def hash_json_content(self, json_data: typing.Any):
         """Hashes a JSON object using SHA256."""
         json_string = json.dumps(json_data, sort_keys=True)
         return hashlib.sha256(json_string.encode()).hexdigest()
 
-    @classmethod
     def store_extraction_data(
-        cls,
+        self,
         extraction_object: ExtractionData,
         response_data: list,
         file_extension: str = "json",
@@ -72,7 +72,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         # Validate the non empty response data.
         if response_data:
             # manage duplicate file content.
-            hash_content = cls.hash_json_content(response_data)
+            hash_content = self.hash_json_content(response_data)
             manage_duplicate_file_content(
                 source=extraction_object.source,
                 hash_content=hash_content,
@@ -82,8 +82,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
             )
         return extraction_object
 
-    @classmethod
-    def get_flood_data(cls, collection: ImageCollection, batch_size: int = 500) -> list[typing.Any]:
+    def _pull_data(self, collection: ImageCollection, batch_size: int = 500) -> list[typing.Any]:
         """Retrieve flood metadata in batches to avoid memory issues."""
         total_size: int | None = collection.size().getInfo()
 
@@ -98,33 +97,37 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
 
         return all_data
 
-    @classmethod
-    def _setup_gfd_params(cls, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
+    def _get_flood_data(self, start_date: datetime.date | None = None, end_date: datetime.date | None = None):
         # Set up authentication
         service_account = etl_config.GFD_SERVICE_ACCOUNT
 
         # # Decode the earthengine credential
         decoded_json = etl_config.GFD_CREDENTIAL
-        credential_file_path = cls.get_json_credentials(decoded_json)
+        credential_file_path = self.get_json_credentials(decoded_json)
 
         # Authenticate
         credentials = ServiceAccountCredentials(service_account, credential_file_path)
-        ee.Initialize(credentials)
 
-        # Load Global Flood Database (GFD)
-        flood_img_collection = ImageCollection("GLOBAL_FLOOD_DB/MODIS_EVENTS/V1")
+        try:
+            ee.Initialize(credentials)
 
-        # Filter flood events by date
-        if start_date and end_date:
-            flood_img_collection = flood_img_collection.filterDate(str(start_date), str(end_date))
+            # Load Global Flood Database (GFD)
+            flood_img_collection = ImageCollection(self.FLOOD_DATASET)
 
-        flood_data = cls.get_flood_data(collection=flood_img_collection)
+            # Filter flood events by date
+            if start_date and end_date:
+                flood_img_collection = flood_img_collection.filterDate(str(start_date), str(end_date))
+
+            flood_data = self._pull_data(collection=flood_img_collection)
+        except Exception:
+            self.num_retries += 1
+            raise RateLimitError(retry_after=self.num_retries)
         return flood_data
 
     def _handle_type_query(self):
-        flood_data = self._setup_gfd_params()
+        flood_data = self._get_flood_data()
         self.extraction_object.resp_code = 200
-        response_data_obj = GFDExtraction.store_extraction_data(
+        response_data_obj = self.store_extraction_data(
             extraction_object=self.extraction_object,
             response_data=flood_data,
         )
