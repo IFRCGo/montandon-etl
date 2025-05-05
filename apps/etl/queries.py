@@ -46,6 +46,7 @@ class Query:
     pystacs: OffsetPaginated[RawPystacdatatype] = strawberry_django.offset_paginated(
         order=PystacOrder,
         filters=PystacDataFilter,
+        extensions=[IsAuthenticated()],
     )
 
     @strawberry.field()
