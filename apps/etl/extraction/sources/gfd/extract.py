@@ -66,7 +66,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         file_name = f"{extraction_object.source}.{file_extension}"
         extraction_object.resp_data_type = content_type
 
-        extraction_object.save()
+        extraction_object.save(update_fields=["resp_data_type"])
 
         # Validate the non empty response data.
         if response_data:
