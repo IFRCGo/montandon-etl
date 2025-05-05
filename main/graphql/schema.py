@@ -7,7 +7,6 @@ from main.graphql.enums import AppEnumCollection, AppEnumCollectionData
 
 from .context import GraphQLContext
 from .dataloaders import GlobalDataLoader
-from .permissions import IsAuthenticated
 
 
 class CustomAsyncGraphQLView(AsyncGraphQLView):
@@ -20,50 +19,16 @@ class CustomAsyncGraphQLView(AsyncGraphQLView):
 
 
 @strawberry.type
-class PublicQuery(
-    etl_queries.PublicQuery,
+class Query(
+    etl_queries.Query,
 ):
-    id: strawberry.ID = strawberry.ID("public")
-
-
-@strawberry.type
-class PrivateQuery(
-    etl_queries.PrivateQuery,
-):
-    id: strawberry.ID = strawberry.ID("private")
-
-
-@strawberry.type
-class PublicMutation:
-    id: strawberry.ID = strawberry.ID("public")
-
-
-@strawberry.type
-class PrivateMutation:
-    id: strawberry.ID = strawberry.ID("private")
-
-
-@strawberry.type
-class Query:
-    public: PublicQuery = strawberry.field(resolver=lambda: PublicQuery())
-    private: PrivateQuery = strawberry.field(permission_classes=[IsAuthenticated], resolver=lambda: PrivateQuery())
     enums: AppEnumCollection = strawberry.field(  # type: ignore[reportGeneralTypeIssues]
-        resolver=lambda: AppEnumCollectionData()
-    )
-
-
-@strawberry.type
-class Mutation:
-    public: PublicMutation = strawberry.field(resolver=lambda: PublicMutation())
-    private: PrivateMutation = strawberry.field(
-        resolver=lambda: PrivateMutation(),
-        permission_classes=[IsAuthenticated],
+        resolver=lambda: AppEnumCollectionData(),
     )
 
 
 schema = strawberry.Schema(
     query=Query,
-    mutation=Mutation,
     extensions=[
         DjangoOptimizerExtension,
     ],
