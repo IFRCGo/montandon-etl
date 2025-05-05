@@ -1,10 +1,14 @@
 import strawberry
+import strawberry_django
 from asgiref.sync import sync_to_async
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
+from strawberry_django.pagination import OffsetPaginated
+from strawberry_django.permissions import IsAuthenticated
 
-from apps.etl.filters import ExtractionDataFilter
+from apps.etl.filters import ExtractionDataFilter, PystacDataFilter, TransformDataFilter
 from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
+from apps.etl.orders import ExtractionOrder, PystacOrder, TransformOrder
 from apps.etl.types import (
     CountbytraceID,
     RawExtractiondatatype,
@@ -17,24 +21,31 @@ from apps.etl.types import (
     ValStatusSourceCount,
 )
 from main.graphql.context import Info
-from utils.strawberry.paginations import CountList, pagination_field
 
 
 @strawberry.type
-class PrivateQuery:
-    extraction_list: CountList[RawExtractiondatatype] = pagination_field(
-        pagination=True,
+class Query:
+    extraction: RawExtractiondatatype = strawberry_django.field(extensions=[IsAuthenticated()])
+
+    extractions: OffsetPaginated[RawExtractiondatatype] = strawberry_django.offset_paginated(
+        order=ExtractionOrder,
         filters=ExtractionDataFilter,
+        extensions=[IsAuthenticated()],
     )
 
-    transform_list: CountList[RawTransformdatatype] = pagination_field(
-        pagination=True,
-        filters=ExtractionDataFilter,
+    transform: RawTransformdatatype = strawberry_django.field(extensions=[IsAuthenticated()])
+
+    transforms: OffsetPaginated[RawTransformdatatype] = strawberry_django.offset_paginated(
+        order=TransformOrder,
+        filters=TransformDataFilter,
+        extensions=[IsAuthenticated()],
     )
 
-    pystac_list: CountList[RawPystacdatatype] = pagination_field(
-        pagination=True,
-        filters=ExtractionDataFilter,
+    pystac: RawPystacdatatype = strawberry_django.field(extensions=[IsAuthenticated()])
+
+    pystacs: OffsetPaginated[RawPystacdatatype] = strawberry_django.offset_paginated(
+        order=PystacOrder,
+        filters=PystacDataFilter,
     )
 
     @strawberry.field()
@@ -227,8 +238,3 @@ class PrivateQuery:
             )
             for item in results
         ]
-
-
-@strawberry.type
-class PublicQuery:
-    noop: strawberry.ID = strawberry.ID("noop")

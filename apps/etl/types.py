@@ -1,11 +1,9 @@
-from typing import Optional
-
 import strawberry
 import strawberry_django
 from django.db import models
 from strawberry import auto
 
-from apps.etl.enums import DataStatusTypeEnum, SourceTypeEnum
+from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, SourceTypeEnum
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model
@@ -31,48 +29,33 @@ class RawExtractiondatatype:
     url: auto
     resp_code: auto
     resp_data_type: auto
-    parent_id: Optional[int]
-    source_validation_status: auto
+    parent_id: auto = strawberry_django.field(only=["parent_id"])
+    source_validation_status: ExtractionValidationTypeEnum
     hazard_type: auto
-    trace_id: int
-
-    def resolve_parent(self, root):
-        return root.parent.id
-
-    @staticmethod
-    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        return get_queryset_for_model(ExtractionData, queryset)
+    trace_id: auto = strawberry_django.field(only=["trace_id"])
 
 
 @strawberry_django.type(Transform)
 class RawTransformdatatype:
     id: auto
     status: DataStatusTypeEnum
-    trace_id: int
+    trace_id: auto = strawberry_django.field(only=["trace_id"])
     metadata: auto
     extraction: auto
     created_at: auto
     started_at: auto
     ended_at: auto
 
-    @staticmethod
-    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        return get_queryset_for_model(Transform, queryset)
-
 
 @strawberry_django.type(PyStacLoadData)
 class RawPystacdatatype:
     id: auto
     status: DataStatusTypeEnum
-    trace_id: int
+    trace_id: auto = strawberry_django.field(only=["trace_id"])
     item_type: auto
     created_at: auto
     modified_at: auto
     transform_id: auto
-
-    @staticmethod
-    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        return get_queryset_for_model(Transform, queryset)
 
 
 @strawberry.type
