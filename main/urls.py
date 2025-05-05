@@ -44,6 +44,20 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    urlpatterns.extend(
+        [
+            path(
+                "graphiql/",
+                csrf_exempt(
+                    CustomAsyncGraphQLView.as_view(
+                        **base_graphql_kwargs,
+                        graphql_ide="graphiql",
+                    ),
+                ),
+                name="graphiql",
+            ),
+        ],
+    )
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
