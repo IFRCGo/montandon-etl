@@ -31,6 +31,7 @@ env = environ.Env(
     APP_LOG_LEVEL=(str, "INFO"),
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
+    DJANGO_CORS_ORIGIN_REGEX_WHITELIST=(list, []),
     DJANGO_ALLOWED_HOSTS=(list, ["*"]),
     DJANGO_APP_ENVIRONMENT=(str, "development"),
     DJANGO_APP_TYPE=str,  # web/worker
@@ -179,6 +180,7 @@ INSTALLED_APPS = [
     # External
     "django_celery_beat",
     "djangoql",
+    "corsheaders",
     # - Health-check
     "health_check",  # required
     "health_check.db",
@@ -195,6 +197,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -352,6 +355,39 @@ else:
     STATIC_ROOT = env("DJANGO_STATIC_ROOT")
     MEDIA_ROOT = env("DJANGO_MEDIA_ROOT")
 
+# CORS
+if not env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST"):
+    CORS_ORIGIN_ALLOW_ALL = True
+else:
+    # Example ^https://[\w-]+\.mapswipe\.org$
+    CORS_ORIGIN_REGEX_WHITELIST = env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST")
+
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"(^/media/.*$)|(^/graphql/$)"
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    # Required by sentry
+    "sentry-trace",
+    "baggage",
+)
 
 # Sentry Config
 SENTRY_DSN = env("SENTRY_DSN")
