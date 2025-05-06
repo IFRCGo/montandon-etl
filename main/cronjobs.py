@@ -50,7 +50,7 @@ SCHEDULES: dict[str, CronJob] = {
         schedule=crontab(minute=0, hour=17),
     ),
     "import_gidd_data": CronJob(
-        task="apps.etl.tasks.extract_gidd_data",
+        task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
         schedule=crontab(minute=0, hour=18),
     ),
     "import_usgs_data": CronJob(
@@ -58,7 +58,7 @@ SCHEDULES: dict[str, CronJob] = {
         schedule=crontab(minute=0, hour=19),
     ),
     "import_pdc_data": CronJob(
-        task="apps.etl.tasks.extract_pdc_data",
+        task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_data",
         schedule=crontab(minute=30, hour=20),
     ),
     "load_data_to_stac": CronJob(
