@@ -1,9 +1,11 @@
 import json
 import logging
 import typing
+from datetime import datetime, timedelta
 from enum import Enum
 
 import pydantic
+import requests
 from celery import chord
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
@@ -11,6 +13,7 @@ from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.celery import CeleryQueue, app
 from utils.celery import RetryableTask
+from utils.requests import RateLimitError
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +22,7 @@ class USGSExtractionMetadataType(str, Enum):
     QUERY = "QUERY"
     DETAIL = "DETAIL"
     LOSSE = "LOSSE"
+    RESPONSE_EXCEEDED = "RESPONSE_EXCEEDED"
 
 
 class USGSExtractionMetadata(pydantic.BaseModel):
@@ -37,12 +41,53 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
     source_enum = ExtractionData.Source.USGS
     extraction_metadata_class = USGSExtractionMetadata
 
+    def _extraction_fetch_url(
+        self,
+        url: str,
+        params: dict[str, typing.Any] | None = None,
+        headers: dict[str, typing.Any] | None = None,
+        data: dict | None = None,
+        method: typing.Literal["get", "post"] = "get",
+        timeout: int = 30,
+        file_extension: str = "json",
+    ) -> bool:
+        if method == "get":
+            response = requests.get(url, params=params, headers=headers, timeout=timeout)
+        elif method == "post":
+            response = requests.post(url, headers=headers, data=data, timeout=timeout)
+        else:
+            typing.assert_never(method)
+
+        # NOTE: Handle Ratelimit manually
+        if response.status_code in self.RETRY_STATUS_CODE:
+            retry_after = response.headers.get("Retry-After", None)
+            retry_after = retry_after and int(retry_after)
+            raise RateLimitError(retry_after=retry_after)
+
+        self.extraction_object.resp_code = response.status_code
+
+        if response.status_code in [200, 204]:
+            response_data = self._extraction_store_data(
+                extraction_object=self.extraction_object,
+                response=response,
+                file_extension=file_extension,
+            )
+            # Check if response contains data
+            if response_data:
+                logger.info("Data extracted successfully")
+                return True
+            logger.warning("No data found in response")
+        return False
+
     def handle_type_query(self):
         # Handles base extraction from the all day url
         self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
+
+        if self.extraction_object.resp_code == 400:
+            return self.handle_response_exceeded()
 
         # FIXME: Handle error?
         response_data = json.loads(self.extraction_object.resp_data.read())
@@ -95,6 +140,42 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
     def handle_type_losse(self):
         self._extraction_fetch_url(self.extraction_metadata.url)
 
+    def handle_response_exceeded(self):
+        self.extraction_object.metadata["type"] = USGSExtractionMetadataType.RESPONSE_EXCEEDED
+        self.extraction_object.save()
+        url = self.extraction_metadata.url
+        try:
+            start_date_str = url.split("starttime=")[1].split("&")[0]
+            end_date_str = url.split("endtime=")[1].split("&")[0]
+        except IndexError as error:
+            logger.error(f"Error: {error}")
+            return False
+
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d")
+        mid_date_obj = start_date_obj + (end_date_obj - start_date_obj) / 2
+        mid_date_str = mid_date_obj.strftime("%Y-%m-%d")
+        second_half_start_str = (mid_date_obj + timedelta(days=0)).strftime("%Y-%m-%d")
+
+        first_half_url = url.replace(f"starttime={start_date_str}", f"starttime={start_date_str}")
+        first_half_url = first_half_url.replace(f"endtime={end_date_str}", f"endtime={mid_date_str}")
+        self.init_extraction(
+            metadata=USGSExtractionMetadata(
+                url=first_half_url,
+                type=USGSExtractionMetadataType.QUERY,
+            ),
+        )
+
+        second_half_url = url.replace(f"starttime={start_date_str}", f"starttime={second_half_start_str}")
+        second_half_url = second_half_url.replace(f"endtime={end_date_str}", f"endtime={end_date_str}")
+
+        self.init_extraction(
+            metadata=USGSExtractionMetadata(
+                url=second_half_url,
+                type=USGSExtractionMetadataType.QUERY,
+            ),
+        )
+
     def handle_extract(self):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
@@ -105,6 +186,8 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 return self.handle_type_detail()
             case USGSExtractionMetadataType.LOSSE:
                 return self.handle_type_losse()
+            case USGSExtractionMetadataType.RESPONSE_EXCEEDED:
+                return self.handle_response_exceeded()
             case _:
                 typing.assert_never(handler_type)
 

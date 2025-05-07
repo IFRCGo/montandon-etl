@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timedelta
 
 from celery import shared_task
 
@@ -26,21 +25,28 @@ def ext_and_transform_usgs_latest_data():
 @shared_task
 def ext_and_transform_usgs_historical_data():
     """Extract and Transform USGS historical data"""
-    start_date = etl_config.USGS_START_DATE
-    end_date = etl_config.USGS_END_DATE or datetime.now().date
+    # start_date = etl_config.USGS_START_DATE
+    # end_date = etl_config.USGS_END_DATE or datetime.now().date
 
-    while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
-        next_date = start_date + timedelta(days=20)
-        url = (
-            f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
-            f"&starttime={start_date.strftime('%Y-%m-%d')}"
-            f"&endtime={min(next_date, end_date).strftime('%Y-%m-%d')}"
-        )
-        USGSExtraction.init_extraction(
-            metadata=USGSExtractionMetadata(
-                url=url,
-                type=USGSExtractionMetadataType.QUERY,
-            ),
-        )
-        start_date = next_date
-    logger.info("USGS historical data extraction completed")
+    # while start_date.strftime("%Y-%m-%d") < end_date.strftime("%Y-%m-%d"):
+    #     next_date = start_date + timedelta(days=20)
+    #     url = (
+    #         f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
+    #         f"&starttime={start_date.strftime('%Y-%m-%d')}"
+    #         f"&endtime={min(next_date, end_date).strftime('%Y-%m-%d')}"
+    #     )
+    #     USGSExtraction.init_extraction(
+    #         metadata=USGSExtractionMetadata(
+    #             url=url,
+    #             type=USGSExtractionMetadataType.QUERY,
+    #         ),
+    #     )
+    #     start_date = next_date
+    # logger.info("USGS historical data extraction completed")
+
+    USGSExtraction.init_extraction(
+        metadata=USGSExtractionMetadata(
+            url="https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=2023-08-20&endtime=2023-12-10",
+            type=USGSExtractionMetadataType.QUERY,
+        ),
+    )
