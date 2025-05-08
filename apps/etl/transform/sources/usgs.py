@@ -1,4 +1,5 @@
 import json
+import tempfile
 
 from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
 
@@ -12,6 +13,7 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
     transformer_schema = USGSDataSource
 
     @classmethod
+    @classmethod
     def get_schema_data(cls, extraction_obj):
         losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
 
@@ -23,15 +25,21 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
                 data = json.loads(file_data.read())
             losses_data.append(data)
 
+        # Write losses_data (which is JSON) to a temp file in text mode
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w", encoding="utf-8") as tmp_file:
+            json.dump(losses_data, tmp_file)
+            losses_data_path = tmp_file.name
+
+        # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
-        losses_data = json.dumps(losses_data)
-        # FIXME: Why are we setting lossed_data to None?
-        if not losses_data:
-            losses_data = None
+        # Write raw bytes to a temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_data_file:
+            tmp_data_file.write(data)
+            data_path = tmp_data_file.name
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data, losses_data=losses_data)
+        return cls.transformer_schema(source_url=extraction_obj.url, data=data_path, losses_data=losses_data_path)
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
