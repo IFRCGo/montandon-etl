@@ -158,43 +158,6 @@ class Query:
             async for item in qs
         ]
 
-    # @strawberry.field()
-    # async def count_trace_id(self, info: Info) -> list[CountbytraceID]:
-
-    #     @sync_to_async
-    #     def get_trace_counts():
-    #         final_counts = dict(
-    #             PyStacLoadData.objects
-    #             .values('trace_id')
-    #             .annotate(final_count=Count('id'))
-    #             .values_list('trace_id', "final_count")
-    #         )
-
-    #         processing_counts = dict(
-    #             Transform.objects
-    #             .values('trace_id')
-    #             .annotate(processing_count=Count('id'))
-    #             .values_list('trace_id', "processing_count")
-    #         )
-
-    #         qs = CountbytraceID.get_queryset(None, None, info).values(
-    #             'trace_id', 'source'
-    #         ).annotate(extraction_count=Count('id'))
-
-    #         results = [
-    #             CountbytraceID(
-    #                 trace_id=item['trace_id'],
-    #                 source=item['source'],
-    #                 extraction_count=item['extraction_count'],
-    #                 transform_count=processing_counts.get(item['trace_id'], 0),
-    #                 stac_count=final_counts.get(item['trace_id'], 0),
-    #             )
-    #             for item in qs
-    #         ]
-    #         return results
-
-    #     return await get_trace_counts()
-
     @strawberry.field()
     async def status_count_transform(self, info: Info) -> list[StatusCountTransform]:
         query_total_count = await sync_to_async(
