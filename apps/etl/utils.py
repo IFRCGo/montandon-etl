@@ -12,11 +12,18 @@ from main.configs import etl_config
 logger = logging.getLogger(__name__)
 
 
+def chunk_list(data, chunk_size=10):
+    """Split a list into chunks of specified size."""
+    return [data[i : i + chunk_size] for i in range(0, len(data), chunk_size)]
+
+
 def get_cluster_codes():
     hazard_profiles_path = Path("./libs/pystac-monty/pystac_monty/HazardProfiles.csv")
     if os.path.exists(hazard_profiles_path):
         df = pd.read_csv(hazard_profiles_path)
-        return list(df.emdat_key.dropna().unique())
+        classif_key_list = list(df.emdat_key.dropna().unique())
+        # return chunk_list(classif_key_list)
+        return classif_key_list
     return []
 
 

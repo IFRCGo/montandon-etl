@@ -46,6 +46,12 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
         payload = {"query": QUERY, "variables": params.model_dump()}
         payload["variables"]["from"] = payload["variables"].pop("from_")
         self._extraction_fetch_graphql(url, payload, headers)
+
+        # with self.extraction_object.resp_data.open() as file_data:
+        #     data = json.loads(file_data.read())
+        # if not data["data"]["public_emdat"]:
+        #     self.handle_extract_error(NoDataException)
+
         return self.extraction_object.id
 
     def handle_extract(self):
