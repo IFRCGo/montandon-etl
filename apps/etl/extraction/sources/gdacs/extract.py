@@ -147,7 +147,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     @app.task(
         bind=True,
         base=RetryableTask,
-        rate_limit="100/m",
+        rate_limit="50/m",
     )
     def task(celery_task, extraction_id) -> int:
         return GdacsExtraction(celery_task, extraction_id).handle()
