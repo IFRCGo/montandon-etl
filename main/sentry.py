@@ -57,5 +57,7 @@ class SentryTag:
 
     @staticmethod
     def set_tags(kwargs: dict[Tag, int | str]):
+        if not settings.SENTRY_ENABLED:
+            return
         for key, value in kwargs.items():
             sentry_sdk.set_tag(key.value, value)

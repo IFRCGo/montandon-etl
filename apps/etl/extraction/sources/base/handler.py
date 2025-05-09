@@ -229,6 +229,9 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     def __init__(self, celery_task: RetryableTask, extraction_id: int):
         self.celery_task = celery_task
         self.extraction_object = ExtractionData.objects.get(id=extraction_id)
+        SentryTag.set_tags(
+            {SentryTag.Tag.SOURCE: self.extraction_object.source, SentryTag.Tag.TRACE_ID: self.extraction_object.trace_id}
+        )
         self.reparse_extraction_metadata()
 
     def reparse_extraction_metadata(self):
