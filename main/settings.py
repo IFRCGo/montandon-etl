@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import socket
 import typing
 from pathlib import Path
 
@@ -30,10 +31,12 @@ env = environ.Env(
     APP_LOG_LEVEL=(str, "INFO"),
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
+    DJANGO_CORS_ORIGIN_REGEX_WHITELIST=(list, []),
     DJANGO_ALLOWED_HOSTS=(list, ["*"]),
     DJANGO_APP_ENVIRONMENT=(str, "development"),
     DJANGO_APP_TYPE=str,  # web/worker
     DJANGO_TIME_ZONE=(str, "UTC"),
+    ENABLE_DEBUG_TOOLBAR=(bool, False),
     # Database
     DB_NAME=str,
     DB_USER=str,
@@ -179,6 +182,7 @@ INSTALLED_APPS = [
     # External
     "django_celery_beat",
     "djangoql",
+    "corsheaders",
     # - Health-check
     "health_check",  # required
     "health_check.db",
@@ -195,6 +199,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -203,6 +208,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "main.urls"
+
+# Strawberry
+# -- Pagination
+STRAWBERRY_ENUM_TO_STRAWBERRY_ENUM_MAP = "main.graphql.enums.ENUM_TO_STRAWBERRY_ENUM_MAP"
+STRAWBERRY_DEFAULT_PAGINATION_LIMIT = 50
+STRAWBERRY_MAX_PAGINATION_LIMIT = 100
 
 TEMPLATES = [
     {
@@ -346,6 +357,39 @@ else:
     STATIC_ROOT = env("DJANGO_STATIC_ROOT")
     MEDIA_ROOT = env("DJANGO_MEDIA_ROOT")
 
+# CORS
+if not env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST"):
+    CORS_ORIGIN_ALLOW_ALL = True
+else:
+    # Example ^https://[\w-]+\.mapswipe\.org$
+    CORS_ORIGIN_REGEX_WHITELIST = env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST")
+
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"(^/media/.*$)|(^/graphql/$)"
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    # Required by sentry
+    "sentry-trace",
+    "baggage",
+)
 
 # Sentry Config
 SENTRY_DSN = env("SENTRY_DSN")
@@ -455,6 +499,15 @@ if DEBUG:
             "handlers": ["colored_console"],
         },
     }
+
+ENABLE_DEBUG_TOOLBAR = env("ENABLE_DEBUG_TOOLBAR")
+if DEBUG and ENABLE_DEBUG_TOOLBAR:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = [
+        "127.0.0.1",
+        ".".join(socket.gethostbyname(socket.gethostname()).rsplit(".")[:-1]) + ".1",
+    ]
 
 # Manual checks
 import main.checks  # noqa: F401 E402
