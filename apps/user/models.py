@@ -28,3 +28,6 @@ class User(AbstractUser):
             kwargs.pop("force_insert", None)
         self.display_name = self.get_full_name() or f"User#{self.pk}"
         return super().save(*args, **kwargs)
+
+    class Meta:
+        db_table = "auth_user"
