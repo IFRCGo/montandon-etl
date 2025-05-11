@@ -1,0 +1,476 @@
+"""
+Can only be resolved by authenticated users.
+
+When the condition fails, the following can be returned (following this priority):
+1) `OperationInfo`/`OperationMessage` if those types are allowed at the return type
+2) `null` in case the field is not mandatory (e.g. `String` or `[String]`)
+3) An empty list in case the field is a list (e.g. `[String]!`)
+4) An empty `Connection` in case the return type is a relay connection
+2) Otherwise, an error will be raised
+"""
+directive @isAuthenticated repeatable on FIELD_DEFINITION
+
+type AppEnumCollection {
+  ExtractionDataSource: [AppEnumCollectionExtractionDataSource!]!
+  ExtractionDataStatus: [AppEnumCollectionExtractionDataStatus!]!
+  ExtractionDataSourceValidationStatus: [AppEnumCollectionExtractionDataSourceValidationStatus!]!
+  PyStacLoadDataStatus: [AppEnumCollectionPyStacLoadDataStatus!]!
+  PyStacLoadDataItemType: [AppEnumCollectionPyStacLoadDataItemType!]!
+}
+
+type AppEnumCollectionExtractionDataSource {
+  key: SourceTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionExtractionDataSourceValidationStatus {
+  key: ExtractionDataValidationStatusTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionExtractionDataStatus {
+  key: DataStatusTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionPyStacLoadDataItemType {
+  key: PyStacLoadDataItemTypeEnum!
+  label: String!
+}
+
+type AppEnumCollectionPyStacLoadDataStatus {
+  key: PyStacLoadDataStatusEnum!
+  label: String!
+}
+
+type CountbytraceID {
+  source: SourceTypeEnum!
+  traceId: Int!
+  extractionCount: Int!
+  transformCount: Int!
+  stacCount: Int!
+}
+
+enum DataStatusTypeEnum {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  ON_RETRY
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+input DatetimeDatetimeFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: DateTime
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [DateTime!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: DateTime
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: DateTime
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: DateTime
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: DateTime
+
+  """Inclusive range test (between)"""
+  range: DatetimeRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+  hour: IntComparisonFilterLookup
+  minute: IntComparisonFilterLookup
+  second: IntComparisonFilterLookup
+  date: IntComparisonFilterLookup
+  time: IntComparisonFilterLookup
+}
+
+input DatetimeRangeLookup {
+  start: DateTime = null
+  end: DateTime = null
+}
+
+type DjangoModelType {
+  pk: ID!
+}
+
+type ExtractionCountByStatus {
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type ExtractionCountByStatusAndSource {
+  source: SourceTypeEnum!
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type ExtractionCountByValStatusAndSource {
+  source: SourceTypeEnum!
+  successCount: Int!
+  failedCount: Int!
+  noDataCount: Int!
+  noChangeCount: Int!
+  noValidationCount: Int!
+}
+
+input ExtractionDataFilter {
+  createdAt: DatetimeDatetimeFilterLookup
+  source: SourceTypeEnum
+  status: DataStatusTypeEnum
+  traceId: IDBaseFilterLookup
+  AND: ExtractionDataFilter
+  OR: ExtractionDataFilter
+  NOT: ExtractionDataFilter
+  DISTINCT: Boolean
+}
+
+enum ExtractionDataValidationStatusTypeEnum {
+  SUCCESS
+  FAILED
+  NO_DATA
+  NO_CHANGE
+  NO_VALIDATION
+}
+
+input ExtractionOrder {
+  id: Ordering
+}
+
+type Extractiontype {
+  id: ID!
+  source: SourceTypeEnum!
+  status: DataStatusTypeEnum!
+  url: String!
+  respCode: Int
+  respDataType: String!
+  parentId: ID
+  sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
+  hazardType: String
+  traceId: ID!
+}
+
+type ExtractiontypeOffsetPaginated {
+  pageInfo: OffsetPaginationInfo!
+
+  """Total count of existing results."""
+  totalCount: Int!
+
+  """List of paginated results."""
+  results: [Extractiontype!]!
+}
+
+input IDBaseFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: ID
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [ID!]
+}
+
+input IntComparisonFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Int
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Int!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Int
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Int
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Int
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Int
+
+  """Inclusive range test (between)"""
+  range: IntRangeLookup
+}
+
+input IntRangeLookup {
+  start: Int = null
+  end: Int = null
+}
+
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
+
+type Mutation {
+  login(username: String!, password: String!): UserMeType!
+  logout: Boolean!
+}
+
+type OffsetPaginationInfo {
+  offset: Int!
+  limit: Int
+}
+
+input OffsetPaginationInput {
+  offset: Int! = 0
+  limit: Int
+}
+
+enum Ordering {
+  ASC
+  ASC_NULLS_FIRST
+  ASC_NULLS_LAST
+  DESC
+  DESC_NULLS_FIRST
+  DESC_NULLS_LAST
+}
+
+enum PyStacLoadDataItemTypeEnum {
+  EVENT
+  HAZARD
+  IMPACT
+}
+
+enum PyStacLoadDataStatusEnum {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+input PystacDataFilter {
+  createdAt: DatetimeDatetimeFilterLookup
+  status: DataStatusTypeEnum
+  traceId: IDBaseFilterLookup
+  AND: PystacDataFilter
+  OR: PystacDataFilter
+  NOT: PystacDataFilter
+  DISTINCT: Boolean
+}
+
+input PystacOrder {
+  id: Ordering
+}
+
+type Pystactype {
+  id: ID!
+  status: DataStatusTypeEnum!
+  traceId: ID!
+  itemType: Int!
+  createdAt: DateTime!
+  modifiedAt: DateTime!
+  transformId: ID!
+}
+
+type PystactypeOffsetPaginated {
+  pageInfo: OffsetPaginationInfo!
+
+  """Total count of existing results."""
+  totalCount: Int!
+
+  """List of paginated results."""
+  results: [Pystactype!]!
+}
+
+type Query {
+  extraction(pk: ID!): Extractiontype! @isAuthenticated
+  extractions(pagination: OffsetPaginationInput, filters: ExtractionDataFilter, order: ExtractionOrder): ExtractiontypeOffsetPaginated! @isAuthenticated
+  transform(pk: ID!): Transformtype! @isAuthenticated
+  transforms(pagination: OffsetPaginationInput, filters: TransformDataFilter, order: TransformOrder): TransformtypeOffsetPaginated! @isAuthenticated
+  pystac(pk: ID!): Pystactype! @isAuthenticated
+  pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): PystactypeOffsetPaginated! @isAuthenticated
+  extractionCountByStatus: [ExtractionCountByStatus!]!
+  extractionCountByStatusSource: [ExtractionCountByStatusAndSource!]!
+  extractionCountByValstatusSource: [ExtractionCountByValStatusAndSource!]!
+  countByTraceId: [CountbytraceID!]!
+  transformCountByStatus: [TransformCountByStatus!]!
+  transformCountByStatusSource: [TransformCountByStatusAndSource!]!
+  users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
+  me: UserMeType
+  enums: AppEnumCollection!
+}
+
+enum SourceTypeEnum {
+  GDACS
+  PDC
+  GLIDE
+  IBTRACS
+  EMDAT
+  GIDD
+  IDU
+  USGS
+  GFD
+  DFO
+  STORM
+  DREF
+  WFPADAM
+  DESINVENTAR
+}
+
+input StrFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: String
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [String!]
+
+  """Case-insensitive exact match. Filter will be skipped on `null` value"""
+  iExact: String
+
+  """
+  Case-sensitive containment test. Filter will be skipped on `null` value
+  """
+  contains: String
+
+  """
+  Case-insensitive containment test. Filter will be skipped on `null` value
+  """
+  iContains: String
+
+  """Case-sensitive starts-with. Filter will be skipped on `null` value"""
+  startsWith: String
+
+  """Case-insensitive starts-with. Filter will be skipped on `null` value"""
+  iStartsWith: String
+
+  """Case-sensitive ends-with. Filter will be skipped on `null` value"""
+  endsWith: String
+
+  """Case-insensitive ends-with. Filter will be skipped on `null` value"""
+  iEndsWith: String
+
+  """
+  Case-sensitive regular expression match. Filter will be skipped on `null` value
+  """
+  regex: String
+
+  """
+  Case-insensitive regular expression match. Filter will be skipped on `null` value
+  """
+  iRegex: String
+}
+
+type TransformCountByStatus {
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type TransformCountByStatusAndSource {
+  source: SourceTypeEnum!
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+input TransformDataFilter {
+  createdAt: DatetimeDatetimeFilterLookup
+  status: DataStatusTypeEnum
+  traceId: IDBaseFilterLookup
+  AND: TransformDataFilter
+  OR: TransformDataFilter
+  NOT: TransformDataFilter
+  DISTINCT: Boolean
+}
+
+input TransformOrder {
+  id: Ordering
+}
+
+type Transformtype {
+  id: ID!
+  status: DataStatusTypeEnum!
+  traceId: ID!
+  metadata: JSON!
+  extraction: DjangoModelType!
+  createdAt: DateTime!
+  startedAt: DateTime
+  endedAt: DateTime
+}
+
+type TransformtypeOffsetPaginated {
+  pageInfo: OffsetPaginationInfo!
+
+  """Total count of existing results."""
+  totalCount: Int!
+
+  """List of paginated results."""
+  results: [Transformtype!]!
+}
+
+input UserFilter {
+  id: IDBaseFilterLookup
+  displayName: StrFilterLookup
+  AND: UserFilter
+  OR: UserFilter
+  NOT: UserFilter
+  DISTINCT: Boolean
+}
+
+type UserMeType {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  displayName: String!
+  email: String!
+}
+
+input UserOrder {
+  id: Ordering
+  displayName: Ordering
+}
+
+type UserType {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  displayName: String!
+}
+
+type UserTypeOffsetPaginated {
+  pageInfo: OffsetPaginationInfo!
+
+  """Total count of existing results."""
+  totalCount: Int!
+
+  """List of paginated results."""
+  results: [UserType!]!
+}
