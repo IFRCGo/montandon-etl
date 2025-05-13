@@ -2,6 +2,7 @@ import strawberry
 from strawberry.django.views import AsyncGraphQLView
 from strawberry_django.optimizer import DjangoOptimizerExtension
 
+from apps.etl import mutations as etl_mutations
 from apps.etl import queries as etl_queries
 from apps.user import mutations as user_mutations
 from apps.user import queries as user_queries
@@ -30,6 +31,7 @@ class Query(etl_queries.Query, user_queries.Query):
 @strawberry.type
 class Mutation(
     user_mutations.Mutation,
+    etl_mutations.Mutation,
 ): ...
 
 
