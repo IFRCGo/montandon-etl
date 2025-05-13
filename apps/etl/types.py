@@ -109,3 +109,8 @@ class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
     success_count: int
     failed_count: int
     pending_count: int
+
+
+@strawberry.type
+class RetriggerResponse:
+    trace_id: int
