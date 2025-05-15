@@ -16,8 +16,8 @@ class RetriggerSerializer(serializers.ModelSerializer):
         """
         trace_id = attrs.get("trace_id")
 
-        # if not trace_id:
-        #     raise serializers.ValidationError("The 'trace_id' field is required.")
+        if not trace_id:
+            raise serializers.ValidationError("The 'trace_id' field is required.")
 
         if not EtlTrace.objects.filter(id=trace_id).exists():
             raise serializers.ValidationError(f"trace_id {trace_id} does not exist.")
