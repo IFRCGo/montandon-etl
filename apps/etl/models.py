@@ -269,6 +269,7 @@ class PyStacLoadData(EtlTraceResource, Resource):
                 fields=["status"], name="loaddata_pi_status_pending", condition=models.Q(status=Status.PENDING.value)
             ),
             GinIndex(fields=["item_primary_country"]),  # GinIndex for ArrayField
+            models.Index(fields=["item_id", "item_type"]),
         ]
         verbose_name = "Stac Item"
 
