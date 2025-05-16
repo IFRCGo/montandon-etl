@@ -1,7 +1,11 @@
+import json
+import urllib.parse
+
 from django.contrib import admin
 from django.db import models
 from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast
+from django.utils.safestring import mark_safe
 from djangoql.admin import DjangoQLSearchMixin
 
 from apps.common.admin import AdminReadOnlyMixin, linkify
@@ -148,10 +152,24 @@ class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
     list_filter = ("item_type", "status", "transform_id__extraction_id__source")
     autocomplete_fields = ["transform_id"]
     search_fields = ["transform_id"]
+    readonly_fields = ['view_map']
 
     @admin.display(description="Source", ordering="source")
     def source(self, instance):
         return ExtractionData.Source(instance.source).label
+
+    def get_geojson_io_url(self,geojson_data):
+        encoded_data = urllib.parse.quote(json.dumps(geojson_data))
+        return f"https://geojson.io/#data=data:application/json,{encoded_data}"
+
+
+    def view_map(self, obj):
+        if obj.item.get('geometry'):
+            url = self.get_geojson_io_url(obj.item['geometry'])
+            return mark_safe(f'<a href="{url}" target="_blank">View on GeoJson.io</a>')
+        return "No GeoJSON data available"
+
+
 
     def get_queryset(self, request):
         # NOTE: item contains heavy json data
