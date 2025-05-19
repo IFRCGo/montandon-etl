@@ -105,3 +105,12 @@ class AccessTokenManager:
         )
 
         return (response.json(), url)
+
+
+def generate_item_index_fields_values(transformed_item: dict):
+    item_id = transformed_item["id"]
+    item_datetime = transformed_item["properties"]["datetime"]
+    item_primary_country = transformed_item["properties"]["monty:country_codes"]
+
+    logger.info("Item extracted: id=%s, datetime=%s, country=%s", item_id, item_datetime, item_primary_country)
+    return item_id, item_datetime, item_primary_country

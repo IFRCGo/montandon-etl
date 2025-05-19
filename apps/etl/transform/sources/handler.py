@@ -9,6 +9,7 @@ from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
+from apps.etl.utils import generate_item_index_fields_values
 from main.celery import app
 from main.configs import etl_config
 from main.logging import log_extra
@@ -126,20 +127,27 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
     @classmethod
     def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items: list[PyStacItem]):
         logger.info("Loading data into queue")
-
         bulk_mgr = BulkCreateManager(chunk_size=1000)
         for item in transform_items:
             # FIXME: We need to check if we have collection_id
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+            try:
+                item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
+            except KeyError:
+                logging.error("Missing key information", exc_info=True)
+                continue
             bulk_mgr.add(
                 PyStacLoadData(
                     transform_id=transform_obj,
-                    item=transformed_item_dict,
                     collection_id=item.collection_id,
-                    item_type=item_type,
                     trace_id=get_trace_id(transform_obj),
+                    item=transformed_item_dict,
+                    item_type=item_type,
+                    item_id=item_id,
+                    item_datetime=item_datetime,
+                    item_primary_country=item_primary_country,
                 )
             )
 
