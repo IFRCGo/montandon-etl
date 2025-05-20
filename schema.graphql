@@ -189,6 +189,7 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
+  retriggerContent(data: RetriggerInput!): [RetriggerResponse!]!
 }
 
 type OffsetPaginationInfo {
@@ -249,6 +250,7 @@ type Query {
   countTraceId: [CountbytraceID!]!
   statusCountTransform: [StatusCountTransform!]!
   statusSourceCountsTransform: [StatusSourceCountTransform!]!
+  uniqueItemsCounts: [UniqueCounts!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -316,6 +318,14 @@ type RawTransformdatatypeOffsetPaginated {
 
   """List of paginated results."""
   results: [RawTransformdatatype!]!
+}
+
+input RetriggerInput {
+  traceId: Int!
+}
+
+type RetriggerResponse {
+  traceId: Int!
 }
 
 enum SourceTypeEnum {
@@ -425,6 +435,12 @@ input TransformDataFilter {
 
 input TransformOrder {
   id: Ordering
+}
+
+type UniqueCounts {
+  uniqueHazardCount: Int!
+  uniqueEventCount: Int!
+  uniqueImpactCount: Int!
 }
 
 input UserFilter {
