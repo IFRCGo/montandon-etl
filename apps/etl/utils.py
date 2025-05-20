@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +11,13 @@ from django.core.files import File
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
+
+
+def write_into_temp_file(content):
+    temp_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+    temp_file.write(content)
+    temp_file.close()
+    return temp_file
 
 
 def get_cluster_codes():
