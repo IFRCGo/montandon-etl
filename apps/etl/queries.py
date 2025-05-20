@@ -18,6 +18,7 @@ from apps.etl.types import (
     StatusCountTransform,
     StatusSourceCountExtraction,
     StatusSourceCountTransform,
+    UniqueCounts,
     ValStatusSourceCount,
 )
 from main.graphql.context import Info
@@ -201,4 +202,22 @@ class Query:
                 pending_count=item["pending_count"],
             )
             for item in results
+        ]
+
+    @strawberry.field()
+    async def unique_items_counts(self, info: Info) -> list[UniqueCounts]:
+        unique_counts = await sync_to_async(
+            lambda: UniqueCounts.get_queryset(None, None, info).aggregate(
+                events_count=Count("item_id", filter=Q(item_type=1), distinct=True),
+                hazards_count=Count("item_id", filter=Q(item_type=2), distinct=True),
+                impacts_count=Count("item_id", filter=Q(item_type=3), distinct=True),
+            )
+        )()
+
+        return [
+            UniqueCounts(
+                unique_event_count=unique_counts["events_count"],
+                unique_hazard_count=unique_counts["hazards_count"],
+                unique_impact_count=unique_counts["impacts_count"],
+            )
         ]
