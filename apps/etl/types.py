@@ -114,3 +114,14 @@ class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
 @strawberry.type
 class RetriggerResponse:
     trace_id: int
+
+
+@strawberry.type
+class UniqueCounts:
+    unique_hazard_count: int
+    unique_event_count: int
+    unique_impact_count: int
+
+    @staticmethod
+    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
+        return get_queryset_for_model(PyStacLoadData, queryset)
