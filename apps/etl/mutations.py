@@ -1,3 +1,5 @@
+import logging
+from typing import List
 import strawberry
 from typing import List
 from asgiref.sync import sync_to_async
@@ -19,6 +21,8 @@ from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
 
+from apps.etl.models import ExtractionData, Transform
+from apps.etl.models import ExtractionData, Transform
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from apps.etl.transform.sources.gidd import GIDDTransformHandler
