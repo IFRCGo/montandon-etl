@@ -129,3 +129,6 @@ dmypy.json
 
 # editors
 .idea/
+
+# FIXME: This is temporary
+assets/

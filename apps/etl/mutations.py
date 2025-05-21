@@ -1,33 +1,81 @@
+import logging
+
 import strawberry
 from asgiref.sync import sync_to_async
+from celery import chain
 
-from apps.etl.serializers import RetriggerSerializer
-from apps.etl.types import RetriggerResponse
+from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
+from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
+from apps.etl.extraction.sources.glide.extract import GlideExtraction
+from apps.etl.extraction.sources.idu.extract import IDUExtraction
+from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
+from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
+from apps.etl.models import ExtractionData, Transform
+from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from apps.etl.transform.sources.gidd import GIDDTransformHandler
+from apps.etl.transform.sources.glide import GlideTransformHandler
+from apps.etl.transform.sources.idu import IDUTransformHandler
+from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from main.graphql.context import Info
-from utils.strawberry.mutations import convert_serializer_to_type, process_input_data
 
-RetriggerInput = convert_serializer_to_type(RetriggerSerializer, name="RetriggerInput")
+logger = logging.getLogger(__name__)
+
+source_extraction_map = {
+    ExtractionData.Source.EMDAT: EmdatExtraction,
+    ExtractionData.Source.GLIDE: GlideExtraction,
+    ExtractionData.Source.GIDD: GIDDExtraction,
+    ExtractionData.Source.IDU: IDUExtraction,
+    ExtractionData.Source.DREF: IFRCEventExtraction,
+}
+source_transform_map = {
+    ExtractionData.Source.EMDAT: EMDATTransformHandler,
+    ExtractionData.Source.GLIDE: GlideTransformHandler,
+    ExtractionData.Source.GIDD: GIDDTransformHandler,
+    ExtractionData.Source.IDU: IDUTransformHandler,
+    ExtractionData.Source.DREF: IFRCEventTransformHandler,
+}
 
 
 @strawberry.type
 class Mutation:
     @strawberry.mutation
-    async def retrigger_content(
+    async def retrigger_pipeline(
         self,
-        data: RetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        data: PipelineRetriggerInput,  # type: ignore[reportInvalidTypeForm]
         info: Info,
-    ) -> list[RetriggerResponse]:
-        serializer = RetriggerSerializer(
-            instance=info.context.request.user,
-            data=process_input_data(data),
-            context={"request": info.context.request},
-        )
-        # if errors := mutation_is_not_valid(serializer):
-        #     return MutationResponseType(
-        #         ok=False,
-        #         errors=errors,
-        #     )
+    ) -> str:
+        await sync_to_async(run_pipeline_retrigger)(data)
+        return "Successfully retriggered pipeline"
 
-        test = serializer.return_id()
-        hero = await sync_to_async(list)(test)
-        return [RetriggerResponse(id=test_id) async for test_id in hero]  # fix me
+    @strawberry.mutation
+    async def retrigger_transform(
+        self,
+        data: TransformRetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        info: Info,
+    ) -> str:
+        await sync_to_async(run_transform_retrigger)(data)
+        return "Successfully retriggered failed transform objects"
+
+
+def run_transform_retrigger(data: TransformRetriggerInput) -> None:
+    logger.info("Transform retrigger processing")
+    failed_transform_objects = Transform.objects.filter(id__in=data.transform_id, status=Transform.Status.FAILED)
+
+    for obj in failed_transform_objects:
+        transform_class = source_transform_map[obj.extraction.source]
+        transform_class.task.delay(obj.extraction.id)
+
+
+def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
+    logger.info("Pipeline retrigger processing")
+
+    failed_extraction_objects = ExtractionData.objects.filter(
+        trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
+    )
+    for obj in failed_extraction_objects:
+        extraction_class = source_extraction_map[obj.source]
+        transform_class = source_transform_map[obj.source]
+        if extraction_class == IFRCEventExtraction:
+            extraction_class.task(obj.id)
+        else:
+            chain(extraction_class.task.s(obj.id), transform_class.task.s()).apply_async()
