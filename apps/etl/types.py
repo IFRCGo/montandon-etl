@@ -21,6 +21,12 @@ class TransformDataQuerysetMixin:
         return get_queryset_for_model(Transform, queryset)
 
 
+class PyStacDataQuerysetMixin:
+    @staticmethod
+    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
+        return get_queryset_for_model(PyStacLoadData, queryset)
+
+
 @strawberry_django.type(ExtractionData)
 class RawExtractiondatatype:
     id: auto
@@ -117,11 +123,15 @@ class RetriggerResponse:
 
 
 @strawberry.type
-class UniqueCounts:
+class UniqueCounts(PyStacDataQuerysetMixin):
     unique_hazard_count: int
     unique_event_count: int
     unique_impact_count: int
 
-    @staticmethod
-    def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        return get_queryset_for_model(PyStacLoadData, queryset)
+
+@strawberry.type
+class ItemsbySource(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_items: int
+    hazard_items: int
+    impact_items: int
