@@ -11,6 +11,7 @@ from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
 from apps.etl.orders import ExtractionOrder, PystacOrder, TransformOrder
 from apps.etl.types import (
     CountbytraceID,
+    ItemsbySource,
     RawExtractiondatatype,
     RawPystacdatatype,
     RawTransformdatatype,
@@ -220,4 +221,27 @@ class Query:
                 unique_hazard_count=unique_counts["hazards_count"],
                 unique_impact_count=unique_counts["impacts_count"],
             )
+        ]
+
+    @strawberry.field()
+    async def items_counts_by_source(self, info: Info) -> list[ItemsbySource]:
+        result = (
+            ItemsbySource.get_queryset(None, None, info)
+            .select_related("transform_id__extraction")
+            .values("transform_id__extraction__source")
+            .annotate(
+                events_count=Count("item_id", filter=Q(item_type=1)),
+                hazards_count=Count("item_id", filter=Q(item_type=2)),
+                impacts_count=Count("item_id", filter=Q(item_type=3)),
+            )
+        )
+
+        return [
+            ItemsbySource(
+                source=item["transform_id__extraction__source"],
+                event_items=item["events_count"],
+                hazard_items=item["hazards_count"],
+                impact_items=item["impacts_count"],
+            )
+            async for item in result
         ]
