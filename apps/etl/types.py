@@ -47,7 +47,7 @@ class RawTransformdatatype:
     status: DataStatusTypeEnum
     trace_id: auto = strawberry_django.field(only=["trace_id"])
     metadata: auto
-    extraction: auto
+    extraction: auto = strawberry_django.field(only=["extraction"])
     created_at: auto
     started_at: auto
     ended_at: auto
@@ -61,7 +61,7 @@ class RawPystacdatatype:
     item_type: auto
     created_at: auto
     modified_at: auto
-    transform_id: auto
+    transform_id: auto = strawberry_django.field(only=["transform_id"])
 
 
 @strawberry.type
