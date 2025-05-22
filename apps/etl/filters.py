@@ -2,6 +2,7 @@ from typing import Optional
 
 import strawberry
 import strawberry_django
+from django.db import models
 
 from apps.etl.enums import (
     DataStatusTypeEnum,
@@ -30,3 +31,12 @@ class PystacDataFilter:
     created_at: strawberry.auto
     status: Optional[DataStatusTypeEnum]
     trace_id: strawberry.auto
+
+    @strawberry_django.filter_field
+    def source(
+        self,
+        queryset: models.QuerySet,
+        value: SourceTypeEnum,
+        prefix: str,
+    ) -> tuple[models.QuerySet, models.Q]:
+        return queryset, models.Q(**{f"{prefix}transform_id__extraction__source": value})
