@@ -181,6 +181,13 @@ input IntRangeLookup {
   end: Int = null
 }
 
+type ItemsbySource {
+  source: SourceTypeEnum!
+  eventItems: Int!
+  hazardItems: Int!
+  impactItems: Int!
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
 """
@@ -189,7 +196,8 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
-  retriggerContent(data: RetriggerInput!): [RetriggerResponse!]!
+  retriggerPipeline(data: PipelineRetriggerInput!): String!
+  retriggerTransform(data: TransformRetriggerInput!): String!
 }
 
 type OffsetPaginationInfo {
@@ -209,6 +217,10 @@ enum Ordering {
   DESC
   DESC_NULLS_FIRST
   DESC_NULLS_LAST
+}
+
+input PipelineRetriggerInput {
+  traceId: [Int!]!
 }
 
 enum PyStacLoadDataItemTypeEnum {
@@ -231,6 +243,7 @@ input PystacDataFilter {
   OR: PystacDataFilter
   NOT: PystacDataFilter
   DISTINCT: Boolean
+  source: SourceTypeEnum
 }
 
 input PystacOrder {
@@ -251,6 +264,7 @@ type Query {
   statusCountTransform: [StatusCountTransform!]!
   statusSourceCountsTransform: [StatusSourceCountTransform!]!
   uniqueItemsCounts: [UniqueCounts!]!
+  itemsCountsBySource: [ItemsbySource!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -318,14 +332,6 @@ type RawTransformdatatypeOffsetPaginated {
 
   """List of paginated results."""
   results: [RawTransformdatatype!]!
-}
-
-input RetriggerInput {
-  traceId: Int!
-}
-
-type RetriggerResponse {
-  traceId: Int!
 }
 
 enum SourceTypeEnum {
@@ -435,6 +441,10 @@ input TransformDataFilter {
 
 input TransformOrder {
   id: Ordering
+}
+
+input TransformRetriggerInput {
+  transformId: [Int!]!
 }
 
 type UniqueCounts {
