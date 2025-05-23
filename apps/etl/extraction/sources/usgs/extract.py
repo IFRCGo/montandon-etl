@@ -148,17 +148,17 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             start_date_str = url.split("starttime=")[1].split("&")[0]
             end_date_str = url.split("endtime=")[1].split("&")[0]
         except IndexError as error:
-            logger.error(f"Error: {error}")
+            logger.error(f"Error: {error}", exc_info=True, extra={"source": "USGS"})
             return False
 
         start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d")
         end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d")
         mid_date_obj = start_date_obj + (end_date_obj - start_date_obj) / 2
         mid_date_str = mid_date_obj.strftime("%Y-%m-%d")
-        second_half_start_str = (mid_date_obj + timedelta(days=0)).strftime("%Y-%m-%d")
+        second_half_start_str = (mid_date_obj + timedelta()).strftime("%Y-%m-%d")
 
-        first_half_url = url.replace(f"starttime={start_date_str}", f"starttime={start_date_str}")
-        first_half_url = first_half_url.replace(f"endtime={end_date_str}", f"endtime={mid_date_str}")
+        first_half_url = url.replace(f"endtime={end_date_str}", f"endtime={mid_date_str}")
+
         self.init_extraction(
             metadata=USGSExtractionMetadata(
                 url=first_half_url,
@@ -167,7 +167,6 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         )
 
         second_half_url = url.replace(f"starttime={start_date_str}", f"starttime={second_half_start_str}")
-        second_half_url = second_half_url.replace(f"endtime={end_date_str}", f"endtime={end_date_str}")
 
         self.init_extraction(
             metadata=USGSExtractionMetadata(
