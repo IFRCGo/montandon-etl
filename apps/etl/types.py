@@ -3,7 +3,7 @@ import strawberry_django
 from django.db import models
 from strawberry import auto
 
-from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, SourceTypeEnum
+from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model
@@ -58,7 +58,7 @@ class RawPystacdatatype:
     id: auto
     status: DataStatusTypeEnum
     trace_id: auto = strawberry_django.field(only=["trace_id"])
-    item_type: auto
+    item_type: PyStacLoadDataItemTypeEnum
     created_at: auto
     modified_at: auto
     transform_id: auto = strawberry_django.field(only=["transform_id"])
