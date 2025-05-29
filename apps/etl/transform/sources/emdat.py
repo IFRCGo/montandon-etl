@@ -1,6 +1,6 @@
 import logging
 
-from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 
 from apps.etl.models import ExtractionData
@@ -21,9 +21,12 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
             data = f.read()
         data_file = write_into_temp_file(data)
 
-        data_source = {"source_url": extraction_obj.url, "source_data": File(path=data_file.name, data_type=DataType.FILE)}
-
-        return cls.transformer_schema(data_source)
+        return cls.transformer_schema(
+            data=GenericDataSource(
+                source_url=extraction_obj.url,
+                input_data=File(path=data_file.name, data_type=DataType.FILE),
+            )
+        )
 
     @staticmethod
     @app.task
