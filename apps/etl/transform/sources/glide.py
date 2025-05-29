@@ -1,6 +1,6 @@
 import json
 
-from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
 from apps.etl.models import ExtractionData
@@ -18,9 +18,13 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
         with extraction_obj.resp_data.open("rb") as f:
             data = f.read()
         data_file = write_into_temp_file(data)
-        data_source = {"source_url": extraction_obj.url, "source_data": File(path=data_file.name, data_type=DataType.FILE)}
 
-        return cls.transformer_schema(data_source)
+        return cls.transformer_schema(
+            data=GenericDataSource(
+                source_url=extraction_obj.url,
+                data_source=File(path=data_file.name, data_type=DataType.FILE),
+            )
+        )
 
     @staticmethod
     @app.task
