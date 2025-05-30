@@ -22,7 +22,7 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
         return cls.transformer_schema(
             data=GenericDataSource(
                 source_url=extraction_obj.url,
-                data_source=File(path=data_file.name, data_type=DataType.FILE),
+                input_data=File(path=data_file.name, data_type=DataType.FILE),
             )
         )
 

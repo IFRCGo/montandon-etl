@@ -1,4 +1,4 @@
-from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSourceV2, GIDDTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
@@ -17,7 +17,9 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
 
         data_file = write_into_temp_file(content=file_content)
 
-        data_source = {"source_url": extraction_obj.url, "source_data": File(path=data_file.name, data_type=DataType.FILE)}
+        data_source = GenericDataSource(
+            source_url=extraction_obj.url, data_source=File(path=data_file.name, data_type=DataType.FILE)
+        )
 
         return cls.transformer_schema(data_source)
 
