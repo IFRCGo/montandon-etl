@@ -1,14 +1,14 @@
 from pystac_monty.sources.common import DataType, File, GenericDataSource
-from pystac_monty.sources.gidd import GIDDDataSourceV2, GIDDTransformer
+from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
 
 
-class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourceV2]):
+class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSource]):
     transformer_class = GIDDTransformer
-    transformer_schema = GIDDDataSourceV2
+    transformer_schema = GIDDDataSource
 
     @classmethod
     def get_schema_data(cls, extraction_obj):
@@ -18,7 +18,7 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
         data_file = write_into_temp_file(content=file_content)
 
         data_source = GenericDataSource(
-            source_url=extraction_obj.url, data_source=File(path=data_file.name, data_type=DataType.FILE)
+            source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
         )
 
         return cls.transformer_schema(data_source)
