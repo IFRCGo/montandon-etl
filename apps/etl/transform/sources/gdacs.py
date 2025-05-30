@@ -2,8 +2,8 @@ import logging
 
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
+    GDACSDataSource,
     GDACSDataSourceType,
-    GDACSDataSourceV3,
     GDACSTransformer,
 )
 
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 # FIXME: start_end_handler base zzz
 
 
-class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSourceV3]):
+class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSource]):
     transformer_class = GDACSTransformer
-    transformer_schema = GDACSDataSourceV3
+    transformer_schema = GDACSDataSource
 
     @classmethod
     def get_schema_data(cls, extraction_object):
