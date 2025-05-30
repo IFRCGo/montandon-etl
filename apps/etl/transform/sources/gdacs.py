@@ -36,7 +36,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
             event_episode_data = GdacsEpisodes(
                 type=GDACSDataSourceType.EVENT,
                 data=GenericDataSource(
-                    source_url=episode_obj.url, data_source=File(path=episode_data_temp_file.name, data_type=DataType.FILE)
+                    source_url=episode_obj.url, input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE)
                 ),
             )
             geometry_object = episode_obj.child_extractions.all().first()
@@ -48,7 +48,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                 type=GDACSDataSourceType.GEOMETRY,
                 data=GenericDataSource(
                     source_url=geometry_object.url,
-                    data_source=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
+                    input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
                 ),
             )
 
