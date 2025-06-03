@@ -21,12 +21,10 @@ class IFRCEventTransformHandler(BaseTransformerHandler[IFRCEventTransformer, IFR
             data = json.loads(file_data.read())
 
         data_file = write_into_temp_file(json.dumps(data["results"]).encode("utf-8"))
-
-        data_source = IFRCEventDataSource(
-            data=GenericDataSource(
-                source_url=extraction_obj.url, data_source=File(path=data_file.name, data_type=DataType.FILE)
-            )
+        data_source = GenericDataSource(
+            source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
         )
+
         return cls.transformer_schema(data_source)
 
     @staticmethod

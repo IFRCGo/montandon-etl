@@ -28,7 +28,7 @@ def ext_and_transform_ifrcevent_latest_data():
     if ext_object:
         start_date = ext_object.created_at.date()
     else:
-        start_date = etl_config.GLIDE_START_DATE
+        start_date = etl_config.IFRC_EVENT_START_DATE
 
     params = IfrcEventExtractionInputMetadata(
         disaster_start_date__gte=str(start_date),
