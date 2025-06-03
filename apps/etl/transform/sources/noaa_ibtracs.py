@@ -1,6 +1,6 @@
 import logging
 
-from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
@@ -20,8 +20,12 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
             data = file_data.read()
         data_file = write_into_temp_file(data)
 
-        data_source = {"source_url": extraction_obj.url, "source_data": File(path=data_file.name, data_type=DataType.FILE)}
-        return cls.transformer_schema(data_source)
+        data_source = GenericDataSource(
+            source_url=extraction_obj.url,
+            input_data=File(path=data_file.name, data_type=DataType.FILE),
+        )
+
+        return cls.transformer_schema(data=data_source)
 
     @staticmethod
     @app.task
