@@ -353,6 +353,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
 
         if add_to_queue:
             cls.task.delay(extraction_obj.pk)  # type: ignore[reportFunctionMemberAccess] FIXME
+
         return extraction_obj
 
     @abc.abstractmethod
@@ -421,10 +422,10 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         ExtractionData.objects.filter(pk=self.extraction_object.pk).update(attempt_no=models.F("attempt_no") + 1)
         raise self.celery_task.retry(exc=exc, countdown=delay)
 
-    def handle(self):
+    def handle(self, retrigger: bool):
         self.extraction_object.mark_as_started()
         try:
-            resp = self.handle_extract()
+            resp = self.handle_extract(retrigger=retrigger)
             self.extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS)
             return resp
         except Exception as exc:
