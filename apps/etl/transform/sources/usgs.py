@@ -1,7 +1,8 @@
 import json
 import tempfile
 
-from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
+from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
@@ -12,7 +13,6 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
     transformer_class = USGSTransformer
     transformer_schema = USGSDataSource
 
-    @classmethod
     @classmethod
     def get_schema_data(cls, extraction_obj):
         losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
@@ -39,7 +39,13 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             tmp_data_file.write(data)
             data_path = tmp_data_file.name
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data_path, losses_data=losses_data_path)
+        return cls.transformer_schema(
+            USGSDataSourceType(
+                source_url=extraction_obj.url,
+                event_data=File(path=data_path, data_type=DataType.FILE),
+                loss_data=File(path=losses_data_path, data_type=DataType.FILE),
+            )
+        )
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
