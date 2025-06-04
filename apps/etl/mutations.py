@@ -4,18 +4,27 @@ import strawberry
 from asgiref.sync import sync_to_async
 from celery import chain
 
+from apps.etl.extraction.sources.desinventar.extract import DesInventarExtraction
 from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
+from apps.etl.extraction.sources.gdacs.extract import GdacsExtraction
+from apps.etl.extraction.sources.gfd.extract import GFDExtraction
 from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
+from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from apps.etl.transform.sources.gdacs import GDACSTransformHandler
+from apps.etl.transform.sources.gfd import GFDTransformHandler
 from apps.etl.transform.sources.gidd import GIDDTransformHandler
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from apps.etl.transform.sources.idu import IDUTransformHandler
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
+from apps.etl.transform.sources.noaa_ibtracs import IbtracsTransformHandler
+from apps.etl.transform.sources.pdc import PDCTransformHandler
+from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.graphql.context import Info
 
 logger = logging.getLogger(__name__)
@@ -26,6 +35,9 @@ source_extraction_map = {
     ExtractionData.Source.GIDD: GIDDExtraction,
     ExtractionData.Source.IDU: IDUExtraction,
     ExtractionData.Source.DREF: IFRCEventExtraction,
+    ExtractionData.Source.DESINVENTAR: DesInventarExtraction,
+    ExtractionData.Source.GFD: GFDExtraction,
+    ExtractionData.Source.GDACS: GdacsExtraction,
 }
 source_transform_map = {
     ExtractionData.Source.EMDAT: EMDATTransformHandler,
@@ -33,6 +45,12 @@ source_transform_map = {
     ExtractionData.Source.GIDD: GIDDTransformHandler,
     ExtractionData.Source.IDU: IDUTransformHandler,
     ExtractionData.Source.DREF: IFRCEventTransformHandler,
+    ExtractionData.Source.GDACS: GDACSTransformHandler,
+    ExtractionData.Source.DESINVENTAR: DesinventarTransformHandler,
+    ExtractionData.Source.GFD: GFDTransformHandler,
+    ExtractionData.Source.IBTRACS: IbtracsTransformHandler,
+    ExtractionData.Source.PDC: PDCTransformHandler,
+    ExtractionData.Source.USGS: USGSTransformHandler,
 }
 
 
@@ -72,10 +90,15 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     failed_extraction_objects = ExtractionData.objects.filter(
         trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
     )
+    # ).exclude(status=ExtractionData.Status.SUCCESS)
+
+    print("Failed Ext", failed_extraction_objects)
     for obj in failed_extraction_objects:
         extraction_class = source_extraction_map[obj.source]
         transform_class = source_transform_map[obj.source]
         if extraction_class == IFRCEventExtraction:
             extraction_class.task(obj.id)
+        elif extraction_class == GdacsExtraction:
+            GdacsExtraction.retrigger(obj)
         else:
             chain(extraction_class.task.s(obj.id), transform_class.task.s()).apply_async()

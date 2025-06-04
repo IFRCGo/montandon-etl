@@ -22,6 +22,15 @@ class TransformDataFilter:
     status: Optional[DataStatusTypeEnum]
     trace_id: strawberry.auto
 
+    @strawberry_django.filter_field
+    def source(
+        self,
+        queryset: models.QuerySet,
+        value: SourceTypeEnum,
+        prefix: str,
+    ) -> tuple[models.QuerySet, models.Q]:
+        return queryset, models.Q(**{"extraction__source": value})
+
 
 @strawberry_django.filters.filter(PyStacLoadData, lookups=True)
 class PystacDataFilter:
