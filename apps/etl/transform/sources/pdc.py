@@ -1,8 +1,8 @@
-import json
 import logging
 import tempfile
 
-from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
+from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
 from apps.etl.models import ExtractionData
 from main.celery import CeleryQueue, app
@@ -48,14 +48,18 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         tmp_exposure_detail_file.write(file_content)
         tmp_exposure_detail_file.close()
 
-        data = {
-            "hazards_file_path": tmp_hazard_file.name,
-            "exposure_timestamp": input_metadata.exposure_detail.exposure_id,
-            "uuid": input_metadata.exposure_detail.hazard_uuid,
-            "exposure_detail_file_path": tmp_exposure_detail_file.name,
-            "geojson_file_path": tmp_geojson_file.name,
-        }
-        return cls.transformer_schema(source_url=extraction_obj.parent.url, data=json.dumps(data))
+        return cls.transformer_schema(
+            data=PDCDataSourceType(
+                source_url=extraction_obj.parent.url,
+                uuid=input_metadata.exposure_detail.hazard_uuid,
+                hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
+                exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
+                geojson_data=File(
+                    path=tmp_geojson_file.name,
+                    data_type=DataType.FILE,
+                ),
+            )
+        )
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
