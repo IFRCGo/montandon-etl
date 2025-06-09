@@ -1,10 +1,10 @@
 import logging
-import tempfile
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
 from apps.etl.models import ExtractionData
+from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
 
 from .handler import BaseTransformerHandler
@@ -30,23 +30,17 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         with geo_json_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_geojson_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_geojson_file.write(file_content)
-        tmp_geojson_file.close()
+        tmp_geojson_file = write_into_temp_file(file_content)
 
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_hazard_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_hazard_file.write(file_content)
-        tmp_hazard_file.close()
+        tmp_hazard_file = write_into_temp_file(file_content)
 
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_exposure_detail_file.write(file_content)
-        tmp_exposure_detail_file.close()
+        tmp_exposure_detail_file = write_into_temp_file(file_content)
 
         return cls.transformer_schema(
             data=PDCDataSourceType(
