@@ -14,7 +14,7 @@ from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.celery import CeleryQueue, app
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
-
+import random
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +41,10 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
     source_enum = ExtractionData.Source.USGS
     extraction_metadata_class = USGSExtractionMetadata
 
+    def __init__(self, task, extraction_id, queue_name=None):
+        super().__init__(task, extraction_id)
+        self.queue_name = queue_name  
+
     def _extraction_fetch_url(
         self,
         url: str,
@@ -51,8 +55,24 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         timeout: int = 30,
         file_extension: str = "json",
     ) -> bool:
+        
+        queue_proxy_map: dict = {
+            CeleryQueue.USGS_EXTRACTION_1: "socks5h://192.168.88.28:1081",
+            CeleryQueue.USGS_EXTRACTION_2: "socks5h://192.168.88.28:1082",
+            CeleryQueue.USGS_EXTRACTION_3: "socks5h://192.168.88.28:1083",
+            CeleryQueue.USGS_EXTRACTION_4: "socks5h://192.168.88.28:1084",
+
+        }
+
+        proxy = queue_proxy_map.get(self.queue_name, "socks5h://192.168.88.28:1081")
+
+        proxies = {
+            "http": proxy,
+            "https": proxy,
+        }
+
         if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=timeout)
+            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies= proxies)
         elif method == "post":
             response = requests.post(url, headers=headers, data=data, timeout=timeout)
         else:
@@ -104,6 +124,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                     type=USGSExtractionMetadataType.DETAIL,
                 ),
                 parent_extraction=self.extraction_object,
+                queue_name= self.queue_name
             )
 
     def handle_type_detail(self):
@@ -125,7 +146,10 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                         parent_extraction=self.extraction_object,
                         add_to_queue=False,
                     )
-                    losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
+                    losses_tasks.append(
+                        USGSExtraction.task.si(losses_extraction_obj.pk).set(queue=self.queue_name)
+                    )
+
 
         if losses_tasks:
             chord(
@@ -198,4 +222,5 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         rate_limit="100/m",  # limit is 500 requests per 5 minute window
     )
     def task(celery_task, extraction_id):
-        USGSExtraction(celery_task, extraction_id).handle()
+        queue_name = getattr(celery_task.request, 'delivery_info', {}).get('routing_key')
+        USGSExtraction(celery_task, extraction_id, queue_name=queue_name).handle()

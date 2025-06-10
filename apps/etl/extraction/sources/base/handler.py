@@ -10,12 +10,11 @@ from django.db import models
 
 from apps.etl.extraction.sources.base.utils import hash_file_content, manage_duplicate_file_content
 from apps.etl.models import ExtractionData, get_trace_id
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.logging import log_extra
 from main.sentry import SentryTag
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
-
 logger = logging.getLogger(__name__)
 
 
@@ -338,6 +337,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         metadata: ExtractionMetadataTypeVar,
         parent_extraction: ExtractionData | None = None,
         add_to_queue: bool = True,
+        queue_name: str | None = CeleryQueue.DEFAULT,
     ) -> ExtractionData:
         extraction_obj = ExtractionData.objects.create(
             source=cls.source_enum,
@@ -352,8 +352,9 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         )
 
         if add_to_queue:
-            cls.task.delay(extraction_obj.pk)  # type: ignore[reportFunctionMemberAccess] FIXME
+            cls.task.apply_async([extraction_obj.pk], queue=queue_name)
         return extraction_obj
+
 
     @abc.abstractmethod
     def handle_extract(self):
