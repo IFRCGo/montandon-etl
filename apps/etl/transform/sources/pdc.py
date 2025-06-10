@@ -1,10 +1,10 @@
-import json
 import logging
-import tempfile
 
-from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
+from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
 from apps.etl.models import ExtractionData
+from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
 
 from .handler import BaseTransformerHandler
@@ -30,32 +30,30 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         with geo_json_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_geojson_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_geojson_file.write(file_content)
-        tmp_geojson_file.close()
+        tmp_geojson_file = write_into_temp_file(file_content)
 
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_hazard_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_hazard_file.write(file_content)
-        tmp_hazard_file.close()
+        tmp_hazard_file = write_into_temp_file(file_content)
 
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_exposure_detail_file.write(file_content)
-        tmp_exposure_detail_file.close()
+        tmp_exposure_detail_file = write_into_temp_file(file_content)
 
-        data = {
-            "hazards_file_path": tmp_hazard_file.name,
-            "exposure_timestamp": input_metadata.exposure_detail.exposure_id,
-            "uuid": input_metadata.exposure_detail.hazard_uuid,
-            "exposure_detail_file_path": tmp_exposure_detail_file.name,
-            "geojson_file_path": tmp_geojson_file.name,
-        }
-        return cls.transformer_schema(source_url=extraction_obj.parent.url, data=json.dumps(data))
+        return cls.transformer_schema(
+            data=PDCDataSourceType(
+                source_url=extraction_obj.parent.url,
+                uuid=input_metadata.exposure_detail.hazard_uuid,
+                hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
+                exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
+                geojson_data=File(
+                    path=tmp_geojson_file.name,
+                    data_type=DataType.FILE,
+                ),
+            )
+        )
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
