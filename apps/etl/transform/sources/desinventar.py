@@ -1,6 +1,7 @@
 import logging
 import tempfile
 
+from django.conf import settings
 from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import DataType, DesinventarDataSourceType, File
 from pystac_monty.sources.desinventar import (
@@ -32,7 +33,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
 
         data_source = DesinventarDataSourceType(
             tmp_zip_file=File(path=tmp_zip_file, data_type=DataType.FILE),
-            source_url=f"https://www.desinventar.net/DesInventar/download/DI_export_{country_code}.zip",
+            source_url=f"{settings.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip",
             iso3=iso3,
             country_code=country_code,
         )
