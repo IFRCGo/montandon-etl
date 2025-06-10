@@ -22,7 +22,8 @@ def extract_and_transform_pdc_data():
         source=ExtractionData.Source.PDC,
     ).last()
     if pdc_latest_extraction:
-        start_date = datetime.strptime(pdc_latest_extraction.created_at, "%Y-%m-%d %H:%M:%S.%f")
+        created_at = pdc_latest_extraction.created_at.strftime("%Y-%m-%d %H:%M:%S.%f")
+        start_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S.%f")
     else:
         start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
 
