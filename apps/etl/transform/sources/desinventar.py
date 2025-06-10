@@ -1,7 +1,9 @@
 import logging
 import tempfile
 
+from django.conf import settings
 from pystac_monty.geocoding import TheirGeocoder
+from pystac_monty.sources.common import DataType, DesinventarDataSourceType, File
 from pystac_monty.sources.desinventar import (
     DesinventarDataSource,
     DesinventarTransformer,
@@ -29,12 +31,13 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         tmp_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
         tmp_zip_file.write(file_content)
 
-        return cls.transformer_schema(
-            tmp_zip_file=tmp_zip_file,
-            source_url=f"https://www.desinventar.net/DesInventar/download/DI_export_{country_code}.zip",
-            country_code=country_code,
+        data_source = DesinventarDataSourceType(
+            tmp_zip_file=File(path=tmp_zip_file, data_type=DataType.FILE),
+            source_url=f"{settings.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip",
             iso3=iso3,
+            country_code=country_code,
         )
+        return cls.transformer_schema(data_source)
 
     @classmethod
     def handle_transformation(cls, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
