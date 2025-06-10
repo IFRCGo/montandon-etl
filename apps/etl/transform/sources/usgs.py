@@ -1,11 +1,11 @@
 import json
-import tempfile
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
+from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
 
 
@@ -26,18 +26,14 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             losses_data.append(data)
 
         # Write losses_data (which is JSON) to a temp file in text mode
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json", mode="w", encoding="utf-8") as tmp_file:
-            json.dump(losses_data, tmp_file)
-            losses_data_path = tmp_file.name
+        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8")).name
 
         # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
         # Write raw bytes to a temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp_data_file:
-            tmp_data_file.write(data)
-            data_path = tmp_data_file.name
+        data_path = write_into_temp_file(data).name
 
         return cls.transformer_schema(
             USGSDataSourceType(
