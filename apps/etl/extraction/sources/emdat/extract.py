@@ -7,6 +7,7 @@ from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from utils.celery import RetryableTask
@@ -46,7 +47,8 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
         payload = {"query": QUERY, "variables": params.model_dump()}
         payload["variables"]["from"] = payload["variables"].pop("from_")
         self._extraction_fetch_graphql(url, payload, headers)
-        return self.extraction_object.id
+
+        EMDATTransformHandler.task.delay(self.extraction_object.id)
 
     def handle_extract(self):
         handler_type = self.extraction_metadata.type
@@ -64,4 +66,4 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
         queue=CeleryQueue.DEFAULT,
     )
     def task(celery_task: Task, extraction_id: int) -> int:
-        return EmdatExtraction(celery_task, extraction_id).handle()
+        EmdatExtraction(celery_task, extraction_id).handle()
