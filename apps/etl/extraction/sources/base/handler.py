@@ -7,14 +7,17 @@ from typing import Any, Callable, Optional
 import pydantic
 import requests
 from django.db import models
+from django.utils.functional import cached_property
 
 from apps.etl.extraction.sources.base.utils import hash_file_content, manage_duplicate_file_content
 from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import CeleryQueue, app
+from main.configs import etl_config
 from main.logging import log_extra
 from main.sentry import SentryTag
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,6 +218,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     MIN_RETRY_DELAY = 30
     MAX_RETRY_DELAY = 60
     RETRY_STATUS_CODE = [403, 429]
+    DEFAULT_CELERY_QUEUE = CeleryQueue.EXTRACTION
 
     source_enum: ExtractionData.Source
     extraction_metadata_class: type[ExtractionMetadataTypeVar]
@@ -224,10 +228,16 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     def __init__(self, celery_task: RetryableTask, extraction_id: int):
         self.celery_task = celery_task
         self.extraction_object = ExtractionData.objects.get(id=extraction_id)
+        self.proxies = etl_config.get_http_proxy()
         SentryTag.set_tags(
             {SentryTag.Tag.SOURCE: self.extraction_object.source, SentryTag.Tag.TRACE_ID: self.extraction_object.trace_id}
         )
         self.reparse_extraction_metadata()
+
+    @cached_property
+    def celery_queue(self) -> str:
+        current_queue = getattr(self.celery_task.request, "delivery_info", {}).get("routing_key")
+        return current_queue or self.DEFAULT_CELERY_QUEUE
 
     def reparse_extraction_metadata(self):
         self.extraction_metadata = self.extraction_metadata_class(**self.extraction_object.metadata)
@@ -268,7 +278,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None) -> bool:
         if not payload or "query" not in payload:
             return False
-        response = requests.post(url, json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers, proxies=self.proxies)
         response.raise_for_status()
         self.extraction_object.resp_code = response.status_code
 
@@ -295,9 +305,9 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         file_extension: str = "json",
     ) -> bool:
         if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=timeout)
+            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
         elif method == "post":
-            response = requests.post(url, headers=headers, data=data, timeout=timeout)
+            response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
         else:
             typing.assert_never(method)
 
@@ -337,7 +347,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         metadata: ExtractionMetadataTypeVar,
         parent_extraction: ExtractionData | None = None,
         add_to_queue: bool = True,
-        queue_name: str | None = CeleryQueue.DEFAULT,
+        queue_name: str | None = None,
     ) -> ExtractionData:
         extraction_obj = ExtractionData.objects.create(
             source=cls.source_enum,
@@ -352,9 +362,8 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         )
 
         if add_to_queue:
-            cls.task.apply_async([extraction_obj.pk], queue=queue_name)
+            cls.task.apply_async([extraction_obj.pk], queue=queue_name or cls.DEFAULT_CELERY_QUEUE)
         return extraction_obj
-
 
     @abc.abstractmethod
     def handle_extract(self):

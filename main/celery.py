@@ -30,10 +30,6 @@ class CeleryQueue:
 
     # Specific
     USGS_EXTRACTION = "usgs-extraction"
-    USGS_EXTRACTION_1 = "usgs-extraction-01"
-    USGS_EXTRACTION_2 = "usgs-extraction-02"
-    USGS_EXTRACTION_3 = "usgs-extraction-03"
-    USGS_EXTRACTION_4 = "usgs-extraction-04"
 
 
 app.conf.task_default_queue = CeleryQueue.DEFAULT
