@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from celery import chain, shared_task
+from celery import shared_task
 
 from apps.etl.extraction.sources.emdat.extract import (
     EmdatExtraction,
@@ -8,7 +8,7 @@ from apps.etl.extraction.sources.emdat.extract import (
     EmdatExtractionMetadataType,
     EmdatExtractionParamsMetadata,
 )
-from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from apps.etl.models import ExtractionData
 from apps.etl.utils import get_cluster_codes
 from main.configs import etl_config
 
@@ -87,11 +87,20 @@ query monty(
 
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
+    exist_extraction_object = (
+        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT).order_by("-created_at").first()
+    )
+
+    from_date_year = datetime.now().year
+    if exist_extraction_object:
+        if not exist_extraction_object.status == ExtractionData.Status.SUCCESS:
+            from_date_year = exist_extraction_object.metadata["params"]["from_"]
+
     extraction_object = EmdatExtraction.init_extraction(
         metadata=EmdatExtractionMetadata(
             params=EmdatExtractionParamsMetadata(
                 limit=-1,
-                from_=etl_config.EMDAT_START_YEAR,
+                from_=from_date_year,
                 to=datetime.now().year,
                 include_hist=None,
                 classif=get_cluster_codes(),
@@ -99,9 +108,8 @@ def ext_and_transform_emdat_latest_data(**kwargs):
             url=f"{etl_config.EMDAT_URL}/v1",
             type=EmdatExtractionMetadataType.QUERY,
         ),
-        add_to_queue=False,
     )
-    chain(EmdatExtraction.task.s(extraction_object.id), EMDATTransformHandler.task.s()).apply_async()
+    EmdatExtraction.task.delay(extraction_object.id)
 
 
 @shared_task
@@ -119,6 +127,6 @@ def ext_and_transform_emdat_historical_data(**kwargs):
                 url=f"{etl_config.EMDAT_URL}/v1",
                 type=EmdatExtractionMetadataType.QUERY,
             ),
-            add_to_queue=False,
         )
-        chain(EmdatExtraction.task.s(extraction_object.id), EMDATTransformHandler.task.s()).apply_async()
+
+        EmdatExtraction.task.delay(extraction_object.id)
