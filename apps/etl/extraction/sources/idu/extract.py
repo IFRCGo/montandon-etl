@@ -37,7 +37,7 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
         self._extraction_fetch_url(url, headers=headers, params=params)
         return self.extraction_object.id
 
-    def handle_extract(self):
+    def handle_extract(self, retrigger: bool):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:

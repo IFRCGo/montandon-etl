@@ -179,7 +179,7 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
                 ),
             )
 
-    def handle_extract(self):
+    def handle_extract(self, retrigger: bool):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
