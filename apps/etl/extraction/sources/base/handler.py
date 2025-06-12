@@ -8,10 +8,7 @@ import pydantic
 import requests
 from django.db import models
 
-from apps.etl.extraction.sources.base.utils import (
-    hash_file_content,
-    manage_duplicate_file_content,
-)
+from apps.etl.extraction.sources.base.utils import hash_file_content, manage_duplicate_file_content
 from apps.etl.models import ExtractionData, get_trace_id
 from main.celery import app
 from main.logging import log_extra
@@ -304,6 +301,13 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             response = requests.post(url, headers=headers, data=data, timeout=timeout)
         else:
             typing.assert_never(method)
+
+        if response.status_code == 404:
+            logger.warning(
+                "The requested url not found",
+                extra=log_extra({"url": url, "source": self.source_enum}),
+                exc_info=True,
+            )
 
         # NOTE: Handle Ratelimit manually
         if response.status_code in self.RETRY_STATUS_CODE:
