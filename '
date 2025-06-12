@@ -99,10 +99,17 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 continue
             detail_url = feature_item["properties"]["detail"]
 
-            metadata = USGSExtractionMetadata(
+            metadata=USGSExtractionMetadata(
                 url=detail_url,
                 type=USGSExtractionMetadataType.DETAIL,
             )
+            # self.init_extraction(
+            #     metadata=USGSExtractionMetadata(
+            #         url=detail_url,
+            #         type=USGSExtractionMetadataType.DETAIL,
+            #     ),
+            #     parent_extraction=self.extraction_object,
+            # )
 
             if not retrigger:
                 self.init_extraction(
@@ -126,26 +133,14 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             for item in detail_data["properties"]["products"]["losspager"]:
                 if "json/losses.json" in item["contents"]:
                     url = item["contents"]["json/losses.json"]["url"]
-
-                    if not retrigger:
-                        losses_extraction_obj = self.init_extraction(
-                            metadata=USGSExtractionMetadata(
-                                url=url,
-                                type=USGSExtractionMetadataType.LOSSE,
-                            ),
-                            parent_extraction=self.extraction_object,
-                            add_to_queue=False,
-                        )
-                    else:
-                        losses_extraction_obj = ExtractionData.objects.filter(
+                    losses_extraction_obj = self.init_extraction(
+                        metadata=USGSExtractionMetadata(
                             url=url,
-                            metadata=USGSExtractionMetadata(
-                                url=url,
-                                type=USGSExtractionMetadataType.LOSSE,
-                            ).dict(),
-                            parent=self.extraction_object,
-                        ).first()
-
+                            type=USGSExtractionMetadataType.LOSSE,
+                        ),
+                        parent_extraction=self.extraction_object,
+                        add_to_queue=False,
+                    )
                     losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
 
         if losses_tasks:
@@ -213,14 +208,14 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
 
     def retrigger(extraction_object):
         metadata_type = extraction_object.metadata.get("type")
-        if metadata_type == USGSExtractionMetadataType.QUERY:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True)
-        if metadata_type == USGSExtractionMetadataType.DETAIL:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True)
-        if metadata_type == USGSExtractionMetadataType.LOSSE:
-            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True)
-        if metadata_type == USGSExtractionMetadataType.RESPONSE_EXCEEDED:
-            USGSExtraction.task.delay(extraction_object.id)
+        if metadata_type == GdacsExtractionMetadataType.QUERY:
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True)
+        if metadata_type == GdacsExtractionMetadataType.DETAIL:
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True)
+        if metadata_type == GdacsExtractionMetadataType.LOSSE:
+            GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True)
+        if metadata_type == GdacsExtractionMetadataType.RESPONSE_EXCEEDED:
+            GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True)
 
     @staticmethod
     @app.task(
@@ -229,5 +224,5 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         queue=CeleryQueue.USGS_EXTRACTION,
         rate_limit="100/m",  # limit is 500 requests per 5 minute window
     )
-    def task(celery_task, extraction_id, retrigger: bool = False):
-        USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger)
+    def task(celery_task, extraction_id):
+        USGSExtraction(celery_task, extraction_id).handle()

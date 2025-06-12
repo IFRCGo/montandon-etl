@@ -44,7 +44,7 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         self._extraction_fetch_url(url, params, headers)
         return self.extraction_object.id
 
-    def handle_extract(self):
+    def handle_extract(self, retrigger: bool = False):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
