@@ -118,9 +118,6 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     parent_extraction=event_episode_extraction_obj,
                     add_to_queue=False,
                 )
-                episode_tasks.append(
-                    chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s())
-                )
 
             else:
                 event_episode_extraction_obj = ExtractionData.objects.filter(
@@ -132,11 +129,9 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     parent=self.extraction_object,
                 ).first()
 
-                episode_tasks.append(
-                    chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s())
-                )
+            episode_tasks.append(chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s()))
 
-            chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
+        chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
     def handle_type_episode(self):
         self._extraction_fetch_url(
