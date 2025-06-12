@@ -12,6 +12,7 @@ from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
+from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
 from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
@@ -38,6 +39,7 @@ source_extraction_map = {
     ExtractionData.Source.DESINVENTAR: DesInventarExtraction,
     ExtractionData.Source.GFD: GFDExtraction,
     ExtractionData.Source.GDACS: GdacsExtraction,
+    ExtractionData.Source.USGS: USGSExtraction,
 }
 source_transform_map = {
     ExtractionData.Source.EMDAT: EMDATTransformHandler,
@@ -88,17 +90,21 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     logger.info("Pipeline retrigger processing")
 
     failed_extraction_objects = ExtractionData.objects.filter(
-        trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
-    )
-    # ).exclude(status=ExtractionData.Status.SUCCESS)
+        # trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
+        trace_id__in=data.trace_id,
+    ).exclude(status=ExtractionData.Status.SUCCESS)
 
     print("Failed Ext", failed_extraction_objects)
     for obj in failed_extraction_objects:
         extraction_class = source_extraction_map[obj.source]
         transform_class = source_transform_map[obj.source]
         if extraction_class == IFRCEventExtraction:
-            extraction_class.task(obj.id)
+            extraction_class.task.delay(obj.id)
+        elif extraction_class == EmdatExtraction:
+            extraction_class.task.delay(obj.id)
         elif extraction_class == GdacsExtraction:
             GdacsExtraction.retrigger(obj)
+        elif extraction_class == USGSExtraction:
+            USGSExtraction.retrigger(obj)
         else:
             chain(extraction_class.task.s(obj.id), transform_class.task.s()).apply_async()

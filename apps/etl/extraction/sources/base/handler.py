@@ -357,7 +357,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         return extraction_obj
 
     @abc.abstractmethod
-    def handle_extract(self):
+    def handle_extract(self, retrigger: bool):
         raise NotImplementedError()
 
     def handle_extract_error(self, exc: Exception):
@@ -422,7 +422,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         ExtractionData.objects.filter(pk=self.extraction_object.pk).update(attempt_no=models.F("attempt_no") + 1)
         raise self.celery_task.retry(exc=exc, countdown=delay)
 
-    def handle(self, retrigger: bool):
+    def handle(self, retrigger: bool = False):
         self.extraction_object.mark_as_started()
         try:
             resp = self.handle_extract(retrigger=retrigger)
