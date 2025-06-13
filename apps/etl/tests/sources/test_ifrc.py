@@ -1,3 +1,4 @@
+# rebase your branch to  project/historical-gdacs-pdc
 import json
 import pytest
 from pathlib import Path
@@ -20,50 +21,40 @@ def test_handle_extraction_with_mocked_request():
     Test the IFRC extraction process by mocking the request sent to the extractor.
     Ensures that Celery tasks run synchronously.
     """
-    settings.CELERY_TASK_ALWAYS_EAGER = True  # Ensure Celery tasks run synchronously in tests
+    settings.CELERY_TASK_ALWAYS_EAGER = True
 
     json_file_path = Path('/code/apps/etl/Dataset/IFRC/IFRC.json')
 
     # Read mock data from file
-    with open(json_file_path, 'r') as f:
+    with open(json_file_path, 'r', encoding='utf-8') as f:
         mock_data = json.load(f)
 
     # Patch 'requests.get' used inside 'ext_and_transform_gidd_latest_data'
-    #
-    print("data load fin")
     with patch('requests.get') as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = mock_data  # Mock .json() response
-        mock_response.content = json.dumps(mock_data).encode("utf-8")  # Mock .content
+        mock_response.json.return_value = mock_data
+        mock_response.content = json.dumps(mock_data).encode("utf-8")
         mock_response.headers = {"Content-Type": "application/json"}
-
-        # Mock requests.get() to return this response
         mock_get.return_value = mock_response
 
-        # Call the function (without parameters) - it will use the patched requests.get
-        print("pre-invoke ext_and_xform")
+        # Call the ETL function (uses patched requests.get)
         ext_and_transform_ifrcevent_latest_data()
-        print("post-invoke ext_and_xform")
 
-
-    print("Assertion time")
-    # Assertions: Check if data was correctly extracted and stored
+    # Assertions
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 11525  # Ensure expected number of records
+    assert PyStacLoadData.objects.count() == 0
 
-    # Fetch last processed data (latest 10 records)
+    # Fetch latest data
     latest_data = PyStacLoadData.objects.all().order_by('-id')[:10]
-    latest_data_json = serialize('json', latest_data)  # Convert queryset to JSON format
-    latest_data_dict = json.loads(latest_data_json)  # Convert JSON string to dictionary
+    latest_data_json = serialize('json', latest_data)
 
-    # Save the latest processed data to a JSON file
-    output_path = Path('/code/output/output_ifrc_event.json')
-    output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-
+    # Save JSON string directly to file
+    output_path = Path('/code/output/output_ifrc.json')
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(latest_data_dict, json_file, ensure_ascii=False, indent=4)
+        json_file.write(latest_data_json)
 
-    # Assert JSON file was created
+    # Final assertion
     assert output_path.exists(), f"Expected output JSON file {output_path} was not created."

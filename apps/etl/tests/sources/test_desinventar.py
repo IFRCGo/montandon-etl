@@ -9,6 +9,10 @@ from django.core.serializers import serialize
 # Import the models used in assertions
 from apps.etl.models import ExtractionData, Transform, PyStacLoadData
 
+from pystac_monty.sources.common import MontyDataTransformer
+
+MontyDataTransformer.base_collection_url = "/code/libs/pystac-monty/monty-stac-extension/examples"
+
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 @pytest.mark.django_db
 def test_handle_extraction_with_mocked_request():
@@ -18,44 +22,35 @@ def test_handle_extraction_with_mocked_request():
     """
     settings.CELERY_TASK_ALWAYS_EAGER = True
 
-    # Path to XML file
-    json_file_path = Path('/code/apps/etl/Dataset/Desinventar/DI_export_npl.xml')
+    #Path to zip file
+    json_file_path = Path('/code/apps/etl/Dataset/Desinventar/DI_export_npl .zip')
 
-    # Read mock data from XML file
-    with open(json_file_path, 'r', encoding='utf-8') as f:
-        xml_data = f.read()
 
-    # Parse XML
-    import xml.etree.ElementTree as ET
-    root = ET.fromstring(xml_data)
+    with open(json_file_path, 'rb') as f:
+        zip_data = f.read()
 
-    # Convert XML data to a structure that can be used (optional - not used later)
-    mock_data = []
-    for item in root.findall('.//data_item'):  # Adjust XPath as needed
-        data_dict = {
-            'field1': item.find('field1').text if item.find('field1') is not None else None,
-            'field2': item.find('field2').text if item.find('field2') is not None else None,
-        }
-        mock_data.append(data_dict)
 
-    # Patch 'requests.get'
+
+    # Source is supposed to be zip, but at the end,
+    # the transformer expects a json response when getting event collection
+    #
     with patch('requests.get') as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.content = xml_data.encode("utf-8")
-        mock_response.headers = {"Content-Type": "application/xml"}
+        mock_response.content = zip_data
+        mock_response.headers = {"Content-Type": "application/octet-stream"}
         mock_get.return_value = mock_response
 
         # Import inside the test function to avoid circular import
-        from apps.etl.etl_tasks.desinventar import ext_and_transform_desinventar_data
+        from apps.etl.etl_tasks.desinventar import ext_and_transform_desinventar_historical_data
 
         # Call the ETL function
-        ext_and_transform_desinventar_data()
+        ext_and_transform_desinventar_historical_data()
 
     # Assertions
-    assert ExtractionData.objects.count() == 1
-    assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 3592
+    assert ExtractionData.objects.count() == 100
+    assert Transform.objects.count() == 100
+    assert PyStacLoadData.objects.count() == 67231
 
     # Fetch latest data
     latest_data = PyStacLoadData.objects.all().order_by('-id')[:10]

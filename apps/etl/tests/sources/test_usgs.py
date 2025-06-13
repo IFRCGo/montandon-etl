@@ -5,8 +5,9 @@ from unittest.mock import patch, MagicMock
 from django.conf import settings
 from django.test import override_settings
 from django.core.serializers import serialize
+import requests  # <-- needed for real_requests_get
 
-from apps.etl.etl_tasks.emdat import ext_and_transform_emdat_latest_data
+from apps.etl.etl_tasks.usgs import ext_and_transform_usgs_latest_data
 from apps.etl.models import ExtractionData, Transform, PyStacLoadData
 
 from pystac_monty.sources.common import MontyDataTransformer
@@ -17,47 +18,63 @@ MontyDataTransformer.base_collection_url = "/code/libs/pystac-monty/monty-stac-e
 @pytest.mark.django_db
 def test_handle_extraction_with_mocked_request():
     """
-    Test the GIDD extraction process by mocking the request sent to the extractor.
-    Ensures that Celery tasks run synchronously.
+    Test the USGS extraction process by mocking only the data sources,
+    and allowing real geocoder to be called at http://localhost:8002
     """
-    settings.CELERY_TASK_ALWAYS_EAGER = True  # Ensure Celery tasks run synchronously in tests
+    settings.CELERY_TASK_ALWAYS_EAGER = True
 
-    json_file_path = Path('/code/apps/etl/Dataset/EM-DAT/USGC_all_day.geojson')
+    # Load mock QUERY response (event list)
+    query_response = json.load(open("/code/apps/etl/Dataset/USGS/USGS_all_day.geojson"))
 
-    # Read mock data from file
-    with open(json_file_path, 'r') as f:
-        mock_data = json.load(f)
+    # Load mock DETAIL response (includes losspager)
+    detail_response = json.load(open("/code/apps/etl/Dataset/USGS/mock_detail.geojson"))
 
-    # Patch 'requests.get' used inside 'ext_and_transform_gidd_latest_data'
+    # Load mock LOSSES response
+    losses_response = json.load(open("/code/apps/etl/Dataset/USGS/mock_losses.json"))
+
+    # Use real requests.get for non-mocked URLs
+    real_requests_get = requests.get
+
     with patch('requests.get') as mock_get:
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_data  # Mock .json() response
-        mock_response.content = json.dumps(mock_data).encode("utf-8")  # Mock .content
-        mock_response.headers = {"Content-Type": "application/geojson"}
+        def mock_get_side_effect(url, *args, **kwargs):
+            if "all_day" in url:
+                return _mock_response(query_response, content_type="application/geo+json")
+            elif "detail" in url:
+                return _mock_response(detail_response)
+            elif "losses.json" in url:
+                return _mock_response(losses_response)
+            else:
+                # Let other requests like geocoder pass through
+                return real_requests_get(url, *args, **kwargs)
 
-        # Mock requests.get() to return this response
-        mock_get.return_value = mock_response
+        mock_get.side_effect = mock_get_side_effect
 
-        # Call the function (without parameters) - it will use the patched requests.get
-        ext_and_transform_emdat_latest_data()
+        # Run the ETL function
+        ext_and_transform_usgs_latest_data()
 
-    # Assertions: Check if data was correctly extracted and stored
-    assert ExtractionData.objects.count() == 25
-    assert Transform.objects.count() == 25
-    assert PyStacLoadData.objects.count() == 400  # Ensure expected number of records
+    # Assertions
+    assert ExtractionData.objects.count() == 465
+    assert Transform.objects.count() == 232
+    assert PyStacLoadData.objects.count() == 696
 
-    # Fetch last processed data (latest 10 records)
+    # Fetch latest data
     latest_data = PyStacLoadData.objects.all().order_by('-id')[:10]
-    latest_data_json = serialize('json', latest_data)  # Convert queryset to JSON format
-    latest_data_dict = json.loads(latest_data_json)  # Convert JSON string to dictionary
+    latest_data_json = serialize('json', latest_data)
 
-    # Save the latest processed data to a JSON file
+    # Save serialized JSON to a file
     output_path = Path('/code/output/output_usgs.json')
-    output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as json_file:
-        json.dump(latest_data_dict, json_file, ensure_ascii=False, indent=4)
+        json_file.write(latest_data_json)
 
-    # Assert JSON file was created
+    # Final assertion
     assert output_path.exists(), f"Expected output JSON file {output_path} was not created."
+
+
+def _mock_response(json_data, content_type="application/json"):
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = json_data
+    response.content = json.dumps(json_data).encode("utf-8")
+    response.headers = {"Content-Type": content_type}
+    return response

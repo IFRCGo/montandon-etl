@@ -43,7 +43,7 @@ def test_handle_extraction_with_mocked_request():
     # Assertions
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 0
+    assert PyStacLoadData.objects.count() == 11525
 
     # Fetch latest data
     latest_data = PyStacLoadData.objects.all().order_by('-id')[:10]
