@@ -12,6 +12,7 @@ from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
+from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
@@ -40,6 +41,7 @@ source_extraction_map = {
     ExtractionData.Source.GFD: GFDExtraction,
     ExtractionData.Source.GDACS: GdacsExtraction,
     ExtractionData.Source.USGS: USGSExtraction,
+    ExtractionData.Source.PDC: PDCExtractionV2,
 }
 source_transform_map = {
     ExtractionData.Source.EMDAT: EMDATTransformHandler,
@@ -98,13 +100,16 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     for obj in failed_extraction_objects:
         extraction_class = source_extraction_map[obj.source]
         transform_class = source_transform_map[obj.source]
-        if extraction_class == IFRCEventExtraction:
-            extraction_class.task.delay(obj.id)
-        elif extraction_class == EmdatExtraction:
-            extraction_class.task.delay(obj.id)
-        elif extraction_class == GdacsExtraction:
-            GdacsExtraction.retrigger(obj)
-        elif extraction_class == USGSExtraction:
-            USGSExtraction.retrigger(obj)
+        # if extraction_class == IFRCEventExtraction:
+        #     extraction_class.task.delay(obj.id)
+        # elif extraction_class == EmdatExtraction:
+        #     extraction_class.task.delay(obj.id)
+        # elif extraction_class == GdacsExtraction:
+        #     GdacsExtraction.retrigger(obj)
+        # elif extraction_class == USGSExtraction:
+        #     USGSExtraction.retrigger(obj)
+        if extraction_class == PDCExtractionV2:
+            print("Failed obj id------------------------------------------------", obj.id)
+            PDCExtractionV2.retrigger(obj)
         else:
             chain(extraction_class.task.s(obj.id), transform_class.task.s()).apply_async()
