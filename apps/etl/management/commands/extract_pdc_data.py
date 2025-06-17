@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 
 from apps.etl.etl_tasks.pdc import extract_and_transform_historical_pdc_data
 from apps.etl.management.commands.utils import validate_date_format
+from apps.etl.etl_tasks.pdc import extract_and_transform_pdc_data
 
 logger = logging.getLogger(__name__)
 

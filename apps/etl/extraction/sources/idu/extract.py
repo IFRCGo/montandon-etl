@@ -6,6 +6,7 @@ import pydantic
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.idu import IDUTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from utils.celery import RetryableTask
@@ -35,7 +36,8 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
         headers = {"Content-Type": "application/json"}
         params = {"client_id": etl_config.IDMC_CLIENT_ID}
         self._extraction_fetch_url(url, headers=headers, params=params)
-        return self.extraction_object.id
+
+        IDUTransformHandler.task.delay(self.extraction_object.id)
 
     def handle_extract(self, retrigger: bool):
         handler_type = self.extraction_metadata.type
@@ -49,4 +51,4 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.DEFAULT)
     def task(celery_task, extraction_id):  # type: ignore[reportIncompatibleMethodOverride]
-        return IDUExtraction(celery_task, extraction_id).handle()
+        IDUExtraction(celery_task, extraction_id).handle()

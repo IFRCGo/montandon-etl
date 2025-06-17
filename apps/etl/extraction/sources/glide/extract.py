@@ -7,6 +7,7 @@ from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.celery import app
 from utils.celery import RetryableTask
 
@@ -42,7 +43,8 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         params = self.extraction_metadata.params
         headers = {"Content-Type": "application/json"}
         self._extraction_fetch_url(url, params, headers)
-        return self.extraction_object.id
+
+        GlideTransformHandler.task.delay(self.extraction_object.id)
 
     def handle_extract(self, retrigger: bool = False):
         handler_type = self.extraction_metadata.type
@@ -59,4 +61,4 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         base=RetryableTask,
     )
     def task(celery_task: Task, extraction_id: int) -> int:
-        return GlideExtraction(celery_task, extraction_id).handle()
+        GlideExtraction(celery_task, extraction_id).handle()
