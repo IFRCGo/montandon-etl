@@ -86,10 +86,15 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             logger.info("Transformation ended because there is no data")
             return
         trace_id = get_trace_id(extraction_obj)
-        transform_obj = Transform.objects.create(
+        transform_obj = Transform.objects.filter(
             extraction=extraction_obj,
             trace_id=trace_id,
-        )
+        ).first()
+        if not transform_obj:
+            transform_obj = Transform.objects.create(
+                extraction=extraction_obj,
+                trace_id=trace_id,
+            )
 
         SentryTag.set_tags(
             {

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from celery import chain, shared_task
+from celery import shared_task
 
 from apps.etl.extraction.sources.glide.extract import (
     GlideExtraction,
@@ -9,7 +9,6 @@ from apps.etl.extraction.sources.glide.extract import (
     GlideExtractionParamsMetadata,
 )
 from apps.etl.models import ExtractionData, HazardType
-from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.configs import etl_config
 
 GLIDE_HAZARDS = [
@@ -66,11 +65,8 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
             ),
             add_to_queue=False,
         )
-        chain(
-            GlideExtraction.task.s(extraction_object.id),
-            GlideTransformHandler.task.s(),
-        ).apply_async()
 
+        GlideExtraction.task.delay(extraction_object.id)
         start_date = end_date + timedelta(days=1)
 
 

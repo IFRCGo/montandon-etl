@@ -28,12 +28,15 @@ def extract_and_transform_pdc_data():
     else:
         start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
 
+    end_date = datetime.now()
+
     for event in HAZARD_TYPE_MAP.keys():
         data = PdcHazardInputMetadata(
             pagination=Pagination(page=1, pagesize=100),
             restrictions=[
                 [
                     Restriction(searchType="GREATER_THAN", createDate=str(int(start_date.timestamp() * 1000))),  # type: ignore
+                    Restriction(searchType="LESS_THAN", createDate=str(int(end_date.timestamp() * 1000))),  # type: ignore
                 ]
             ],
         )

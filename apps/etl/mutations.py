@@ -2,7 +2,6 @@ import logging
 
 import strawberry
 from asgiref.sync import sync_to_async
-from celery import chain
 
 from apps.etl.extraction.sources.desinventar.extract import DesInventarExtraction
 from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
@@ -92,24 +91,12 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     logger.info("Pipeline retrigger processing")
 
     failed_extraction_objects = ExtractionData.objects.filter(
-        # trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
-        trace_id__in=data.trace_id,
-    ).exclude(status=ExtractionData.Status.SUCCESS)
+        trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
+    )
 
-    print("Failed Ext", failed_extraction_objects)
     for obj in failed_extraction_objects:
         extraction_class = source_extraction_map[obj.source]
-        transform_class = source_transform_map[obj.source]
-        # if extraction_class == IFRCEventExtraction:
-        #     extraction_class.task.delay(obj.id)
-        # elif extraction_class == EmdatExtraction:
-        #     extraction_class.task.delay(obj.id)
-        # elif extraction_class == GdacsExtraction:
-        #     GdacsExtraction.retrigger(obj)
-        # elif extraction_class == USGSExtraction:
-        #     USGSExtraction.retrigger(obj)
-        if extraction_class == PDCExtractionV2:
-            print("Failed obj id------------------------------------------------", obj.id)
-            PDCExtractionV2.retrigger(obj)
+        if extraction_class in [GdacsExtraction, USGSExtraction, PDCExtractionV2]:  # nested extraction
+            extraction_class.retrigger(obj)
         else:
-            chain(extraction_class.task.s(obj.id), transform_class.task.s()).apply_async()
+            extraction_class.task.delay(obj.id)
