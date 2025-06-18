@@ -91,9 +91,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             trace_id=trace_id,
         )
 
-        SentryTag.set_tags(
-            {SentryTag.Tag.SOURCE: extraction_obj.source, SentryTag.Tag.TRACE_ID: extraction_obj.trace_id}
-        )  # Note: Move this to __init__ after transformer is refactored to use tranformer_id
+        SentryTag.set_tags({SentryTag.Tag.SOURCE: extraction_obj.source, SentryTag.Tag.TRACE_ID: extraction_obj.trace_id})
 
         transform_obj.mark_as_started()
         try:
@@ -102,23 +100,23 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             schema = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)
 
-            transformed_items = transformer.make_items()
+            transformed_items = transformer.get_stac_items()
+            for item in transformed_items:
+                summary = transformer.transform_summary
+                transform_obj.metadata["summary"] = {
+                    "failed_rows": summary.failed_rows,
+                    "total_rows": summary.total_rows,
+                }
 
-            summary = transformer.transform_summary
-            transform_obj.metadata["summary"] = {
-                "failed_rows": summary.failed_rows,
-                "total_rows": summary.total_rows,
-            }
+                success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
 
-            success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
+                if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
+                    transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+                    cls.load_stac_item_to_queue(transform_obj, item)
+                else:
+                    transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
 
-            if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
-                transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
-                cls.load_stac_item_to_queue(transform_obj, transformed_items)
-            else:
-                transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
-
-            logger.info("Transformation ended")
+                logger.info("Transformation ended")
         except Exception as e:
             logger.error(
                 "Transformation failed",
@@ -126,39 +124,37 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                 extra=log_extra({"extraction_id": extraction_obj.id}),
             )
             transform_obj.mark_as_ended(Transform.Status.FAILED)
-            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
     @classmethod
-    def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items: list[PyStacItem]):
+    def load_stac_item_to_queue(cls, transform_obj: Transform, item: PyStacItem):
         logger.info("Loading data into queue")
-        bulk_mgr = BulkCreateManager(chunk_size=1000)
-        for item in transform_items:
-            # FIXME: We need to check if we have collection_id
-            item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
-            transformed_item_dict = item.to_dict()
-            transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-            try:
-                item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
-            except KeyError:
-                logging.error("Missing key information", exc_info=True)
-                continue
-            bulk_mgr.add(
-                PyStacLoadData(
-                    transform_id=transform_obj,
-                    collection_id=item.collection_id,
-                    trace_id=get_trace_id(transform_obj),
-                    item=transformed_item_dict,
-                    item_type=item_type,
-                    item_id=item_id,
-                    item_datetime=item_datetime,
-                    item_primary_country=item_primary_country,
-                )
+        bulk_mgr = BulkCreateManager(chunk_size=1)  # TODO we are using bulk_mgr but we are sending single data for now
+        item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
+        transformed_item_dict = item.to_dict()
+        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+        try:
+            item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
+        except KeyError:
+            logging.error("Missing key information", exc_info=True)
+            return None
+
+        bulk_mgr.add(
+            PyStacLoadData(
+                transform_id=transform_obj,
+                collection_id=item.collection_id,
+                trace_id=get_trace_id(transform_obj),
+                item=transformed_item_dict,
+                item_type=item_type,
+                item_id=item_id,
+                item_datetime=item_datetime,
+                item_primary_country=item_primary_country,
             )
+        )
 
         bulk_mgr.done()
 
-        logger.info("Loading data into queue successfull")
+        logger.info("Loading data into queue successful")
 
     @staticmethod
     @app.task
