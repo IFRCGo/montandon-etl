@@ -4,7 +4,6 @@ import typing
 import uuid
 
 from django.conf import settings
-from pystac import Item as PyStacItem
 from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
@@ -101,22 +100,21 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.get_stac_items()
-            for item in transformed_items:
-                summary = transformer.transform_summary
-                transform_obj.metadata["summary"] = {
-                    "failed_rows": summary.failed_rows,
-                    "total_rows": summary.total_rows,
-                }
+            cls.load_stac_item_to_queue(transform_obj, transformed_items)
+            summary = transformer.transform_summary
+            transform_obj.metadata["summary"] = {
+                "failed_rows": summary.failed_rows,
+                "total_rows": summary.total_rows,
+            }
 
-                success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
+            success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
 
-                if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
-                    transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
-                    cls.load_stac_item_to_queue(transform_obj, item)
-                else:
-                    transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
-
-                logger.info("Transformation ended")
+            if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
+                transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+            else:
+                transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
+                PyStacLoadData.objects.filter(transform_id=transform_obj).delete()
+            logger.info("Transformation ended")
         except Exception as e:
             logger.error(
                 "Transformation failed",
@@ -127,34 +125,35 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             raise e
 
     @classmethod
-    def load_stac_item_to_queue(cls, transform_obj: Transform, item: PyStacItem):
+    def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items):
         logger.info("Loading data into queue")
-        bulk_mgr = BulkCreateManager(chunk_size=1)  # TODO we are using bulk_mgr but we are sending single data for now
-        item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
-        transformed_item_dict = item.to_dict()
-        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-        try:
-            item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
-        except KeyError:
-            logging.error("Missing key information", exc_info=True)
-            return None
-
-        bulk_mgr.add(
-            PyStacLoadData(
-                transform_id=transform_obj,
-                collection_id=item.collection_id,
-                trace_id=get_trace_id(transform_obj),
-                item=transformed_item_dict,
-                item_type=item_type,
-                item_id=item_id,
-                item_datetime=item_datetime,
-                item_primary_country=item_primary_country,
+        bulk_mgr = BulkCreateManager(chunk_size=50)
+        for item in transform_items:
+            # FIXME: We need to check if we have collection_id
+            item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
+            transformed_item_dict = item.to_dict()
+            transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+            try:
+                item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
+            except KeyError:
+                logging.error("Missing key information", exc_info=True)
+                continue
+            bulk_mgr.add(
+                PyStacLoadData(
+                    transform_id=transform_obj,
+                    collection_id=item.collection_id,
+                    trace_id=get_trace_id(transform_obj),
+                    item=transformed_item_dict,
+                    item_type=item_type,
+                    item_id=item_id,
+                    item_datetime=item_datetime,
+                    item_primary_country=item_primary_country,
+                )
             )
-        )
 
         bulk_mgr.done()
 
-        logger.info("Loading data into queue successful")
+        logger.info("Loading data into queue successfull")
 
     @staticmethod
     @app.task
