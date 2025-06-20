@@ -6,7 +6,7 @@ from strawberry import auto
 from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
-from utils.common import get_queryset_for_model
+from utils.common import get_queryset_for_model, sync_to_async
 
 
 class ExtractionDataQuerysetMixin:
@@ -29,7 +29,7 @@ class PyStacDataQuerysetMixin:
 
 @strawberry_django.type(ExtractionData)
 class RawExtractiondatatype:
-    id: auto
+    id: auto = strawberry_django.field(name="extraction_id")
     source: SourceTypeEnum
     status: DataStatusTypeEnum
     url: auto
@@ -43,7 +43,7 @@ class RawExtractiondatatype:
 
 @strawberry_django.type(Transform)
 class RawTransformdatatype:
-    id: auto
+    id: auto = strawberry_django.field(name="transform_id")
     status: DataStatusTypeEnum
     trace_id: auto = strawberry_django.field(only=["trace_id"])
     metadata: auto
@@ -51,6 +51,11 @@ class RawTransformdatatype:
     created_at: auto
     started_at: auto
     ended_at: auto
+
+    @strawberry.field
+    @sync_to_async
+    def source(self, info: Info) -> SourceTypeEnum:
+        return SourceTypeEnum(self.extraction.source)
 
 
 @strawberry_django.type(PyStacLoadData)
@@ -61,7 +66,14 @@ class RawPystacdatatype:
     item_type: PyStacLoadDataItemTypeEnum
     created_at: auto
     modified_at: auto
+    item: auto
+    collection_id: auto
     transform_id: auto = strawberry_django.field(only=["transform_id"])
+
+    @strawberry.field
+    @sync_to_async
+    def source(self, info: Info) -> SourceTypeEnum:
+        return SourceTypeEnum(self.transform_id.extraction.source)
 
 
 @strawberry.type
