@@ -46,7 +46,6 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
     ext_object = (
         ExtractionData.objects.filter(
             source=ExtractionData.Source.GLIDE,
-            hazard_type=hazard_type,
             status=ExtractionData.Status.SUCCESS,
             resp_data__isnull=False,
         )
