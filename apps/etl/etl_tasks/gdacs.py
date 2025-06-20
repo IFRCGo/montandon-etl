@@ -36,7 +36,6 @@ def _ext_and_transform_gdacs_latest_data(hazard: HazardType, size):
     ext_object = (
         ExtractionData.objects.filter(
             source=ExtractionData.Source.GDACS,
-            hazard_type=hazard,
             status=ExtractionData.Status.SUCCESS,
             resp_data__isnull=False,
         )
