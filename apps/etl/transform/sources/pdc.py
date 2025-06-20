@@ -27,11 +27,6 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
 
         geo_json_obj = ExtractionData.objects.get(id=input_metadata.exposure_detail.geojson_id)
 
-        with geo_json_obj.resp_data.open("rb") as f:
-            file_content = f.read()
-        # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_geojson_file = write_into_temp_file(file_content)
-
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
@@ -48,10 +43,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
                 uuid=input_metadata.exposure_detail.hazard_uuid,
                 hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
                 exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
-                geojson_data=File(
-                    path=tmp_geojson_file.name,
-                    data_type=DataType.FILE,
-                ),
+                geojson_path=geo_json_obj.resp_data.path,
             )
         )
 
