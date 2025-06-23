@@ -62,7 +62,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         try:
             schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
             transformer = cls.transformer_class(schema, geocoder)
-            transformed_items = transformer.make_items()
+            transformed_items = transformer.get_stac_items()
 
             cls.load_stac_item_to_queue(transform_obj, transformed_items)
 
