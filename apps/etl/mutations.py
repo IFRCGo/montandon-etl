@@ -11,6 +11,7 @@ from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
+from apps.etl.extraction.sources.noaa_IBTrACS.extract import IBTrACSExtraction
 from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
@@ -27,6 +28,7 @@ from apps.etl.transform.sources.noaa_ibtracs import IbtracsTransformHandler
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.graphql.context import Info
+from utils.strawberry.mutations import MutationResponseType, _CustomErrorType
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ source_extraction_map = {
     ExtractionData.Source.GDACS: GdacsExtraction,
     ExtractionData.Source.USGS: USGSExtraction,
     ExtractionData.Source.PDC: PDCExtractionV2,
+    ExtractionData.Source.IBTRACS: IBTrACSExtraction,
 }
 source_transform_map = {
     ExtractionData.Source.EMDAT: EMDATTransformHandler,
@@ -62,20 +65,32 @@ class Mutation:
     @strawberry.mutation
     async def retrigger_pipeline(
         self,
-        data: PipelineRetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        data: PipelineRetriggerInput,
         info: Info,
-    ) -> str:
-        await sync_to_async(run_pipeline_retrigger)(data)
-        return "Successfully retriggered pipeline"
+    ) -> MutationResponseType[str]:
+        try:
+            await sync_to_async(run_pipeline_retrigger)(data)
+            return MutationResponseType(ok=True, result="Successfully retriggered pipeline")
+        except Exception:
+            return MutationResponseType(
+                ok=False,
+                errors=_CustomErrorType.generate_message("Fail to retrigger pipeline"),
+            )
 
     @strawberry.mutation
     async def retrigger_transform(
         self,
-        data: TransformRetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        data: TransformRetriggerInput,
         info: Info,
-    ) -> str:
-        await sync_to_async(run_transform_retrigger)(data)
-        return "Successfully retriggered failed transform objects"
+    ) -> MutationResponseType[str]:
+        try:
+            await sync_to_async(run_transform_retrigger)(data)
+            return MutationResponseType(ok=True, result="Successfully retriggered failed transform objects")
+        except Exception:
+            return MutationResponseType(
+                ok=False,
+                errors=_CustomErrorType.generate_message("Fail to retrigger failed transform objects"),
+            )
 
 
 def run_transform_retrigger(data: TransformRetriggerInput) -> None:
@@ -95,6 +110,10 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     )
 
     for obj in failed_extraction_objects:
+        # during the retrigger process some to the failed_extraction_objects are retriggered internally
+        # so lets not retrigger those objects
+        if obj.status == ExtractionData.Status.SUCCESS:
+            continue
         extraction_class = source_extraction_map[obj.source]
         if extraction_class in [GdacsExtraction, USGSExtraction, PDCExtractionV2]:  # nested extraction
             extraction_class.retrigger(obj)
