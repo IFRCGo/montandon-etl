@@ -272,7 +272,7 @@ type Query {
 }
 
 type RawExtractiondatatype {
-  id: ID!
+  extractionId: ID!
   source: SourceTypeEnum!
   status: DataStatusTypeEnum!
   url: String!
@@ -301,7 +301,10 @@ type RawPystacdatatype {
   itemType: PyStacLoadDataItemTypeEnum!
   createdAt: DateTime!
   modifiedAt: DateTime!
+  item: JSON!
+  collectionId: String!
   transformId: ID!
+  source: SourceTypeEnum!
 }
 
 type RawPystacdatatypeOffsetPaginated {
@@ -315,7 +318,7 @@ type RawPystacdatatypeOffsetPaginated {
 }
 
 type RawTransformdatatype {
-  id: ID!
+  transformId: ID!
   status: DataStatusTypeEnum!
   traceId: ID!
   metadata: JSON!
@@ -323,6 +326,7 @@ type RawTransformdatatype {
   createdAt: DateTime!
   startedAt: DateTime
   endedAt: DateTime
+  source: SourceTypeEnum!
 }
 
 type RawTransformdatatypeOffsetPaginated {
@@ -438,6 +442,7 @@ input TransformDataFilter {
   OR: TransformDataFilter
   NOT: TransformDataFilter
   DISTINCT: Boolean
+  source: SourceTypeEnum
 }
 
 input TransformOrder {

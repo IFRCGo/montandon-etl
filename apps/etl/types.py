@@ -29,7 +29,7 @@ class PyStacDataQuerysetMixin:
 
 @strawberry_django.type(ExtractionData)
 class RawExtractiondatatype:
-    id: auto = strawberry_django.field(name="extraction_id")
+    id: auto = strawberry_django.field(name="extractionId")
     source: SourceTypeEnum
     status: DataStatusTypeEnum
     url: auto
@@ -43,7 +43,7 @@ class RawExtractiondatatype:
 
 @strawberry_django.type(Transform)
 class RawTransformdatatype:
-    id: auto = strawberry_django.field(name="transform_id")
+    id: auto = strawberry_django.field(name="transformId")
     status: DataStatusTypeEnum
     trace_id: auto = strawberry_django.field(only=["trace_id"])
     metadata: auto
