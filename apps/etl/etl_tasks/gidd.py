@@ -11,5 +11,4 @@ def ext_and_transform_gidd_latest_data():
     extraction_obj = GIDDExtraction.init_extraction(
         metadata=GIDDExtractionMetadata(url=url, type=GIDDExtractionMetadataType.QUERY), add_to_queue=False
     )
-
-    (GIDDExtraction.task.delay(extraction_obj.id),)
+    GIDDExtraction.task.delay(extraction_obj.id)
