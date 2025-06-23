@@ -272,7 +272,7 @@ type Query {
 }
 
 type RawExtractiondatatype {
-  extractionId: ID!
+  id: ID!
   source: SourceTypeEnum!
   status: DataStatusTypeEnum!
   url: String!
@@ -318,7 +318,7 @@ type RawPystacdatatypeOffsetPaginated {
 }
 
 type RawTransformdatatype {
-  transformId: ID!
+  id: ID!
   status: DataStatusTypeEnum!
   traceId: ID!
   metadata: JSON!
