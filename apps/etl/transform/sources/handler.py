@@ -153,7 +153,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
         bulk_mgr.done()
 
-        logger.info("Loading data into queue successfull")
+        logger.info("Loading data into queue successfully.")
 
     @staticmethod
     @app.task
