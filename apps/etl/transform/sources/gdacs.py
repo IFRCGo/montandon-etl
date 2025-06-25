@@ -1,5 +1,4 @@
 import logging
-import os
 
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
@@ -64,10 +63,8 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
             )
         )
 
-        for temp_file in [data_file, episode_data_temp_file, geometry_detail_temp_file]:
-            if os.path.exists(temp_file.name):
-                os.remove(temp_file.name)
-        return result
+        tmp_files = [data_file, episode_data_temp_file, geometry_detail_temp_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(rate_limit="50/m")

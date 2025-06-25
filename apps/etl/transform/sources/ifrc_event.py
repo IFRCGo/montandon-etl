@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
@@ -28,9 +27,8 @@ class IFRCEventTransformHandler(BaseTransformerHandler[IFRCEventTransformer, IFR
 
         result = cls.transformer_schema(data_source)
 
-        if os.path.exists(data_file.name):
-            os.remove(data_file.name)
-        return result
+        tmp_files = [data_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

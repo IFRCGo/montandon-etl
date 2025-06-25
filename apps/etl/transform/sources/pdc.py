@@ -1,5 +1,4 @@
 import logging
-import os
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
@@ -48,10 +47,8 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
             )
         )
 
-        for tmp_file in [tmp_hazard_file, tmp_exposure_detail_file]:
-            if os.path.exists(tmp_file.name):
-                os.remove(tmp_file.name)
-        return result
+        tmp_files = [tmp_hazard_file, tmp_exposure_detail_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

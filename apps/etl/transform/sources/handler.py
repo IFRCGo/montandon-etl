@@ -1,5 +1,6 @@
 import abc
 import logging
+import os
 import typing
 import uuid
 
@@ -96,10 +97,11 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         try:
             geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
-            schema = cls.get_schema_data(extraction_obj)
+            schema, tmp_files = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.get_stac_items()
+
             cls.load_stac_item_to_queue(transform_obj, transformed_items)
             summary = transformer.transform_summary
             transform_obj.metadata["summary"] = {
@@ -115,6 +117,11 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                 transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
                 PyStacLoadData.objects.filter(transform_id=transform_obj).delete()
             logger.info("Transformation ended")
+
+            for tmp_file in tmp_files:
+                if os.path.exists(tmp_file.name):
+                    os.remove(tmp_file.name)
+
         except Exception as e:
             logger.error(
                 "Transformation failed",
