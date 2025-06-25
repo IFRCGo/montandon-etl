@@ -19,6 +19,8 @@ from apps.etl.types import (
     StatusCountExtraction,
     StatusCountTransform,
     StatusSourceCountExtraction,
+    StatusSourceCountPyStac,
+    StatusSourceCountPystacByItem,
     StatusSourceCountTransform,
     UniqueCounts,
     ValStatusSourceCount,
@@ -263,4 +265,52 @@ class Query:
                 transforms=transforms,
                 pystacs=pystac_data,
             )
+        ]
+
+    @strawberry.field()
+    async def status_source_counts_pystac(self, info: Info) -> list[StatusSourceCountPyStac]:
+        query_countby_status_source = (
+            StatusSourceCountPyStac.get_queryset(None, None, info)
+            .values("transform_id__extraction__source")  # group by source
+            .annotate(
+                in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
+                success_count=Count("id", filter=Q(status=Status.SUCCESS)),
+                failed_count=Count("id", filter=Q(status=Status.FAILED)),
+                pending_count=Count("id", filter=Q(status=Status.PENDING)),
+            )
+        )
+        results = await sync_to_async(list)(query_countby_status_source)
+
+        return [
+            StatusSourceCountPyStac(
+                source=item["transform_id__extraction__source"],
+                in_progress_count=item["in_progress_count"],
+                success_count=item["success_count"],
+                failed_count=item["failed_count"],
+                pending_count=item["pending_count"],
+            )
+            for item in results
+        ]
+
+    @strawberry.field()
+    async def status_source_counts_pystac_by_item(self, info: Info) -> list[StatusSourceCountPystacByItem]:
+        query_countby_status_source = (
+            StatusSourceCountPyStac.get_queryset(None, None, info)
+            .values("transform_id__extraction__source")  # group by source
+            .annotate(
+                event_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.EVENT)),
+                hazard_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.HAZARD)),
+                impact_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.IMPACT)),
+            )
+        )
+        results = await sync_to_async(list)(query_countby_status_source)
+
+        return [
+            StatusSourceCountPystacByItem(
+                event_count=item["event_count"],
+                source=item["transform_id__extraction__source"],
+                hazard_count=item["hazard_count"],
+                impact_count=item["impact_count"],
+            )
+            for item in results
         ]

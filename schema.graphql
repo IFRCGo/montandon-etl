@@ -279,6 +279,8 @@ type Query {
   uniqueItemsCounts: [UniqueCounts!]!
   itemsCountsBySource: [ItemsbySource!]!
   extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
+  statusSourceCountsPystac: [StatusSourceCountPyStac!]!
+  statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -390,6 +392,21 @@ type StatusSourceCountExtraction {
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
+}
+
+type StatusSourceCountPyStac {
+  source: SourceTypeEnum!
+  inProgressCount: Int!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+}
+
+type StatusSourceCountPystacByItem {
+  source: SourceTypeEnum!
+  eventCount: Int!
+  hazardCount: Int!
+  impactCount: Int!
 }
 
 type StatusSourceCountTransform {

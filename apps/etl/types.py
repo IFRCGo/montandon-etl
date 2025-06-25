@@ -43,7 +43,7 @@ class RawExtractiondatatype:
     @strawberry.field
     @sync_to_async
     def filesize(self, info: Info) -> float:
-        return round(self.resp_data.size / (1024),2) if self.resp_data else 0
+        return round(self.resp_data.size / (1024), 2) if self.resp_data else 0
 
 
 @strawberry_django.type(Transform)
@@ -159,3 +159,20 @@ class ETLWithTraceID:
     extractions: list[RawExtractiondatatype]
     transforms: list[RawTransformdatatype]
     pystacs: list[RawPystacdatatype]
+
+
+@strawberry.type
+class StatusSourceCountPyStac(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    in_progress_count: int
+    success_count: int
+    failed_count: int
+    pending_count: int
+
+
+@strawberry.type
+class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_count: int
+    hazard_count: int
+    impact_count: int
