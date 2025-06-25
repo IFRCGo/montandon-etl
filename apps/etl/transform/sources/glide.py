@@ -1,5 +1,4 @@
 import json
-import os
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
@@ -26,9 +25,8 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
                 input_data=File(path=data_file.name, data_type=DataType.FILE),
             )
         )
-        if os.path.exists(data_file.name):
-            os.remove(data_file.name)
-        return result
+        tmp_files = [data_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task

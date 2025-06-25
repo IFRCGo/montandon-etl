@@ -1,5 +1,4 @@
 import logging
-import os
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
@@ -28,9 +27,8 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
 
         result = cls.transformer_schema(data=data_source)
 
-        if os.path.exists(data_file.name):
-            os.remove(data_file.name)
-        return result
+        tmp_files = [data_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task

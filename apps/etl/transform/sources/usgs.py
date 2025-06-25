@@ -1,5 +1,4 @@
 import json
-import os
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
@@ -44,10 +43,8 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             )
         )
 
-        for tmp_file in [data_path, losses_data_path]:
-            if os.path.exists(tmp_file.name):
-                os.remove(tmp_file.name)
-        return result
+        tmp_files = [data_path, losses_data_path]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

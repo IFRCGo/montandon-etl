@@ -1,5 +1,4 @@
 import logging
-import os
 import tempfile
 
 from django.conf import settings
@@ -39,9 +38,9 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             country_code=country_code,
         )
         result = cls.transformer_schema(data_source)
-        if os.path.exists(tmp_zip_file.name):
-            os.remove(tmp_zip_file.name)
-        return result
+
+        tmp_files = [tmp_zip_file]
+        return result, tmp_files
 
     @classmethod
     def handle_transformation(cls, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
