@@ -40,6 +40,11 @@ class RawExtractiondatatype:
     hazard_type: auto
     trace_id: auto = strawberry_django.field(only=["trace_id"])
 
+    @strawberry.field
+    @sync_to_async
+    def filesize(self, info: Info) -> float:
+        return round(self.resp_data.size / (1024 * 1024), 2) if self.resp_data else 0
+
 
 @strawberry_django.type(Transform)
 class RawTransformdatatype:
@@ -147,3 +152,10 @@ class ItemsbySource(PyStacDataQuerysetMixin):
     event_items: int
     hazard_items: int
     impact_items: int
+
+
+@strawberry.type
+class ETLWithTraceID:
+    extractions: list[RawExtractiondatatype]
+    transforms: list[RawTransformdatatype]
+    pystacs: list[RawPystacdatatype]

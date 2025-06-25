@@ -112,6 +112,12 @@ type DjangoModelType {
   pk: ID!
 }
 
+type ETLWithTraceID {
+  extractions: [RawExtractiondatatype!]!
+  transforms: [RawTransformdatatype!]!
+  pystacs: [RawPystacdatatype!]!
+}
+
 input ExtractionDataFilter {
   createdAt: DatetimeDatetimeFilterLookup
   source: SourceTypeEnum
@@ -133,6 +139,11 @@ enum ExtractionDataValidationStatusTypeEnum {
 
 input ExtractionOrder {
   id: Ordering
+  source: Ordering
+  traceId: Ordering
+  sourceValidationStatus: Ordering
+  status: Ordering
+  hazardType: Ordering
 }
 
 input IDBaseFilterLookup {
@@ -258,6 +269,7 @@ type Query {
   transforms(pagination: OffsetPaginationInput, filters: TransformDataFilter, order: TransformOrder): RawTransformdatatypeOffsetPaginated! @isAuthenticated
   pystac(pk: ID!): RawPystacdatatype! @isAuthenticated
   pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): RawPystacdatatypeOffsetPaginated! @isAuthenticated
+  extractionoftraceid: ETLWithTraceID! @isAuthenticated
   statusCountExtraction: [StatusCountExtraction!]!
   statusSourceCountsExtraction: [StatusSourceCountExtraction!]!
   validationStatusSourceCounts: [ValStatusSourceCount!]!
@@ -266,6 +278,7 @@ type Query {
   statusSourceCountsTransform: [StatusSourceCountTransform!]!
   uniqueItemsCounts: [UniqueCounts!]!
   itemsCountsBySource: [ItemsbySource!]!
+  extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -282,6 +295,7 @@ type RawExtractiondatatype {
   sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
   hazardType: String
   traceId: ID!
+  filesize: Float!
 }
 
 type RawExtractiondatatypeOffsetPaginated {
@@ -447,6 +461,11 @@ input TransformDataFilter {
 
 input TransformOrder {
   id: Ordering
+  extraction__source: Ordering
+  extraction_TraceId: Ordering
+  extraction_SourceValidationStatus: Ordering
+  extraction_Status: Ordering
+  extraction_HazardType: Ordering
 }
 
 input TransformRetriggerInput {

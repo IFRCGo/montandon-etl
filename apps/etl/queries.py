@@ -11,6 +11,7 @@ from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
 from apps.etl.orders import ExtractionOrder, PystacOrder, TransformOrder
 from apps.etl.types import (
     CountbytraceID,
+    ETLWithTraceID,
     ItemsbySource,
     RawExtractiondatatype,
     RawPystacdatatype,
@@ -50,6 +51,8 @@ class Query:
         filters=PystacDataFilter,
         extensions=[IsAuthenticated()],
     )
+
+    extractionoftraceid: ETLWithTraceID = strawberry_django.field(extensions=[IsAuthenticated()])
 
     @strawberry.field()
     async def status_count_extraction(self, info: Info) -> list[StatusCountExtraction]:
@@ -244,4 +247,20 @@ class Query:
                 impact_items=item["impacts_count"],
             )
             async for item in result
+        ]
+
+    @strawberry.field()
+    async def extraction_by_trace_id(self, info: Info, trace_id: int) -> list[ETLWithTraceID]:
+        """
+        Return ExtractionData, Transform, and PyStacLoadData objects that share a trace_id.
+        """
+        extraction_data = await sync_to_async(ExtractionData.objects.filter)(trace_id=trace_id)
+        transforms = await sync_to_async(Transform.objects.filter)(trace_id=trace_id)
+        pystac_data = await sync_to_async(PyStacLoadData.objects.filter)(trace_id=trace_id)
+        return [
+            ETLWithTraceID(
+                extractions=extraction_data,
+                transforms=transforms,
+                pystacs=pystac_data,
+            )
         ]
