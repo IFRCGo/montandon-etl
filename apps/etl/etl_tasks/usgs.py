@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from celery import shared_task
 
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction, USGSExtractionMetadata, USGSExtractionMetadataType
+from apps.etl.models import ExtractionData
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
@@ -13,8 +14,24 @@ logger = logging.getLogger(__name__)
 @shared_task
 def ext_and_transform_usgs_latest_data():
     """Extract and Transform USGS latest data"""
-    url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_day.geojson"
-    # url = f"{etl_config.USGS_DATA_URL}/earthquakes/feed/v1.0/summary/all_month.geojson"
+    ext_object = (
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.USGS,
+            status=ExtractionData.Status.SUCCESS,
+            # FIXME: Why do we add filter that resp_data__isnull
+            resp_data__isnull=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    if ext_object:
+        start_date = ext_object.created_at.date()
+    else:
+        start_date = etl_config.USGS_START_DATE
+
+    url = f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson&starttime={start_date.strftime('%Y-%m-%d')}"
+
     USGSExtraction.init_extraction(
         metadata=USGSExtractionMetadata(
             url=url,
