@@ -22,6 +22,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     apt-get update -y \
     && apt-get install -y --no-install-recommends \
         # Build required packages
+        build-essential libgdal-dev \
         gcc libc-dev gdal-bin libproj-dev \
         # Helper packages
         procps \
@@ -30,6 +31,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && uv sync --frozen --no-install-project --all-groups \
     # Clean-up
     && apt-get remove -y gcc libc-dev libproj-dev \
+    build-essential libgdal-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 

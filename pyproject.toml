@@ -35,6 +35,14 @@ dependencies = [
     "requests_cache",
     "termcolor",
     "ijson>=3.4.0",
+    # TODO: Move to dev dependencies
+    "pytest",
+    "requests-mock",
+    "pytest-django",
+    "pytest-icdiff",
+    "pytest-ordering",
+    "pytest-profiling",
+    "json5",
 ]
 
 [tool.uv.sources]
