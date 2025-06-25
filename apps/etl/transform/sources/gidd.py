@@ -1,3 +1,5 @@
+import os
+
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
@@ -21,7 +23,11 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
             source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
         )
 
-        return cls.transformer_schema(data_source)
+        result = cls.transformer_schema(data_source)
+
+        if os.path.exists(data_file.name):
+            os.remove(data_file.name)
+        return result
 
     @staticmethod
     @app.task(queue=CeleryQueue.DEFAULT)

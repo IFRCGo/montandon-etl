@@ -1,4 +1,5 @@
 import logging
+import os
 
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
@@ -55,13 +56,18 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
             episode_data_tuple = (event_episode_data, geometry_episode_data)
             episodes.append(episode_data_tuple)
 
-        return cls.transformer_schema(
+        result = cls.transformer_schema(
             data=GdacsDataSourceType(
                 source_url=extraction_object.url,
                 event_data=File(path=data_file.name, data_type=DataType.FILE),
                 episodes=episodes,
             )
         )
+
+        for temp_file in [data_file, episode_data_temp_file, geometry_detail_temp_file]:
+            if os.path.exists(temp_file.name):
+                os.remove(temp_file.name)
+        return result
 
     @staticmethod
     @app.task(rate_limit="50/m")
