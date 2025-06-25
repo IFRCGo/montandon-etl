@@ -43,7 +43,7 @@ class RawExtractiondatatype:
     @strawberry.field
     @sync_to_async
     def filesize(self, info: Info) -> float:
-        return round(self.resp_data.size / (1024 * 1024), 2) if self.resp_data else 0
+        return round(self.resp_data.size / (1024),2) if self.resp_data else 0
 
 
 @strawberry_django.type(Transform)
