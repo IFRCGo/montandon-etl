@@ -56,7 +56,7 @@ class SentryTag:
         TRACE_ID = _BASE + "TRACE_ID"
 
     @staticmethod
-    def set_tags(kwargs: dict[Tag, int | str]):
+    def set_tags(kwargs):
         if not settings.SENTRY_ENABLED:
             return
         for key, value in kwargs.items():
