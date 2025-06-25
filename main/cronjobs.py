@@ -58,7 +58,7 @@ SCHEDULES: dict[str, CronJob] = {
         schedule=crontab(minute=0, hour=19),
     ),
     "import_pdc_data": CronJob(
-        task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_data",
+        task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
         schedule=crontab(minute=30, hour=20),
     ),
     "import_ibtracs_data": CronJob(
