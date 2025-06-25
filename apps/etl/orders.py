@@ -17,13 +17,22 @@ class ExtractionOrder:
 @strawberry_django.ordering.order(Transform)
 class TransformOrder:
     id: strawberry.auto
-    source: strawberry.auto = strawberry.field(name="extraction__source")
-    extraction__trace_id: strawberry.auto
-    extraction__source_validation_status: strawberry.auto
-    extraction__status: strawberry.auto
-    extraction__hazard_type: strawberry.auto
+    extraction__source: strawberry.auto = strawberry.field(name="source", default=strawberry.UNSET)
+    extraction__trace_id: strawberry.auto = strawberry.field(name="trace_id", default=strawberry.UNSET)
+    extraction__source_validation_status: strawberry.auto = strawberry.field(
+        name="validation_status", default=strawberry.UNSET
+    )
+    extraction__status: strawberry.auto = strawberry.field(name="status", default=strawberry.UNSET)
+    extraction__hazard_type: strawberry.auto = strawberry.field(name="hazard_type", default=strawberry.UNSET)
 
 
 @strawberry_django.ordering.order(PyStacLoadData)
 class PystacOrder:
     id: strawberry.auto
+    transform_id__extraction__source: strawberry.auto = strawberry.field(name="source", default=strawberry.UNSET)
+    transform_id__extraction__trace_id: strawberry.auto = strawberry.field(name="trace_id", default=strawberry.UNSET)
+    transform_id__extraction__source_validation_status: strawberry.auto = strawberry.field(
+        name="validation_status", default=strawberry.UNSET
+    )
+    transform_id__extraction__status: strawberry.auto = strawberry.field(name="status", default=strawberry.UNSET)
+    transform_id__extraction__hazard_type: strawberry.auto = strawberry.field(name="hazard_type", default=strawberry.UNSET)

@@ -260,6 +260,11 @@ input PystacDataFilter {
 
 input PystacOrder {
   id: Ordering
+  source: Ordering
+  trace_id: Ordering
+  validation_status: Ordering
+  status: Ordering
+  hazard_type: Ordering
 }
 
 type Query {
@@ -478,11 +483,11 @@ input TransformDataFilter {
 
 input TransformOrder {
   id: Ordering
-  extraction__source: Ordering
-  extraction_TraceId: Ordering
-  extraction_SourceValidationStatus: Ordering
-  extraction_Status: Ordering
-  extraction_HazardType: Ordering
+  source: Ordering
+  trace_id: Ordering
+  validation_status: Ordering
+  status: Ordering
+  hazard_type: Ordering
 }
 
 input TransformRetriggerInput {
