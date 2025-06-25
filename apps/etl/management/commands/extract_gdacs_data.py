@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-=======
-import logging
-from datetime import datetime
-
->>>>>>> df01f39 (Get the start_date and end_date from the user for historical data pull; latest data pull from beginning of current month incase no data)
 from django.core.management.base import BaseCommand, CommandParser
 
 from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_historical_data

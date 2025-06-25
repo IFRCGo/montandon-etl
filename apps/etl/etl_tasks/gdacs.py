@@ -47,9 +47,7 @@ def ext_and_transform_gdacs_latest_data():
         if start_date < etl_config.GDACS_START_DATE:
             start_date = etl_config.GDACS_START_DATE
     else:
-        # Get the first day of the current month/year as the start_date
-        today = dt.today()
-        start_date = dt(today.year, today.month, 1)
+        start_date = etl_config.GDACS_START_DATE
 
     end_date = dt.today().date()
     for hazard, size in HAZARDS:
