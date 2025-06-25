@@ -41,48 +41,6 @@ GLIDE_HAZARDS = [
 ]
 
 
-@shared_task
-def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
-    ext_object = (
-        ExtractionData.objects.filter(
-            source=ExtractionData.Source.GLIDE,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data__isnull=False,
-        )
-        .order_by("-created_at")
-        .first()
-    )
-
-    if ext_object:
-        from_date = ext_object.created_at.date()
-    else:
-        from_date = etl_config.GLIDE_START_DATE
-
-    to_date = datetime.today().date()
-
-    extraction_object = GlideExtraction.init_extraction(
-        metadata=GlideExtractionMetadata(
-            url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-            params=GlideExtractionParamsMetadata(
-                fromyear=from_date.year,
-                frommonth=from_date.month,
-                fromday=from_date.day,
-                toyear=to_date.year,
-                tomonth=to_date.month,
-                today=to_date.day,
-                events=hazard_type.value,
-            ),
-            type=GlideExtractionMetadataType.QUERY,
-        ),
-        add_to_queue=False,
-    )
-    chain(
-        GlideExtraction.task.s(extraction_object.id),
-        GlideTransformHandler.task.s(),
-    ).apply_async()
-
-
-@shared_task
 def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
     start_date = etl_config.GLIDE_START_DATE
     to_date = datetime.today().date()
@@ -118,8 +76,41 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
 
 @shared_task
 def ext_and_transform_glide_latest_data():
+    ext_object = (
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.GLIDE,
+            status=ExtractionData.Status.SUCCESS,
+            resp_data__isnull=False,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    if ext_object:
+        from_date = ext_object.created_at.date()
+    else:
+        from_date = etl_config.GLIDE_START_DATE
+
+    to_date = datetime.today().date()
+
     for hazard_type in GLIDE_HAZARDS:
-        _ext_and_transform_glide_latest_data(hazard_type)
+        extraction_object = GlideExtraction.init_extraction(
+            metadata=GlideExtractionMetadata(
+                url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
+                params=GlideExtractionParamsMetadata(
+                    fromyear=from_date.year,
+                    frommonth=from_date.month,
+                    fromday=from_date.day,
+                    toyear=to_date.year,
+                    tomonth=to_date.month,
+                    today=to_date.day,
+                    events=hazard_type.value,
+                ),
+                type=GlideExtractionMetadataType.QUERY,
+            ),
+            add_to_queue=False,
+        )
+        GlideExtraction.task.delay(extraction_object.id)
 
 
 @shared_task
