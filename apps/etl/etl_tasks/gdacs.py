@@ -30,7 +30,7 @@ URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
 
 
 @shared_task
-def _ext_and_transform_gdacs_latest_data(hazard: HazardType, size):
+def ext_and_transform_gdacs_latest_data():
     from apps.etl.etl_tasks.segment_gdacs import deep_dive
 
     ext_object = (
@@ -42,21 +42,14 @@ def _ext_and_transform_gdacs_latest_data(hazard: HazardType, size):
         .order_by("-created_at")
         .first()
     )
-
     if ext_object:
         start_date = ext_object.created_at.date()
     else:
         start_date = etl_config.GDACS_START_DATE
 
     end_date = dt.today().date()
-
-    deep_dive(session, hazard, start_date, end_date, size, "")
-
-
-@shared_task
-def ext_and_transform_gdacs_latest_data():
     for hazard, size in HAZARDS:
-        _ext_and_transform_gdacs_latest_data(hazard, size)
+        deep_dive(session, hazard, start_date, end_date, size, "")
 
 
 @shared_task
