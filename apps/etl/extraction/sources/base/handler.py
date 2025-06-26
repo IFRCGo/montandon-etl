@@ -160,7 +160,9 @@ class BaseExtraction:
             parent_id=parent_id,
             metadata={"input": params} if params else {},
         )
-        SentryTag.set_tags({SentryTag.Tag.SOURCE: source, SentryTag.Tag.TRACE_ID: instance.trace_id})
+        SentryTag.set_tags(
+            {SentryTag.Tag.SOURCE: ExtractionData.Source(source).label, SentryTag.Tag.TRACE_ID: instance.trace_id}
+        )
 
         try:
             cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
@@ -230,7 +232,10 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         self.extraction_object = ExtractionData.objects.get(id=extraction_id)
         self.proxies = etl_config.get_http_proxy()
         SentryTag.set_tags(
-            {SentryTag.Tag.SOURCE: self.extraction_object.source, SentryTag.Tag.TRACE_ID: self.extraction_object.trace_id}
+            {
+                SentryTag.Tag.SOURCE: ExtractionData.Source(self.extraction_object.source).label,
+                SentryTag.Tag.TRACE_ID: self.extraction_object.trace_id,
+            }
         )
         self.reparse_extraction_metadata()
 
