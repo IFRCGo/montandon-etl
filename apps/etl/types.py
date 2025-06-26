@@ -6,7 +6,7 @@ from strawberry import auto
 from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
-from utils.common import get_queryset_for_model
+from utils.common import get_queryset_for_model, sync_to_async
 
 
 class ExtractionDataQuerysetMixin:
@@ -40,6 +40,11 @@ class RawExtractiondatatype:
     hazard_type: auto
     trace_id: auto = strawberry_django.field(only=["trace_id"])
 
+    @strawberry.field
+    @sync_to_async
+    def filesize(self, info: Info) -> float:
+        return round(self.resp_data.size / (1024), 2) if self.resp_data else 0
+
 
 @strawberry_django.type(Transform)
 class RawTransformdatatype:
@@ -52,6 +57,11 @@ class RawTransformdatatype:
     started_at: auto
     ended_at: auto
 
+    @strawberry.field
+    @sync_to_async
+    def source(self, info: Info) -> SourceTypeEnum:
+        return SourceTypeEnum(self.extraction.source)
+
 
 @strawberry_django.type(PyStacLoadData)
 class RawPystacdatatype:
@@ -61,7 +71,14 @@ class RawPystacdatatype:
     item_type: PyStacLoadDataItemTypeEnum
     created_at: auto
     modified_at: auto
+    item: auto
+    collection_id: auto
     transform_id: auto = strawberry_django.field(only=["transform_id"])
+
+    @strawberry.field
+    @sync_to_async
+    def source(self, info: Info) -> SourceTypeEnum:
+        return SourceTypeEnum(self.transform_id.extraction.source)
 
 
 @strawberry.type
@@ -135,3 +152,27 @@ class ItemsbySource(PyStacDataQuerysetMixin):
     event_items: int
     hazard_items: int
     impact_items: int
+
+
+@strawberry.type
+class ETLWithTraceID:
+    extractions: list[RawExtractiondatatype]
+    transforms: list[RawTransformdatatype]
+    pystacs: list[RawPystacdatatype]
+
+
+@strawberry.type
+class StatusSourceCountPyStac(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    in_progress_count: int
+    success_count: int
+    failed_count: int
+    pending_count: int
+
+
+@strawberry.type
+class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_count: int
+    hazard_count: int
+    impact_count: int
