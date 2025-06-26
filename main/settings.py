@@ -80,6 +80,7 @@ env = environ.Env(
     GEOCODER_URL=str,
     EOAPI_DOMAIN=(str, None),
     EOAPI_SYNC_LIMIT=(int, 10000),
+    REQUESTS_PROXY_TO_USE=(str, None),  # NOTE: For more detail look at ./README.md
     # Sources
     # FIXME: Check if all start dates are used
     DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
@@ -107,14 +108,13 @@ env = environ.Env(
     PDC_EXTRACTION_INTERVAL_YEARS=(int, 2),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
     TRANSFORM_SUCCESS_RATE=(int, 80),
-    USGS_START_DATE=(str, "1900-01-01"),
-    USGS_END_DATE=(str, "1985-01-01"),
 )
 
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
 GEOCODER_URL = env("GEOCODER_URL")
+REQUESTS_PROXY_TO_USE = env("REQUESTS_PROXY_TO_USE")
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
@@ -139,8 +139,6 @@ PDC_SENTRY_BASE_URL = env("PDC_SENTRY_BASE_URL")
 PDC_START_DATE = env("PDC_START_DATE")
 PDC_EXTRACTION_INTERVAL_YEARS = env("PDC_EXTRACTION_INTERVAL_YEARS")
 USGS_DATA_URL = env("USGS_DATA_URL")
-USGS_START_DATE = env("USGS_START_DATE")
-USGS_END_DATE = env("USGS_END_DATE")
 
 
 IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")

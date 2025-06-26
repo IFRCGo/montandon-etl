@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import os
 import pprint
 from urllib.parse import urlparse
 
@@ -144,6 +145,24 @@ class EtlConfig:
             )
         return new_url
 
+    def parse_proxy_url(self) -> str | None:
+        proxy_to_use = settings.REQUESTS_PROXY_TO_USE
+        if not proxy_to_use:
+            return None
+
+        proxy_value = os.environ.get(proxy_to_use)
+
+        if not proxy_value:
+            # TODO(thenav56): Add additional validation with proxy format
+            # TODO(thenav56): Test if it works with warning? May impact app startup
+            self.checks.append(
+                Error(
+                    f"REQUESTS_PROXY_TO_USE is defined with reference `{proxy_to_use}`"
+                    " but not provided in the environment variable"
+                )
+            )
+        return proxy_value
+
     def __init__(self):
         # NOTE: Used by main/checks.py
         self.checks: list[CheckMessage] = []
@@ -151,12 +170,11 @@ class EtlConfig:
         self.EOAPI_DOMAIN = self.parse_base_url("EOAPI_DOMAIN")
         self.EOAPI_SYNC_LIMIT = self.parse_int_value_required("EOAPI_SYNC_LIMIT")
         self.GEOCODER_URL = self.parse_base_url_required("GEOCODER_URL")
+        self.REQUESTS_PROXY_HOST = self.parse_proxy_url()
 
         self.DESINVENTAR_DATA_URL = self.parse_base_url_required("DESINVENTAR_DATA_URL")
 
         self.USGS_DATA_URL = self.parse_base_url_required("USGS_DATA_URL")
-        self.USGS_START_DATE = self.parse_date_value_required("USGS_START_DATE")
-        self.USGS_END_DATE = self.parse_date_value_required("USGS_END_DATE")
 
         self.IBTRACS_DATA_URL = self.parse_base_url_required("IBTRACS_DATA_URL")
 
@@ -197,6 +215,14 @@ class EtlConfig:
         self.PDC_SENTRY_AUTHORIZATION_KEY = self.parse_non_empty_value("PDC_SENTRY_AUTHORIZATION_KEY")
         self.PDC_START_DATE = self.parse_date_value_required("PDC_START_DATE")
         self.PDC_EXTRACTION_INTERVAL_YEARS = self.parse_int_value_required("PDC_EXTRACTION_INTERVAL_YEARS")
+
+    def get_http_proxy(self) -> dict[str, str] | None:
+        if self.REQUESTS_PROXY_HOST:
+            return {
+                "http": self.REQUESTS_PROXY_HOST,
+                "https": self.REQUESTS_PROXY_HOST,
+            }
+        return None
 
     def debug_print(self):
         pprint.pp(self.__dict__, indent=2)
