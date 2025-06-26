@@ -91,7 +91,12 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             trace_id=trace_id,
         )
 
-        SentryTag.set_tags({SentryTag.Tag.SOURCE: extraction_obj.source, SentryTag.Tag.TRACE_ID: extraction_obj.trace_id})
+        SentryTag.set_tags(
+            {
+                SentryTag.Tag.SOURCE: ExtractionData.Source(extraction_obj.source).label,
+                SentryTag.Tag.TRACE_ID: extraction_obj.trace_id,
+            }
+        )
 
         transform_obj.mark_as_started()
         try:
