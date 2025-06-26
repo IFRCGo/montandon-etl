@@ -25,7 +25,10 @@ class IFRCEventTransformHandler(BaseTransformerHandler[IFRCEventTransformer, IFR
             source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
         )
 
-        return cls.transformer_schema(data_source)
+        result = cls.transformer_schema(data_source)
+
+        tmp_files = [data_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

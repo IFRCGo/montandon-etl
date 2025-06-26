@@ -19,12 +19,14 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
             data = f.read()
         data_file = write_into_temp_file(data)
 
-        return cls.transformer_schema(
+        result = cls.transformer_schema(
             data=GenericDataSource(
                 source_url=extraction_obj.url,
                 input_data=File(path=data_file.name, data_type=DataType.FILE),
             )
         )
+        tmp_files = [data_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task

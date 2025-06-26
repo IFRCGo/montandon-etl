@@ -37,7 +37,10 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             iso3=iso3,
             country_code=country_code,
         )
-        return cls.transformer_schema(data_source)
+        result = cls.transformer_schema(data_source)
+
+        tmp_files = [tmp_zip_file]
+        return result, tmp_files
 
     @classmethod
     def handle_transformation(cls, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
