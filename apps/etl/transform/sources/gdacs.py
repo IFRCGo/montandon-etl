@@ -55,13 +55,16 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
             episode_data_tuple = (event_episode_data, geometry_episode_data)
             episodes.append(episode_data_tuple)
 
-        return cls.transformer_schema(
+        result = cls.transformer_schema(
             data=GdacsDataSourceType(
                 source_url=extraction_object.url,
                 event_data=File(path=data_file.name, data_type=DataType.FILE),
                 episodes=episodes,
             )
         )
+
+        tmp_files = [data_file, episode_data_temp_file, geometry_detail_temp_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(rate_limit="50/m")
