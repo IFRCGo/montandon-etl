@@ -11,6 +11,7 @@ from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
 from apps.etl.orders import ExtractionOrder, PystacOrder, TransformOrder
 from apps.etl.types import (
     CountbytraceID,
+    ETLWithTraceID,
     ItemsbySource,
     RawExtractiondatatype,
     RawPystacdatatype,
@@ -18,6 +19,8 @@ from apps.etl.types import (
     StatusCountExtraction,
     StatusCountTransform,
     StatusSourceCountExtraction,
+    StatusSourceCountPyStac,
+    StatusSourceCountPystacByItem,
     StatusSourceCountTransform,
     UniqueCounts,
     ValStatusSourceCount,
@@ -50,6 +53,8 @@ class Query:
         filters=PystacDataFilter,
         extensions=[IsAuthenticated()],
     )
+
+    extractionoftraceid: ETLWithTraceID = strawberry_django.field(extensions=[IsAuthenticated()])
 
     @strawberry.field()
     async def status_count_extraction(self, info: Info) -> list[StatusCountExtraction]:
@@ -244,4 +249,68 @@ class Query:
                 impact_items=item["impacts_count"],
             )
             async for item in result
+        ]
+
+    @strawberry.field()
+    async def extraction_by_trace_id(self, info: Info, trace_id: int) -> list[ETLWithTraceID]:
+        """
+        Return ExtractionData, Transform, and PyStacLoadData objects that share a trace_id.
+        """
+        extraction_data = await sync_to_async(ExtractionData.objects.filter)(trace_id=trace_id)
+        transforms = await sync_to_async(Transform.objects.filter)(trace_id=trace_id)
+        pystac_data = await sync_to_async(PyStacLoadData.objects.filter)(trace_id=trace_id)
+        return [
+            ETLWithTraceID(
+                extractions=extraction_data,
+                transforms=transforms,
+                pystacs=pystac_data,
+            )
+        ]
+
+    @strawberry.field()
+    async def status_source_counts_pystac(self, info: Info) -> list[StatusSourceCountPyStac]:
+        query_countby_status_source = (
+            StatusSourceCountPyStac.get_queryset(None, None, info)
+            .values("transform_id__extraction__source")  # group by source
+            .annotate(
+                in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
+                success_count=Count("id", filter=Q(status=Status.SUCCESS)),
+                failed_count=Count("id", filter=Q(status=Status.FAILED)),
+                pending_count=Count("id", filter=Q(status=Status.PENDING)),
+            )
+        )
+        results = await sync_to_async(list)(query_countby_status_source)
+
+        return [
+            StatusSourceCountPyStac(
+                source=item["transform_id__extraction__source"],
+                in_progress_count=item["in_progress_count"],
+                success_count=item["success_count"],
+                failed_count=item["failed_count"],
+                pending_count=item["pending_count"],
+            )
+            for item in results
+        ]
+
+    @strawberry.field()
+    async def status_source_counts_pystac_by_item(self, info: Info) -> list[StatusSourceCountPystacByItem]:
+        query_countby_status_source = (
+            StatusSourceCountPyStac.get_queryset(None, None, info)
+            .values("transform_id__extraction__source")  # group by source
+            .annotate(
+                event_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.EVENT)),
+                hazard_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.HAZARD)),
+                impact_count=Count("id", filter=Q(item_type=PyStacLoadData.ItemType.IMPACT)),
+            )
+        )
+        results = await sync_to_async(list)(query_countby_status_source)
+
+        return [
+            StatusSourceCountPystacByItem(
+                event_count=item["event_count"],
+                source=item["transform_id__extraction__source"],
+                hazard_count=item["hazard_count"],
+                impact_count=item["impact_count"],
+            )
+            for item in results
         ]
