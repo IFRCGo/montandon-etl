@@ -26,22 +26,25 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             losses_data.append(data)
 
         # Write losses_data (which is JSON) to a temp file in text mode
-        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8")).name
+        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8"))
 
         # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
         # Write raw bytes to a temp file
-        data_path = write_into_temp_file(data).name
+        data_path = write_into_temp_file(data)
 
-        return cls.transformer_schema(
+        result = cls.transformer_schema(
             USGSDataSourceType(
                 source_url=extraction_obj.url,
-                event_data=File(path=data_path, data_type=DataType.FILE),
-                loss_data=File(path=losses_data_path, data_type=DataType.FILE),
+                event_data=File(path=data_path.name, data_type=DataType.FILE),
+                loss_data=File(path=losses_data_path.name, data_type=DataType.FILE),
             )
         )
+
+        tmp_files = [data_path, losses_data_path]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

@@ -37,7 +37,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_exposure_detail_file = write_into_temp_file(file_content)
 
-        return cls.transformer_schema(
+        result = cls.transformer_schema(
             data=PDCDataSourceType(
                 source_url=extraction_obj.parent.url,
                 uuid=input_metadata.exposure_detail.hazard_uuid,
@@ -46,6 +46,9 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
                 geojson_path=geo_json_obj.resp_data.path,
             )
         )
+
+        tmp_files = [tmp_hazard_file, tmp_exposure_detail_file]
+        return result, tmp_files
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
