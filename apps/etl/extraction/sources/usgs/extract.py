@@ -105,10 +105,12 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             )
 
             if not retrigger:
-                self.init_extraction(
+                extraction_object = self.init_extraction(
                     metadata=metadata,
                     parent_extraction=self.extraction_object,
                 )
+                USGSExtraction.task.delay(extraction_object.pk)
+
             else:
                 extraction_object = ExtractionData.objects.filter(
                     url=detail_url, parent=self.extraction_object, metadata=metadata.dict()
