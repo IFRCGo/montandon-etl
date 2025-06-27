@@ -21,17 +21,15 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     apt-get update -y \
     && apt-get install -y --no-install-recommends \
-        # Build required packages
-        build-essential libgdal-dev \
-        gcc libc-dev gdal-bin libproj-dev \
-        # Helper packages
-        procps \
-        wait-for-it \
+    # Build required packages
+    gcc libc-dev gdal-bin libproj-dev \
+    # Helper packages
+    procps \
+    wait-for-it \
     # FIXME: Add condition to skip dev dependencies
     && uv sync --frozen --no-install-project --all-groups \
     # Clean-up
     && apt-get remove -y gcc libc-dev libproj-dev \
-    build-essential libgdal-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 

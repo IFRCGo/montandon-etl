@@ -1,6 +1,4 @@
 import json
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import json5
@@ -13,6 +11,7 @@ from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.etl_tasks.idu import ext_and_transform_idu_latest_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.utils import remove_ignored_keys
 from main.configs import etl_config
 
 # Set base_collection_url
@@ -28,23 +27,6 @@ TEST_CASES = [
 ]
 
 
-def remove_ignored_keys(obj, keys_to_ignore):
-    """
-    Recursively remove keys from dicts if the key is in keys_to_ignore.
-    Works on nested dicts and lists.
-    """
-    if isinstance(obj, dict):
-        for key in list(obj.keys()):
-            if key in keys_to_ignore:
-                obj.pop(key)
-            else:
-                remove_ignored_keys(obj[key], keys_to_ignore)
-    elif isinstance(obj, list):
-        for item in obj:
-            remove_ignored_keys(item, keys_to_ignore)
-    return obj
-
-
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
@@ -53,7 +35,7 @@ def test_handle_extraction_various_idu_files(case):
     fixed_filename = case["expected"]
 
     # Path to input JSON5 file
-    input_path = settings.BASE_DIR / "apps/etl/tests/Dataset/IDMC-IDU" / input_filename
+    input_path = settings.BASE_DIR / "apps/etl/tests/dataset/idmc_idu" / input_filename
 
     # Load mock data from JSON5
     with open(input_path, "r", encoding="utf-8") as f:
@@ -81,29 +63,21 @@ def test_handle_extraction_various_idu_files(case):
         # Run ETL extraction and transformation task
         ext_and_transform_idu_latest_data()
 
-    # Serialize queryset to JSON string
-    latest_data = PyStacLoadData.objects.all()
-    latest_data_json = serialize("json", latest_data)
-
-    # Use a temporary file to store the output
-    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False, encoding="utf-8") as temp_file:
-        temp_file.write(latest_data_json)
-        output_path = Path(temp_file.name)
-
     # Assertions for outputs and database entries
-    assert output_path.exists(), f"Expected temp output file {output_path} was not created."
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
     assert PyStacLoadData.objects.count() == 19
 
     # Path for expected (fixed) JSON output
-    expected_output_path = settings.BASE_DIR / "apps/etl/tests/Dataset/IDMC-IDU" / fixed_filename
+    expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/idmc_idu" / fixed_filename
     assert expected_output_path.exists(), f"Expected reference file {expected_output_path} does not exist."
 
-    # Load actual and expected JSON for comparison
-    with open(output_path, "r", encoding="utf-8") as actual_file:
-        actual_json = json5.load(actual_file)
+    # Load actual data directly from serialized output
+    latest_data = PyStacLoadData.objects.all()
+    latest_data_json = serialize("json", latest_data)
+    actual_json = json.loads(latest_data_json)
 
+    # Load expected JSON
     with open(expected_output_path, "r", encoding="utf-8") as expected_file:
         expected_json = json5.load(expected_file)
 
@@ -116,6 +90,3 @@ def test_handle_extraction_various_idu_files(case):
 
     # Assert equality of filtered JSON objects
     assert filtered_actual == filtered_expected, f"Differences found when comparing to fixed file {fixed_filename}."
-
-    # Cleanup: delete temp file after test
-    output_path.unlink(missing_ok=True)
