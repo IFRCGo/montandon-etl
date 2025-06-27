@@ -137,4 +137,4 @@ assets/
 media/
 *.gpkg
 
-apps/etl/Dataset
+apps/etl/dataset
