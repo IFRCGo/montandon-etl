@@ -30,15 +30,16 @@ def ext_and_transform_usgs_latest_data():
     else:
         start_date = etl_config.USGS_START_DATE
 
+    print("STAT DATE************************************", start_date)
+
     url = f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson&starttime={start_date.strftime('%Y-%m-%d')}"
 
-    ext_object = USGSExtraction.init_extraction(
+    USGSExtraction.init_extraction(
         metadata=USGSExtractionMetadata(
             url=url,
             type=USGSExtractionMetadataType.QUERY,
         ),
     )
-    USGSExtraction.task.delay(ext_object.id)
 
 
 @shared_task
