@@ -54,7 +54,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             logger.info("Transformation ended because there is no data")
             return
 
-        transform_obj = Transform.objects.create(
+        transform_obj, _ = Transform.objects.get_or_create(
             extraction=extraction_obj,
             trace_id=get_trace_id(extraction_obj),
         )
@@ -63,7 +63,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
         try:
-            schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
+            schema, tmp_files = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
             transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.get_stac_items()
 
