@@ -37,6 +37,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
 
     MIN_RETRY_DELAY = 60 * 5
     MAX_RETRY_DELAY = 60 * 10
+    DEFAULT_CELERY_QUEUE = CeleryQueue.USGS_EXTRACTION
 
     source_enum = ExtractionData.Source.USGS
     extraction_metadata_class = USGSExtractionMetadata
@@ -51,10 +52,11 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         timeout: int = 30,
         file_extension: str = "json",
     ) -> bool:
+        logger.info(f"Using proxy: {self.proxies}")
         if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=timeout)
+            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
         elif method == "post":
-            response = requests.post(url, headers=headers, data=data, timeout=timeout)
+            response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
         else:
             typing.assert_never(method)
 
@@ -108,6 +110,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 extraction_object = self.init_extraction(
                     metadata=metadata,
                     parent_extraction=self.extraction_object,
+                    queue_name=self.celery_queue,
                 )
                 USGSExtraction.task.delay(extraction_object.pk)
 
@@ -148,7 +151,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                             parent=self.extraction_object,
                         ).first()
 
-                    losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk))
+                    losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk).set(queue=self.celery_queue))
 
         if losses_tasks:
             chord(
@@ -187,6 +190,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 url=first_half_url,
                 type=USGSExtractionMetadataType.QUERY,
             ),
+            queue_name=self.celery_queue,
         )
 
         second_half_url = url.replace(f"starttime={start_date_str}", f"starttime={second_half_start_str}")
@@ -196,6 +200,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 url=second_half_url,
                 type=USGSExtractionMetadataType.QUERY,
             ),
+            queue_name=self.celery_queue,
         )
 
     def handle_extract(self, retrigger: bool):
