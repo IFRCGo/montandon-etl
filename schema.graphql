@@ -289,9 +289,17 @@ type Query {
   extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
+  getQueueStatsFromRabbit: [QueueStat!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
+}
+
+type QueueStat {
+  queueName: String!
+  readyTasks: Int!
+  unackedTasks: Int!
+  totalTasks: Int!
 }
 
 type RawExtractiondatatype {

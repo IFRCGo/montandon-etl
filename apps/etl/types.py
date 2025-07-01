@@ -178,3 +178,11 @@ class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
     event_count: int
     hazard_count: int
     impact_count: int
+
+
+@strawberry.type
+class QueueStat:
+    queue_name: str
+    ready_tasks: int
+    unacked_tasks: int
+    total_tasks: int

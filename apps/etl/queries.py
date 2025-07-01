@@ -1,3 +1,6 @@
+from typing import List
+
+import requests
 import strawberry
 import strawberry_django
 from asgiref.sync import sync_to_async
@@ -13,6 +16,7 @@ from apps.etl.types import (
     CountbytraceID,
     ETLWithTraceID,
     ItemsbySource,
+    QueueStat,
     RawExtractiondatatype,
     RawPystacdatatype,
     RawTransformdatatype,
@@ -25,7 +29,12 @@ from apps.etl.types import (
     UniqueCounts,
     ValStatusSourceCount,
 )
+from main.celery import CeleryQueue
 from main.graphql.context import Info
+
+RABBITMQ_API_URL = "http://rabbitmq:15672/api/queues"
+RABBITMQ_USER = "monty"
+RABBITMQ_PASS = "monty"
 
 
 @strawberry.type
@@ -314,3 +323,23 @@ class Query:
             )
             for item in results
         ]
+
+    @strawberry.field()
+    def get_queue_stats_from_rabbit(self, info: Info) -> List[QueueStat]:
+        response = requests.get(RABBITMQ_API_URL, auth=(RABBITMQ_USER, RABBITMQ_PASS))
+        response.raise_for_status()
+        all_queues = response.json()
+        queue_names = [CeleryQueue.DEFAULT, CeleryQueue.TRANSFORM, CeleryQueue.USGS_EXTRACTION, CeleryQueue.EXTRACTION]
+        stats = []
+        for q in all_queues:
+            name = q["name"]
+            if name in queue_names:
+                stats.append(
+                    QueueStat(
+                        queue_name=name,
+                        ready_tasks=q.get("messages_ready", 0),
+                        unacked_tasks=q.get("messages_unacknowledged", 0),
+                        total_tasks=q.get("messages", 0),
+                    )
+                )
+        return stats
