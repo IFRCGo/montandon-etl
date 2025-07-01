@@ -9,7 +9,7 @@ from celery import chain, chord, group
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2, NoDataException
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from utils.celery import RetryableTask
 
@@ -108,6 +108,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
 
     source_enum = ExtractionData.Source.PDC
     extraction_metadata_class = PDCExtractionMetadata
+    DEFAULT_CELERY_QUEUE = CeleryQueue.EXTRACTION
 
     @classmethod
     def _get_request_headers(cls, headers: dict[str, typing.Any] | None = None) -> dict[str, str]:
