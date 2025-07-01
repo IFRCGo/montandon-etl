@@ -234,7 +234,7 @@ enum Ordering {
 }
 
 input PipelineRetriggerInput {
-  traceId: [Int!]!
+  traceIds: [ID!]!
 }
 
 enum PyStacLoadDataItemTypeEnum {
@@ -500,7 +500,7 @@ input TransformOrder {
 }
 
 input TransformRetriggerInput {
-  transformId: [Int!]!
+  transformIds: [ID!]!
 }
 
 type UniqueCounts {
