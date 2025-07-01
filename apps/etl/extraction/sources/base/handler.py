@@ -220,7 +220,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
     MIN_RETRY_DELAY = 30
     MAX_RETRY_DELAY = 60
     RETRY_STATUS_CODE = [403, 429]
-    DEFAULT_CELERY_QUEUE = CeleryQueue.EXTRACTION
+    DEFAULT_CELERY_QUEUE = CeleryQueue.DEFAULT
 
     source_enum: ExtractionData.Source
     extraction_metadata_class: type[ExtractionMetadataTypeVar]
