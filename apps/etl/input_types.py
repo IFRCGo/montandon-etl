@@ -5,9 +5,9 @@ import strawberry
 
 @strawberry.input
 class PipelineRetriggerInput:
-    trace_id: List[int]
+    trace_ids: List[strawberry.ID]
 
 
 @strawberry.input
 class TransformRetriggerInput:
-    transform_id: List[int]
+    transform_ids: List[strawberry.ID]
