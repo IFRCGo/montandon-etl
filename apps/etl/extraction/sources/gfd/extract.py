@@ -140,7 +140,8 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
             logger.info("Data extracted successfully")
             # Run the transformer task
             GFDTransformHandler.task.delay(self.extraction_object.id)
-        logger.warning("No data found in response")
+        else:
+            logger.warning("No data found in response")
 
     def handle_extract(self, retrigger: bool):
         handler_type = self.extraction_metadata.type
