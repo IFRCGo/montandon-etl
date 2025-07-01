@@ -127,6 +127,17 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             method="post",
         )
         response_data = json.loads(self.extraction_object.resp_data.read())
+        if response_data and len(response_data) == 100:
+            data = self.extraction_metadata.hazard.model_copy(deep=True)
+            data.pagination.page += 1
+
+            self.init_extraction(
+                metadata=PDCExtractionMetadata(
+                    hazard=data,
+                    url=self.extraction_metadata.url,
+                    type=PDCExtractionMetaDataType.HAZARD,
+                ),
+            )
 
         geo_objects = []
         hazard_extraction_objects = []
