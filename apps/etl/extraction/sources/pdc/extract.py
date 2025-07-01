@@ -304,6 +304,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     @app.task(
         bind=True,
         base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
     )
     def task(celery_task, extraction_id, retrigger: bool = False):
         PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger)
