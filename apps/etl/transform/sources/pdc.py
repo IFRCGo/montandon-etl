@@ -43,7 +43,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
                 uuid=input_metadata.exposure_detail.hazard_uuid,
                 hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
                 exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
-                geojson_path=geo_json_obj.resp_data.path,
+                geojson_path=geo_json_obj.resp_data.url,
             )
         )
 
