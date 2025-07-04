@@ -22,7 +22,12 @@ def load_collections(*, eoapi_domain: str, skip_collection_create: bool) -> list
     logger.info("Sync collections")
 
     url = f"{eoapi_domain}/stac/collections"
-    response = requests.get(f"{url}?limit={len(ITEM_TYPE_COLLECTION_ID_MAP.keys())}", headers=HEADERS)
+    # response = requests.get(f"{url}?limit={len(ITEM_TYPE_COLLECTION_ID_MAP.keys())}", headers=HEADERS)
+    # NOTE : We have assigned the limit to be 50 but in actual, we need to
+    # get the length from the ITEM_TYPE_COLLEcTION_ID_MAP.keys() but the issue is
+    # there are more collections in the eoAPI than required which fails to get
+    # the genuine collection ids using the below request.
+    response = requests.get(f"{url}?limit=50", headers=HEADERS)
 
     if response.status_code != 200:
         logger.error(

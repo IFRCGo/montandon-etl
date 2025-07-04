@@ -31,7 +31,7 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "ifrcevent-impacts": PyStacLoadData.ItemType.IMPACT,
     "desinventar-events": PyStacLoadData.ItemType.EVENT,
     "desinventar-impacts": PyStacLoadData.ItemType.IMPACT,
-    "desinventar-hazards": PyStacLoadData.ItemType.HAZARD,
+    # "desinventar-hazards": PyStacLoadData.ItemType.HAZARD, # NOTE : There are no hazard item
     "pdc-events": PyStacLoadData.ItemType.EVENT,
     "pdc-hazards": PyStacLoadData.ItemType.HAZARD,
     "pdc-impacts": PyStacLoadData.ItemType.IMPACT,
