@@ -1,3 +1,5 @@
+from typing import Optional
+
 import strawberry
 import strawberry_django
 from django.db import models
@@ -77,8 +79,10 @@ class RawPystacdatatype:
 
     @strawberry.field
     @sync_to_async
-    def source(self, info: Info) -> SourceTypeEnum:
-        return SourceTypeEnum(self.transform_id.extraction.source)
+    def source(self, info: Info) -> Optional[SourceTypeEnum]:
+        if self.transform_id and self.transform_id.extraction:
+            return SourceTypeEnum(self.transform_id.extraction.source)
+        return None
 
 
 @strawberry.type
