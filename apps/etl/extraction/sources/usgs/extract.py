@@ -115,10 +115,16 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 USGSExtraction.task.delay(extraction_object.pk)
 
             else:
-                extraction_object = ExtractionData.objects.filter(
-                    url=detail_url, parent=self.extraction_object, metadata=metadata.dict()
-                ).first()
-                USGSExtraction.task.delay(extraction_object.pk)
+                extraction_object = ExtractionData.objects.filter(url=detail_url, metadata=metadata.dict()).first()
+                if extraction_object:
+                    USGSExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
+                else:
+                    extraction_object = self.init_extraction(
+                        metadata=metadata,
+                        parent_extraction=self.extraction_object,
+                        queue_name=self.celery_queue,
+                    )
+                    USGSExtraction.task.delay(extraction_object.pk)
 
     def handle_type_detail(self, retrigger: bool):
         self._extraction_fetch_url(self.extraction_metadata.url)
@@ -148,10 +154,18 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                                 url=url,
                                 type=USGSExtractionMetadataType.LOSSE,
                             ).dict(),
-                            parent=self.extraction_object,
                         ).first()
+                        if not losses_extraction_obj:
+                            losses_extraction_obj = self.init_extraction(
+                                metadata=USGSExtractionMetadata(
+                                    url=url,
+                                    type=USGSExtractionMetadataType.LOSSE,
+                                ),
+                                parent_extraction=self.extraction_object,
+                                add_to_queue=False,
+                            )
 
-                    losses_tasks.append(USGSExtraction.task.si(losses_extraction_obj.pk).set(queue=self.celery_queue))
+                    losses_tasks.append(USGSExtraction.task.s(losses_extraction_obj.pk).set(queue=self.celery_queue))
 
         if losses_tasks:
             chord(

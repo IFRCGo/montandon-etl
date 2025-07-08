@@ -10,7 +10,7 @@ from apps.etl.extraction.sources.gfd.extract import GFDExtraction
 from apps.etl.extraction.sources.gidd.extract import GIDDExtraction
 from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
-from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtraction
+from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtractionV2
 from apps.etl.extraction.sources.noaa_IBTrACS.extract import IBTrACSExtraction
 from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
@@ -37,7 +37,7 @@ source_extraction_map = {
     ExtractionData.Source.GLIDE: GlideExtraction,
     ExtractionData.Source.GIDD: GIDDExtraction,
     ExtractionData.Source.IDU: IDUExtraction,
-    ExtractionData.Source.DREF: IFRCEventExtraction,
+    ExtractionData.Source.DREF: IFRCEventExtractionV2,
     ExtractionData.Source.DESINVENTAR: DesInventarExtraction,
     ExtractionData.Source.GFD: GFDExtraction,
     ExtractionData.Source.GDACS: GdacsExtraction,
