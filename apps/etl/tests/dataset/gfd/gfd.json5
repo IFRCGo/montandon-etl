@@ -1,0 +1,261 @@
+[
+  {
+    "type": "Image",
+    "bands": [
+      {
+        "id": "flooded",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 255
+        },
+        "dimensions": [33068, 12425],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 67.26360268665948, 0, -0.002245788210298804,
+          73.40134186540611
+        ]
+      },
+      {
+        "id": "duration",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 65535
+        },
+        "dimensions": [33068, 12425],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 67.26360268665948, 0, -0.002245788210298804,
+          73.40134186540611
+        ]
+      },
+      {
+        "id": "clear_views",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 65535
+        },
+        "dimensions": [33068, 12425],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 67.26360268665948, 0, -0.002245788210298804,
+          73.40134186540611
+        ]
+      },
+      {
+        "id": "clear_perc",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "float"
+        },
+        "dimensions": [33068, 12425],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 67.26360268665948, 0, -0.002245788210298804,
+          73.40134186540611
+        ]
+      },
+      {
+        "id": "jrc_perm_water",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 255
+        },
+        "dimensions": [33068, 12425],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 67.26360268665948, 0, -0.002245788210298804,
+          73.40134186540611
+        ]
+      }
+    ],
+    "version": 1685079693259206,
+    "id": "GLOBAL_FLOOD_DB/MODIS_EVENTS/V1/DFO_1725_From_20010512_to_20010608",
+    "properties": {
+      "dfo_centroid_y": 58.489746,
+      "dfo_main_cause": "Snowmelt",
+      "gfd_country_name": "['CHINA', 'KAZAKHSTAN', 'RUSSIA', 'MONGOLIA']",
+      "dfo_centroid_x": 106.619051,
+      "glide_index": "NA",
+      "slope_threshold": 5,
+      "dfo_severity": 2,
+      "system:footprint": {
+        "type": "LinearRing",
+        "coordinates": [
+          [82.34908848990545, 73.40246869927361],
+          [67.25684975570871, 73.40245767550975],
+          [67.26151743096261, 45.478614317866295],
+          [73.64657135530396, 45.41398182001148],
+          [81.1887528457482, 45.4522194225001],
+          [88.44085034836341, 45.4246477023299],
+          [95.6929478763678, 45.452219417065],
+          [102.07479373732586, 45.45221941549738],
+          [110.19714299235338, 45.390433655598144],
+          [117.44924055063615, 45.47316180324427],
+          [123.8310863072813, 45.424647718583756],
+          [131.37326776366828, 45.4437660567768],
+          [137.46502968984493, 45.46691693974001],
+          [141.5294131935126, 45.48744414652628],
+          [141.53408020582137, 73.40245764836007],
+          [128.1823446842675, 73.40246871364141],
+          [113.09798189519091, 73.40246869670857],
+          [95.11278004950381, 73.40246869564425],
+          [82.34908848990545, 73.40246869927361]
+        ]
+      },
+      "threshold_b1b2": 0.7,
+      "dfo_displaced": 70000,
+      "id": 1725,
+      "cc": "RUS, CHN, MNG, KAZ",
+      "dfo_validation_type": "News",
+      "composite_type": "3Day",
+      "system:time_end": 991958400000,
+      "dfo_country": "Russia",
+      "countries": "Russia, China, Mongolia, Kazakhstan",
+      "dfo_other_country": "NA",
+      "system:time_start": 989625600000,
+      "dfo_dead": 7,
+      "gfd_country_code": "['CH', 'KZ', 'RS', 'MG']",
+      "threshold_type": "standard",
+      "threshold_b7": 675,
+      "system:asset_size": 186915637,
+      "system:index": "DFO_1725_From_20010512_to_20010608"
+    }
+  },
+  {
+    "type": "Image",
+    "bands": [
+      {
+        "id": "flooded",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 255
+        },
+        "dimensions": [2983, 6022],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 43.792870100826676, 0, -0.002245788210298804,
+          -11.940855914158739
+        ]
+      },
+      {
+        "id": "duration",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 65535
+        },
+        "dimensions": [2983, 6022],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 43.792870100826676, 0, -0.002245788210298804,
+          -11.940855914158739
+        ]
+      },
+      {
+        "id": "clear_views",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 65535
+        },
+        "dimensions": [2983, 6022],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 43.792870100826676, 0, -0.002245788210298804,
+          -11.940855914158739
+        ]
+      },
+      {
+        "id": "clear_perc",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "float"
+        },
+        "dimensions": [2983, 6022],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 43.792870100826676, 0, -0.002245788210298804,
+          -11.940855914158739
+        ]
+      },
+      {
+        "id": "jrc_perm_water",
+        "data_type": {
+          "type": "PixelType",
+          "precision": "int",
+          "min": 0,
+          "max": 255
+        },
+        "dimensions": [2983, 6022],
+        "crs": "EPSG:4326",
+        "crs_transform": [
+          0.002245788210298804, 0, 43.792870100826676, 0, -0.002245788210298804,
+          -11.940855914158739
+        ]
+      }
+    ],
+    "version": 1685079690642311,
+    "id": "GLOBAL_FLOOD_DB/MODIS_EVENTS/V1/DFO_1587_From_20000217_to_20000311",
+    "properties": {
+      "dfo_centroid_y": -15.782624,
+      "dfo_main_cause": "Tropical cyclone",
+      "gfd_country_name": "['MADAGASCAR']",
+      "dfo_centroid_x": 47.29567,
+      "glide_index": "NA",
+      "slope_threshold": 5,
+      "dfo_severity": 1,
+      "system:footprint": {
+        "type": "LinearRing",
+        "coordinates": [
+          [49.65381588542391, -25.466119337486177],
+          [50.493425282708586, -25.466115818476784],
+          [50.49323291356623, -11.939725686869856],
+          [49.65381588542391, -11.939729067889784],
+          [48.81669828966188, -11.939729075987678],
+          [47.97958080885896, -11.93972907830484],
+          [47.142463210137166, -11.939729055646367],
+          [46.30534566064153, -11.939729061004732],
+          [45.46822810013809, -11.939729074178777],
+          [44.63111055893458, -11.93972907287794],
+          [43.79169350651262, -11.939725653075957],
+          [43.791501177432586, -25.46611581329054],
+          [45.04966929862346, -25.466119320346557],
+          [46.30534566064153, -25.46611934011451],
+          [47.142463210137166, -25.466119345956876],
+          [48.81669828966188, -25.466119307926345],
+          [49.65381588542391, -25.466119337486177]
+        ]
+      },
+      "threshold_b1b2": 1.056,
+      "otsu_sample_res": 231.66,
+      "dfo_displaced": 800000,
+      "id": 1587,
+      "cc": "MDG",
+      "dfo_validation_type": "News",
+      "composite_type": "3Day",
+      "system:time_end": 952732800000,
+      "dfo_country": "Madagascar",
+      "countries": "Madagascar",
+      "dfo_other_country": "NA",
+      "system:time_start": 950745600000,
+      "dfo_dead": 200,
+      "gfd_country_code": "['MA']",
+      "threshold_type": "otsu",
+      "threshold_b7": 839.16,
+      "system:asset_size": 11061738,
+      "system:index": "DFO_1587_From_20000217_to_20000311"
+    }
+  }
+]
