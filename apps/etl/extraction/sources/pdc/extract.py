@@ -128,17 +128,18 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             method="post",
         )
         response_data = json.loads(self.extraction_object.resp_data.read())
-        if response_data and len(response_data) == 100:
-            data = self.extraction_metadata.hazard.model_copy(deep=True)
-            data.pagination.page += 1
+        if not retrigger:
+            if response_data and len(response_data) == 100:
+                data = self.extraction_metadata.hazard.model_copy(deep=True)
+                data.pagination.page += 1
 
-            self.init_extraction(
-                metadata=PDCExtractionMetadata(
-                    hazard=data,
-                    url=self.extraction_metadata.url,
-                    type=PDCExtractionMetaDataType.HAZARD,
-                ),
-            )
+                self.init_extraction(
+                    metadata=PDCExtractionMetadata(
+                        hazard=data,
+                        url=self.extraction_metadata.url,
+                        type=PDCExtractionMetaDataType.HAZARD,
+                    ),
+                )
 
         geo_objects = []
         hazard_extraction_objects = []
@@ -170,7 +171,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             else:
                 geo_object = ExtractionData.objects.filter(
                     metadata__url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",  # noqa
-                    parent=self.extraction_object,
                 ).first()
 
                 if not geo_object:
@@ -187,7 +187,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
 
                 exposure_extraction_obj = ExtractionData.objects.filter(
                     metadata__url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{item['uuid']}/exposure",
-                    parent=self.extraction_object,
                 ).first()
 
                 if not exposure_extraction_obj:
@@ -238,7 +237,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             else:
                 exposure_extraction_obj = ExtractionData.objects.filter(
                     metadata__url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",
-                    parent=self.extraction_object.parent,
                 ).first()
                 if not exposure_extraction_obj:
                     exposure_extraction_obj = self.init_extraction(

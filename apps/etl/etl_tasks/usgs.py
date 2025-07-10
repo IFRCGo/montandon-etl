@@ -1,5 +1,5 @@
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from celery import shared_task
 
@@ -30,7 +30,13 @@ def ext_and_transform_usgs_latest_data():
     else:
         start_date = etl_config.USGS_START_DATE
 
-    url = f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson&starttime={start_date.strftime('%Y-%m-%d')}"
+    end_date = datetime.now().date()
+
+    url = (
+        f"{etl_config.USGS_DATA_URL}/fdsnws/event/1/query?format=geojson"
+        f"&starttime={start_date.strftime('%Y-%m-%d')}"
+        f"&endtime={end_date.strftime('%Y-%m-%d')}"
+    )
 
     ext_object = USGSExtraction.init_extraction(
         metadata=USGSExtractionMetadata(
