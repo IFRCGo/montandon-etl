@@ -215,7 +215,7 @@ ExtractionMetadataTypeVar = typing.TypeVar("ExtractionMetadataTypeVar", bound=py
 
 
 class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
-    MAX_RETRY_LIMIT = 5
+    MAX_RETRY_LIMIT = 3
     MAX_RATE_LIMIT_RETRY_LIMIT = 10
     MIN_RETRY_DELAY = 30
     MAX_RETRY_DELAY = 60
@@ -383,6 +383,12 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
 
         # Retry Exception
         retries = self.celery_task.request.retries
+
+        if retries >= self.MAX_RETRY_LIMIT:
+            logger.warning("Max retries reached for request error.")
+            self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+            return
+
         if isinstance(exc, RateLimitError):
             if retries >= self.MAX_RATE_LIMIT_RETRY_LIMIT:
                 logger.warning("Max retries reached for request error.")
@@ -399,6 +405,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                         min_delay=self.MIN_RETRY_DELAY,
                         max_delay=self.MAX_RETRY_DELAY,
                     )
+
                     logger.warning(f"Invalid Retry-After value. Falling back to backoff: retrying in {delay:.2f} seconds.")
             else:
                 delay = self.celery_task.exponential_backoff_with_jitter(
@@ -432,6 +439,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             raise exc
 
         self.extraction_object.mark_as_ended(ExtractionData.Status.ON_RETRY)
+
         # Increment attempt_no
         ExtractionData.objects.filter(pk=self.extraction_object.pk).update(attempt_no=models.F("attempt_no") + 1)
         raise self.celery_task.retry(exc=exc, countdown=delay)
