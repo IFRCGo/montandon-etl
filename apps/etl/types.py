@@ -26,7 +26,8 @@ class TransformDataQuerysetMixin:
 class PyStacDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        return get_queryset_for_model(PyStacLoadData, queryset)
+        qs = get_queryset_for_model(PyStacLoadData, queryset)
+        return qs.select_related("transform_id", "transform_id__extraction")
 
 
 @strawberry_django.type(ExtractionData)
@@ -76,6 +77,11 @@ class RawPystacdatatype:
     item: auto
     collection_id: auto
     transform_id: auto = strawberry_django.field(only=["transform_id"])
+    item_primary_country: auto
+
+    @classmethod
+    def get_queryset(cls, queryset, info):
+        return queryset.select_related("transform_id__extraction")
 
     @strawberry.field
     @sync_to_async

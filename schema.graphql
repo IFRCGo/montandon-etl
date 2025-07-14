@@ -234,7 +234,7 @@ enum Ordering {
 }
 
 input PipelineRetriggerInput {
-  traceId: [Int!]!
+  traceIds: [ID!]!
 }
 
 enum PyStacLoadDataItemTypeEnum {
@@ -328,7 +328,8 @@ type RawPystacdatatype {
   item: JSON!
   collectionId: String!
   transformId: ID!
-  source: SourceTypeEnum!
+  itemPrimaryCountry: [String!]
+  source: SourceTypeEnum
 }
 
 type RawPystacdatatypeOffsetPaginated {
@@ -500,7 +501,7 @@ input TransformOrder {
 }
 
 input TransformRetriggerInput {
-  transformId: [Int!]!
+  transformIds: [ID!]!
 }
 
 type UniqueCounts {
