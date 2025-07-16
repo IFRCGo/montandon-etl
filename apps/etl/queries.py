@@ -46,7 +46,7 @@ class Query:
         extensions=[IsAuthenticated()],
     )
 
-    pystac: RawPystacdatatype = strawberry_django.field(select_related=["extraction_data"], extensions=[IsAuthenticated()])
+    pystac: RawPystacdatatype = strawberry_django.field(extensions=[IsAuthenticated()])
 
     pystacs: OffsetPaginated[RawPystacdatatype] = strawberry_django.offset_paginated(
         order=PystacOrder,

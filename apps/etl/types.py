@@ -42,11 +42,12 @@ class RawExtractiondatatype:
     source_validation_status: ExtractionValidationTypeEnum
     hazard_type: auto
     trace_id: auto = strawberry_django.field(only=["trace_id"])
+    resp_data: auto
 
     @strawberry.field
     @sync_to_async
     def filesize(self, info: Info) -> float:
-        return round(self.resp_data.size / (1024), 2) if self.resp_data else 0
+        return round(len(self.resp_data) / 1024, 2) if self.resp_data else 0
 
 
 @strawberry_django.type(Transform)
