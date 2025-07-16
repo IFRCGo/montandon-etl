@@ -111,6 +111,13 @@ input DatetimeRangeLookup {
   end: DateTime = null
 }
 
+type DjangoFileType {
+  name: String!
+  path: String!
+  size: Int!
+  url: String!
+}
+
 type DjangoModelType {
   pk: ID!
 }
@@ -305,6 +312,7 @@ type RawExtractiondatatype {
   sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
   hazardType: String
   traceId: ID!
+  respData: DjangoFileType
   filesize: Float!
 }
 
