@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 
 import sentry_sdk
@@ -8,14 +9,12 @@ from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import ignore_logger
+from sentry_sdk.integrations.logging import LoggingIntegration, ignore_logger
 from sentry_sdk.integrations.redis import RedisIntegration
 
-IGNORED_ERRORS = [
-    Terminated,
-    PermissionDenied,
-    CeleryRetry,
-]
+from utils.requests import RateLimitError
+
+IGNORED_ERRORS = [Terminated, PermissionDenied, CeleryRetry, RateLimitError]
 IGNORED_LOGGERS = [
     "graphql.execution.utils",
     "strawberry.http.exceptions.HTTPException",
@@ -23,6 +22,11 @@ IGNORED_LOGGERS = [
 
 for _logger in IGNORED_LOGGERS:
     ignore_logger(_logger)
+
+sentry_logging = LoggingIntegration(
+    level=logging.INFO,
+    event_level=logging.ERROR,
+)
 
 
 @signals.beat_init.connect
@@ -35,6 +39,7 @@ def init_sentry(**_):
         DjangoIntegration(),
         RedisIntegration(),
         CeleryIntegration(monitor_beat_tasks=settings.SENTRY_MONITOR_CELERY_BEAT_TASKS),
+        sentry_logging,
     ]
     sentry_sdk.init(
         settings.SENTRY_CONFIG,
