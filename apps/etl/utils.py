@@ -123,6 +123,7 @@ def generate_item_index_fields_values(transformed_item: dict):
     logger.info("Item extracted: id=%s, datetime=%s, country=%s", item_id, item_datetime, item_primary_country)
     return item_id, item_datetime, item_primary_country
 
+
 def remove_ignored_keys(obj, keys_to_ignore):
     """
     Recursively remove keys from dicts if the key is in keys_to_ignore.
