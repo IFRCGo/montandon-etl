@@ -109,6 +109,16 @@ class ValStatusSourceCount(ExtractionDataQuerysetMixin):
 
 
 @strawberry.type
+class ItemTypeSourceStatusSummary(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    success_count: int
+    failed_count: int
+    pending_count: int
+    item_type: PyStacLoadDataItemTypeEnum
+    total: int
+
+
+@strawberry.type
 class CountbytraceID(ExtractionDataQuerysetMixin):
     source: SourceTypeEnum
     trace_id: int
@@ -172,6 +182,14 @@ class StatusSourceCountPyStac(PyStacDataQuerysetMixin):
 
 @strawberry.type
 class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_count: int
+    hazard_count: int
+    impact_count: int
+
+
+@strawberry.type
+class PystacItembyItemType(PyStacDataQuerysetMixin):
     source: SourceTypeEnum
     event_count: int
     hazard_count: int

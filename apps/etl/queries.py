@@ -13,6 +13,7 @@ from apps.etl.types import (
     CountbytraceID,
     ETLWithTraceID,
     ItemsbySource,
+    ItemTypeSourceStatusSummary,
     RawExtractiondatatype,
     RawPystacdatatype,
     RawTransformdatatype,
@@ -313,4 +314,31 @@ class Query:
                 impact_count=item["impact_count"],
             )
             for item in results
+        ]
+
+    @strawberry.field()
+    async def status_counts_by_source_for_itemtype(
+        self, info: Info, item_type: PyStacLoadData.ItemType
+    ) -> list[ItemTypeSourceStatusSummary]:
+        results = (
+            ItemTypeSourceStatusSummary.get_queryset(None, None, info)
+            .filter(item_type=item_type)
+            .values("item_type", "transform_id__extraction__source")  # group by source
+            .annotate(
+                success_count=Count("id", filter=Q(status=PyStacLoadData.Status.SUCCESS)),
+                failed_count=Count("id", filter=Q(status=PyStacLoadData.Status.FAILED)),
+                pending_count=Count("id", filter=Q(status=PyStacLoadData.Status.PENDING)),
+                id=Count("id"),
+            )
+        )
+        return [
+            ItemTypeSourceStatusSummary(
+                source=event["transform_id__extraction__source"],
+                item_type=item_type,
+                success_count=event["success_count"],
+                failed_count=event["failed_count"],
+                pending_count=event["pending_count"],
+                total=event["id"],
+            )
+            async for event in results
         ]
