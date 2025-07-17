@@ -1,7 +1,7 @@
 import json
-import json5
 from unittest.mock import patch
 
+import json5
 import pytest
 from django.conf import settings
 from django.core.serializers import serialize
@@ -12,9 +12,7 @@ from apps.etl.etl_tasks.gfd import ext_and_transform_gfd_historical_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import remove_ignored_keys
 
-MontyDataTransformer.base_collection_url = (
-    settings.BASE_DIR / "libs/pystac-monty/monty-stac-extension/examples"
-)
+MontyDataTransformer.base_collection_url = settings.BASE_DIR / "libs/pystac-monty/monty-stac-extension/examples"
 
 TEST_CASES = [
     {
@@ -23,6 +21,7 @@ TEST_CASES = [
         "expected": "fixed_output_gfd.json",
     },
 ]
+
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
@@ -57,8 +56,8 @@ def test_handle_extraction_various_gfd_files(case):
         f.write(actual_json_str)
     actual_json = json.loads(actual_json_str)
 
-    # # Compare filtered output
-    # ignore_keys = {"created_at", "modified_at", "monty:etl_id", "pk"}
-    # actual_clean = remove_ignored_keys(actual_json, ignore_keys)
-    # expected_clean = remove_ignored_keys(expected_json, ignore_keys)
-    # assert actual_clean == expected_clean, f"Mismatch with expected: {case['expected']}"
+    # Compare filtered output
+    ignore_keys = {"created_at", "modified_at", "monty:etl_id", "pk"}
+    actual_clean = remove_ignored_keys(actual_json, ignore_keys)
+    expected_clean = remove_ignored_keys(expected_json, ignore_keys)
+    assert actual_clean == expected_clean, f"Mismatch with expected: {case['expected']}"
