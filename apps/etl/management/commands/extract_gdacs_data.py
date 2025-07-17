@@ -3,8 +3,6 @@ from django.core.management.base import BaseCommand, CommandParser
 from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_historical_data
 from apps.etl.management.commands.utils import validate_dates
 
-logger = logging.getLogger(__name__)
-
 
 class Command(BaseCommand):
     help = "Import data from gdacs api"
