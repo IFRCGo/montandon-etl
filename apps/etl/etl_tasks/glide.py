@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from celery import chain, shared_task
 
@@ -41,9 +41,9 @@ GLIDE_HAZARDS = [
 ]
 
 
-def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
-    start_date = etl_config.GLIDE_START_DATE
-    to_date = datetime.today().date()
+def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date: date, end_date: date, queue_name: str):
+    start_date = start_date
+    to_date = end_date
 
     while start_date < to_date:
         end_date = start_date.replace(year=start_date.year + 1) - timedelta(days=1)
@@ -114,6 +114,6 @@ def ext_and_transform_glide_latest_data():
 
 
 @shared_task
-def ext_and_transform_glide_historical_data():
+def ext_and_transform_glide_historical_data(start_date: date, end_date: date, queue_name: str):
     for hazard_type in GLIDE_HAZARDS:
-        _ext_and_transform_glide_historical_data(hazard_type)
+        _ext_and_transform_glide_historical_data(hazard_type, start_date, end_date, queue_name)
