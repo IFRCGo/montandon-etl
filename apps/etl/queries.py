@@ -190,7 +190,7 @@ class Query:
     async def status_source_counts_transform(self, info: Info) -> list[StatusSourceCountTransform]:
         query_countby_status_source = (
             StatusSourceCountTransform.get_queryset(None, None, info)
-            .values("source")  # group by source
+            .values("extraction__source")  # group by source
             .annotate(
                 in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
                 success_count=Count("id", filter=Q(status=Status.SUCCESS)),
@@ -202,7 +202,7 @@ class Query:
 
         return [
             StatusSourceCountTransform(
-                source=item["source"],
+                source=item["extraction__source"],
                 in_progress_count=item["in_progress_count"],
                 success_count=item["success_count"],
                 failed_count=item["failed_count"],
@@ -318,11 +318,11 @@ class Query:
 
     @strawberry.field()
     async def status_counts_by_source_for_itemtype(
-        self, info: Info, item_type: PyStacLoadData.ItemType
+        self,
+        info: Info,
     ) -> list[ItemTypeSourceStatusSummary]:
         results = (
             ItemTypeSourceStatusSummary.get_queryset(None, None, info)
-            .filter(item_type=item_type)
             .values("item_type", "transform_id__extraction__source")  # group by source
             .annotate(
                 success_count=Count("id", filter=Q(status=PyStacLoadData.Status.SUCCESS)),
@@ -334,7 +334,7 @@ class Query:
         return [
             ItemTypeSourceStatusSummary(
                 source=event["transform_id__extraction__source"],
-                item_type=item_type,
+                item_type=event["item_type"],
                 success_count=event["success_count"],
                 failed_count=event["failed_count"],
                 pending_count=event["pending_count"],

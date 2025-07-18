@@ -277,13 +277,13 @@ input PystacOrder {
 }
 
 type Query {
-  extraction(pk: ID!): RawExtractiondatatype!
-  extractions(pagination: OffsetPaginationInput, filters: ExtractionDataFilter, order: ExtractionOrder): RawExtractiondatatypeOffsetPaginated!
-  transform(pk: ID!): RawTransformdatatype!
-  transforms(pagination: OffsetPaginationInput, filters: TransformDataFilter, order: TransformOrder): RawTransformdatatypeOffsetPaginated!
-  pystac(pk: ID!): RawPystacdatatype!
-  pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): RawPystacdatatypeOffsetPaginated!
-  extractionoftraceid: ETLWithTraceID!
+  extraction(pk: ID!): RawExtractiondatatype! @isAuthenticated
+  extractions(pagination: OffsetPaginationInput, filters: ExtractionDataFilter, order: ExtractionOrder): RawExtractiondatatypeOffsetPaginated! @isAuthenticated
+  transform(pk: ID!): RawTransformdatatype! @isAuthenticated
+  transforms(pagination: OffsetPaginationInput, filters: TransformDataFilter, order: TransformOrder): RawTransformdatatypeOffsetPaginated! @isAuthenticated
+  pystac(pk: ID!): RawPystacdatatype! @isAuthenticated
+  pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): RawPystacdatatypeOffsetPaginated! @isAuthenticated
+  extractionoftraceid: ETLWithTraceID! @isAuthenticated
   statusCountExtraction: [StatusCountExtraction!]!
   statusSourceCountsExtraction: [StatusSourceCountExtraction!]!
   validationStatusSourceCounts: [ValStatusSourceCount!]!
@@ -295,7 +295,7 @@ type Query {
   extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
-  statusCountsBySourceForItemtype(itemType: PyStacLoadDataItemTypeEnum!): [ItemTypeSourceStatusSummary!]!
+  statusCountsBySourceForItemtype: [ItemTypeSourceStatusSummary!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
