@@ -27,6 +27,7 @@ from apps.etl.types import (
     ValStatusSourceCount,
 )
 from main.graphql.context import Info
+from main.graphql.permissions import IsAuthenticated
 
 
 @strawberry.type
@@ -57,7 +58,7 @@ class Query:
 
     extractionoftraceid: ETLWithTraceID = strawberry_django.field(extensions=[IsAuthenticated()])
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_count_extraction(self, info: Info) -> list[StatusCountExtraction]:
         query_total_count = await sync_to_async(
             lambda: StatusCountExtraction.get_queryset(None, None, info).aggregate(
@@ -77,7 +78,7 @@ class Query:
             )
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_source_counts_extraction(self, info: Info) -> list[StatusSourceCountExtraction]:
         query_countby_status_source = (
             StatusSourceCountExtraction.get_queryset(None, None, info)
@@ -102,7 +103,7 @@ class Query:
             for item in results
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def validation_status_source_counts(self, info: Info) -> list[ValStatusSourceCount]:
         query_countby_valstatus_source = (
             ValStatusSourceCount.get_queryset(None, None, info)
@@ -129,7 +130,7 @@ class Query:
             async for event in query_countby_valstatus_source
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def count_trace_id(self, info: Info) -> list[CountbytraceID]:
         final_counts = (
             PyStacLoadData.objects.filter(trace_id=OuterRef("trace_id"))
@@ -166,7 +167,7 @@ class Query:
             async for item in qs
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_count_transform(self, info: Info) -> list[StatusCountTransform]:
         query_total_count = await sync_to_async(
             lambda: StatusCountTransform.get_queryset(None, None, info).aggregate(
@@ -211,7 +212,7 @@ class Query:
             for item in results
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def unique_items_counts(self, info: Info) -> list[UniqueCounts]:
         unique_counts = await sync_to_async(
             lambda: UniqueCounts.get_queryset(None, None, info).aggregate(
@@ -229,7 +230,7 @@ class Query:
             )
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def items_counts_by_source(self, info: Info) -> list[ItemsbySource]:
         result = (
             ItemsbySource.get_queryset(None, None, info)
@@ -252,7 +253,7 @@ class Query:
             async for item in result
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def extraction_by_trace_id(self, info: Info, trace_id: int) -> list[ETLWithTraceID]:
         """
         Return ExtractionData, Transform, and PyStacLoadData objects that share a trace_id.
@@ -268,7 +269,7 @@ class Query:
             )
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_source_counts_pystac(self, info: Info) -> list[StatusSourceCountPyStac]:
         query_countby_status_source = (
             StatusSourceCountPyStac.get_queryset(None, None, info)
@@ -293,7 +294,7 @@ class Query:
             for item in results
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_source_counts_pystac_by_item(self, info: Info) -> list[StatusSourceCountPystacByItem]:
         query_countby_status_source = (
             StatusSourceCountPyStac.get_queryset(None, None, info)
@@ -316,7 +317,7 @@ class Query:
             for item in results
         ]
 
-    @strawberry.field()
+    @strawberry.field(extensions=[IsAuthenticated()])
     async def status_counts_by_source_for_itemtype(
         self, info: Info, item_type: PyStacLoadData.ItemType
     ) -> list[ItemTypeSourceStatusSummary]:
