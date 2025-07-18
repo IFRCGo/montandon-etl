@@ -136,7 +136,7 @@ class StatusCountTransform(TransformDataQuerysetMixin):
 
 
 @strawberry.type
-class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
+class StatusSourceCountTransform(TransformDataQuerysetMixin):
     source: SourceTypeEnum
     in_progress_count: int
     success_count: int

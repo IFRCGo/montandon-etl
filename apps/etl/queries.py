@@ -189,7 +189,7 @@ class Query:
     @strawberry.field()
     async def status_source_counts_transform(self, info: Info) -> list[StatusSourceCountTransform]:
         query_countby_status_source = (
-            StatusSourceCountExtraction.get_queryset(None, None, info)
+            StatusSourceCountTransform.get_queryset(None, None, info)
             .values("source")  # group by source
             .annotate(
                 in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),

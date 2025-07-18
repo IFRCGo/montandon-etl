@@ -1,14 +1,16 @@
-import typing
-
-from asgiref.sync import sync_to_async
-from strawberry.permission import BasePermission
-from strawberry.types import Info
+from graphql import GraphQLError
+from strawberry.extensions.field_extension import FieldExtension
 
 
-class IsAuthenticated(BasePermission):
-    message = "User is not authenticated"
-
-    @sync_to_async
-    def has_permission(self, source: typing.Any, info: Info, **_) -> bool:
+class IsAuthenticated(FieldExtension):
+    def resolve(self, _next, root, info, *args, **kwargs):
         user = info.context.request.user
-        return bool(user and user.is_authenticated)
+        if not user.is_authenticated:
+            raise GraphQLError("You must be logged in to access this resource.")
+        return _next(root, info, *args, **kwargs)
+
+    async def resolve_async(self, _next, root, info, *args, **kwargs):
+        user = info.context.request.user
+        if not user or not user.is_authenticated:
+            raise GraphQLError("You must be logged in to access this resource.")
+        return await _next(root, info, *args, **kwargs)
