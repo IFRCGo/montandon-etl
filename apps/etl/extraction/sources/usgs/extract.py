@@ -112,8 +112,6 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                     parent_extraction=self.extraction_object,
                     queue_name=self.celery_queue,
                 )
-                USGSExtraction.task.delay(extraction_object.pk)
-
             else:
                 extraction_object = ExtractionData.objects.filter(url=detail_url, metadata=metadata.dict()).first()
                 if extraction_object:
@@ -124,7 +122,6 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                         parent_extraction=self.extraction_object,
                         queue_name=self.celery_queue,
                     )
-                    USGSExtraction.task.delay(extraction_object.pk)
 
     def handle_type_detail(self, retrigger: bool):
         self._extraction_fetch_url(self.extraction_metadata.url)
