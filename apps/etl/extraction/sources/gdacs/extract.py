@@ -87,6 +87,12 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 )
             else:
                 extraction_object = ExtractionData.objects.filter(url=event_detail_url, metadata=metadata.dict()).first()
+                if not extraction_object:
+                    extraction_object = self.init_extraction(
+                        metadata=metadata,
+                        parent_extraction=self.extraction_object,
+                    )
+
                 GdacsExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
 
     def handle_type_detail(self, retrigger: bool):
@@ -125,6 +131,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                         type=GdacsExtractionMetadataType.EPISODE,
                     ).dict(),
                 ).first()
+                if not event_episode_extraction_obj:
+                    event_episode_extraction_obj = self.init_extraction(
+                        metadata=GdacsExtractionMetadata(
+                            url=event_episode_url,
+                            type=GdacsExtractionMetadataType.EPISODE,
+                        ),
+                        parent_extraction=self.extraction_object,
+                        add_to_queue=False,
+                    )
 
             episode_tasks.append(chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s()))
 
