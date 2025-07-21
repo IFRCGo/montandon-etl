@@ -49,7 +49,6 @@ def ext_and_transform_ifrcevent_latest_data():
 def ext_and_transform_ifrcevent_historical_data(
     start_date: date,
     end_date: date,
-    queue_name: str | None = None,
 ):
     params = IfrcEventExtractionInputMetadata(
         disaster_start_date__gte=str(start_date),
@@ -63,6 +62,4 @@ def ext_and_transform_ifrcevent_historical_data(
     # Encode parameters into URL query string
     query_string = urlencode(params_dict)
     url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&{query_string}"
-    IFRCEventExtractionV2.init_extraction(
-        metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY), queue_name=queue_name
-    )
+    IFRCEventExtractionV2.init_extraction(metadata=IFRCExtractionMetadata(url=url, type=IFRCExtractionMetadataType.QUERY))

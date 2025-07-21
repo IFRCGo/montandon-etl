@@ -122,7 +122,7 @@ additional_region_code_to_iso3_map = {
 
 
 @shared_task
-def ext_and_transform_desinventar_historical_data(country_code_list: list[str], queue_name: str):
+def ext_and_transform_desinventar_historical_data(country_code_list: list[str]):
     for country_code in country_code_list:
         url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
         DesInventarExtraction.init_extraction(
@@ -140,5 +140,4 @@ def ext_and_transform_desinventar_historical_data(country_code_list: list[str], 
                 type=DesInventarMetadataType.QUERY,
                 params=DesInventarExtractionParamsMetadata(country_code=country_code, iso3=country_code),
             ),
-            queue_name=queue_name,
         )

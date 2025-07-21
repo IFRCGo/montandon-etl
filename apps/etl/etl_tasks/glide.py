@@ -41,7 +41,7 @@ GLIDE_HAZARDS = [
 ]
 
 
-def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date: date, end_date: date, queue_name: str):
+def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date: date, end_date: date):
     start_date = start_date
     to_date = end_date
 
@@ -114,6 +114,6 @@ def ext_and_transform_glide_latest_data():
 
 
 @shared_task
-def ext_and_transform_glide_historical_data(start_date: date, end_date: date, queue_name: str):
+def ext_and_transform_glide_historical_data(start_date: date, end_date: date):
     for hazard_type in GLIDE_HAZARDS:
-        _ext_and_transform_glide_historical_data(hazard_type, start_date, end_date, queue_name)
+        _ext_and_transform_glide_historical_data(hazard_type, start_date, end_date)

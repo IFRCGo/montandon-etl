@@ -48,7 +48,6 @@ def extract_and_transform_pdc_data():
 def extract_and_transform_historical_pdc_data(
     start_date: date,
     end_date: date,
-    queue_name: str | None = None,
 ):
     pdc_start_date = datetime.strptime(str(start_date), "%Y-%m-%d")
     pdc_interval_years = etl_config.PDC_EXTRACTION_INTERVAL_YEARS
@@ -75,7 +74,6 @@ def extract_and_transform_historical_pdc_data(
                     url=url,
                     type=PDCExtractionMetaDataType.HAZARD,
                 ),
-                queue_name=queue_name,
             )
 
         pdc_start_date = pdc_start_date.replace(year=pdc_start_date.year + pdc_interval_years)

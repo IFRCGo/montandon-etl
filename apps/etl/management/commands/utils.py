@@ -1,5 +1,6 @@
+import argparse
 import logging
-from datetime import datetime
+from datetime import date, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -20,3 +21,11 @@ def validate_dates(start_date: str | None, end_date: str | None):
         logger.error("Error occurred while processing the Start/End dates")
         return (None, None)
     return dt_start_date, dt_end_date
+
+
+def validate_date_format(value) -> date:
+    try:
+        # Try parsing the date using the given format
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid date format: '{value}'. Expected format: YYYY-MM-DD.")
