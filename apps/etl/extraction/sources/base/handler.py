@@ -309,15 +309,22 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         timeout: int = 30,
         file_extension: str = "json",
     ) -> bool:
-        if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
-        elif method == "post":
-            response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
-        else:
-            typing.assert_never(method)
+        try:
+            if method == "get":
+                response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
+            elif method == "post":
+                response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
+            else:
+                typing.assert_never(method)
+        except requests.exceptions.Timeout as e:
+            logger.warning(
+                f"Request timed out",
+                extra=log_extra({"url": url, "source": self.source_enum}),
+            )
+            raise e
 
         if response.status_code == 404:
-            logger.warning(
+            logger.error(
                 "The requested url not found",
                 extra=log_extra({"url": url, "source": self.source_enum}),
                 exc_info=True,
@@ -343,6 +350,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 logger.info("Data extracted successfully")
                 return True
             logger.warning("No data found in response")
+
         return False
 
     @classmethod
