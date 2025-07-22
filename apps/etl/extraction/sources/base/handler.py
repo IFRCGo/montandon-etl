@@ -284,7 +284,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         if not payload or "query" not in payload:
             return False
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=(0.2, 0.2), proxies=self.proxies)
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout, proxies=self.proxies)
         except requests.exceptions.Timeout as e:
             logger.error("Request timed out", exc_info=True, extra=log_extra({"source": self.extraction_object.source}))
             raise e
