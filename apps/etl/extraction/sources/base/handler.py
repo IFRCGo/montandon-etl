@@ -318,7 +318,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 typing.assert_never(method)
         except requests.exceptions.Timeout as e:
             logger.warning(
-                f"Request timed out, {self.extraction_object.attempt_no}",
+                f"Request timed out",
                 extra=log_extra({"url": url, "source": self.source_enum}),
             )
             raise e
