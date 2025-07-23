@@ -132,7 +132,7 @@ jobs:
       - name: 🤞 Run Test 🧪 & Publish coverage to code climate
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
-        run: docker compose run --rm web pytest apps/etl/tests/sources/*.py
+        run: docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
 
       - name: 🐳 Docker push
         if: ${{ inputs.push_docker_image }}

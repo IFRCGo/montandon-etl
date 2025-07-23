@@ -49,7 +49,7 @@ dev = [
     "pytest-icdiff",
     "pytest-ordering",
     "pytest-profiling",
-]
+    "pytest-cov",
 
 [tool.uv.sources]
 pystac-monty = { path = "libs/pystac-monty", editable = true }
