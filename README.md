@@ -63,3 +63,19 @@ docker-compose exec web python manage.py extract_gidd_data
 # Import from GFD
 docker-compose exec web python manage.py extract_gfd_data
 ```
+
+## Testing
+
+Run tests for ETL sources:
+
+- **In terminal with coverage output:**
+
+```bash
+docker compose exec web pytest --cov-report=term --cov=apps apps/etl/tests/sources/*.py -s
+```
+
+- **Generate HTML coverage report (saved in `htmlcov/`):**
+
+```bash
+docker compose exec web pytest --cov-report=html:htmlcov --cov=apps apps/etl/tests/sources/*.py -s
+```
