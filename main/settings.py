@@ -112,6 +112,7 @@ env = environ.Env(
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
     USGS_START_DATE=(str, "2025-01-01"),
     TRANSFORM_SUCCESS_RATE=(int, 80),
+    MAX_ROW_SIZE_LIMIT=(int, 10485760),
 )
 
 
@@ -169,6 +170,8 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+MAX_ROW_SIZE_LIMIT = env("MAX_ROW_SIZE_LIMIT")
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -206,6 +209,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.etl.middleware.MaxRequestBodySizeMiddleware",
 ]
 
 ROOT_URLCONF = "main.urls"
