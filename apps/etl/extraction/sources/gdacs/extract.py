@@ -141,16 +141,6 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     add_to_queue=False,
                 )
 
-                self.init_extraction(
-                    metadata=GdacsExtractionMetadata(
-                        params=None,
-                        url="",  # url is set in handle_type_episode method after data extraction
-                        type=GdacsExtractionMetadataType.GEOMETRY,
-                    ),
-                    parent_extraction=event_episode_extraction_obj,
-                    add_to_queue=False,
-                )
-
             else:
                 event_episode_extraction_obj = ExtractionData.objects.filter(
                     url=event_episode_url,
@@ -168,16 +158,12 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                         parent_extraction=self.extraction_object,
                         add_to_queue=False,
                     )
-                    self.init_extraction(
-                        metadata=GdacsExtractionMetadata(
-                            params=None,
-                            url="",  # url is set in handle_type_episode method after data extraction
-                            type=GdacsExtractionMetadataType.GEOMETRY,
-                        ),
-                        parent_extraction=event_episode_extraction_obj,
-                        add_to_queue=False,
-                    )
-
+            if not event_episode_extraction_obj:
+                logger.warning(
+                    "Failed to extract data",
+                    extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+                )
+                return
             episode_tasks.append(chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s()))
 
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
@@ -205,15 +191,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
         geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
 
-        geo_obj = ExtractionData.objects.filter(
-            parent=self.extraction_object, metadata__type=GdacsExtractionMetadataType.GEOMETRY
-        ).first()
-        metadata = geo_obj.metadata
-        metadata["url"] = geometry_episode_url
-
-        geo_obj.url = geometry_episode_url
-        geo_obj.metadata = metadata
-        geo_obj.save(update_fields=["url", "metadata"])
+        geo_obj = self.init_extraction(
+            metadata=GdacsExtractionMetadata(
+                params=None,
+                url=geometry_episode_url,  # url is set in handle_type_episode method after data extraction
+                type=GdacsExtractionMetadataType.GEOMETRY,
+            ),
+            parent_extraction=self.extraction_object,
+            add_to_queue=False,
+        )
 
         return geo_obj.id
 
