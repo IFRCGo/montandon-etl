@@ -9,6 +9,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
 from main.celery import app
+from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,18 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
     extraction_metadata_class = DesInventarExtractionMetadata
 
     def handle_type_query(self):
-        self._extraction_fetch_url(
+        extraction = self._extraction_fetch_url(
             url=self.extraction_metadata.url,
             params=json.dumps(self.extraction_metadata.params.model_dump()),
             timeout=180,
             file_extension="zip",
         )
+        if not extraction:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
 
         DesinventarTransformHandler.task.delay(self.extraction_object.id)
 

@@ -12,6 +12,7 @@ from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
 from main.celery import app
 from main.configs import etl_config
+from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -59,13 +60,25 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     extraction_metadata_class = GdacsExtractionMetadata
 
     def handle_type_query(self, retrigger: bool):
-        self._extraction_fetch_url(
+        extraction = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
             params=self.extraction_metadata.params,
         )
+        if not extraction:
+            logger.error(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
 
-        # FIXME: Handle error?
+        if not self.extraction_object.resp_data:
+            logger.error(
+                "Response data is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
         response_data = json.loads(self.extraction_object.resp_data.read())
         # FIXME: We might need to write a simple validator here
         features_list = response_data["features"]
@@ -96,7 +109,20 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 GdacsExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
 
     def handle_type_detail(self, retrigger: bool):
-        self._extraction_fetch_url(self.extraction_metadata.url, params=self.extraction_metadata.event_params)
+        extraction = self._extraction_fetch_url(self.extraction_metadata.url, params=self.extraction_metadata.event_params)
+        if not extraction:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
         with self.extraction_object.resp_data.open() as file_data:
             event_response_data = json.loads(file_data.read())
 
@@ -155,10 +181,23 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
     def handle_type_episode(self):
-        self._extraction_fetch_url(
+        extraction = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
+        if not extraction:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
 
         # geometry url is set here so that _extraction_fetch_url() can be called next
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
