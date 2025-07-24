@@ -44,13 +44,13 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
     extraction_metadata_class = DesInventarExtractionMetadata
 
     def handle_type_query(self):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             url=self.extraction_metadata.url,
             params=json.dumps(self.extraction_metadata.params.model_dump()),
             timeout=180,
             file_extension="zip",
         )
-        if not extraction:
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),

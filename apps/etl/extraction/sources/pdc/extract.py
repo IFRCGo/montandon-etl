@@ -122,13 +122,13 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         return default_headers
 
     def handle_type_hazard(self, retrigger: bool):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             data=json.dumps(self.extraction_metadata.hazard.model_dump()),  # type: ignore
             headers=self._get_request_headers(),
             method="post",
         )
-        if not extraction:
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
@@ -137,7 +137,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
 
         if not self.extraction_object.resp_data:
             logger.warning(
-                "Response data is not available",
+                "Response data object is not available",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
             )
             return

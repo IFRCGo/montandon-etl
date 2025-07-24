@@ -32,11 +32,11 @@ class IBTrACSExtraction(BaseExtractionV2[IBTrACSExtractionMetadata]):
     extraction_metadata_class = IBTrACSExtractionMetadata
 
     def handle_type_query(self):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
-        if not extraction:
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),

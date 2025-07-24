@@ -60,12 +60,12 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     extraction_metadata_class = GdacsExtractionMetadata
 
     def handle_type_query(self, retrigger: bool):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
             params=self.extraction_metadata.params,
         )
-        if not extraction:
+        if not extraction_status:
             logger.error(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
@@ -74,7 +74,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         if not self.extraction_object.resp_data:
             logger.error(
-                "Response data is not available",
+                "Response data object is not available",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
             )
             return
@@ -109,8 +109,10 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 GdacsExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
 
     def handle_type_detail(self, retrigger: bool):
-        extraction = self._extraction_fetch_url(self.extraction_metadata.url, params=self.extraction_metadata.event_params)
-        if not extraction:
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url, params=self.extraction_metadata.event_params
+        )
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
@@ -119,7 +121,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         if not self.extraction_object.resp_data:
             logger.warning(
-                "Response data is not available",
+                "Response data  object is not available",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
             )
             return
@@ -181,11 +183,11 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
     def handle_type_episode(self):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
-        if not extraction:
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
@@ -194,7 +196,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         if not self.extraction_object.resp_data:
             logger.warning(
-                "Response data is not available",
+                "Response data object is not available",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
             )
             return
