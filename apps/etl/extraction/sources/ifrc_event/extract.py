@@ -164,10 +164,16 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
 
     def handle_type_query(self):
         url = self.extraction_metadata.url
-        self._extraction_fetch_url(
+        extraction = self._extraction_fetch_url(
             url,
             headers={"Content-Type": "application/json"},
         )
+        if not extraction:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
         response_data = json.loads(self.extraction_object.resp_data.read())
         IFRCEventTransformHandler.task.delay(self.extraction_object.id)
         next_url = response_data.get("next")
