@@ -280,10 +280,15 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             )
         return extraction_object
 
-    def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None) -> bool:
+    def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None, timeout: int = 30) -> bool:
         if not payload or "query" not in payload:
             return False
-        response = requests.post(url, json=payload, headers=headers, proxies=self.proxies)
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=timeout, proxies=self.proxies)
+        except requests.exceptions.Timeout as e:
+            logger.error("Request timed out", exc_info=True, extra=log_extra({"source": self.extraction_object.source}))
+            raise e
+
         response.raise_for_status()
         self.extraction_object.resp_code = response.status_code
 
@@ -309,15 +314,22 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         timeout: int = 30,
         file_extension: str = "json",
     ) -> bool:
-        if method == "get":
-            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
-        elif method == "post":
-            response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
-        else:
-            typing.assert_never(method)
+        try:
+            if method == "get":
+                response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
+            elif method == "post":
+                response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
+            else:
+                typing.assert_never(method)
+        except requests.exceptions.Timeout as e:
+            logger.warning(
+                "Request timed out",
+                extra=log_extra({"url": url, "source": self.source_enum}),
+            )
+            raise e
 
         if response.status_code == 404:
-            logger.warning(
+            logger.error(
                 "The requested url not found",
                 extra=log_extra({"url": url, "source": self.source_enum}),
                 exc_info=True,
@@ -343,6 +355,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 logger.info("Data extracted successfully")
                 return True
             logger.warning("No data found in response")
+
         return False
 
     @classmethod

@@ -111,6 +111,13 @@ input DatetimeRangeLookup {
   end: DateTime = null
 }
 
+type DjangoFileType {
+  name: String!
+  path: String!
+  size: Int!
+  url: String!
+}
+
 type DjangoModelType {
   pk: ID!
 }
@@ -234,7 +241,7 @@ enum Ordering {
 }
 
 input PipelineRetriggerInput {
-  traceId: [Int!]!
+  traceIds: [ID!]!
 }
 
 enum PyStacLoadDataItemTypeEnum {
@@ -305,6 +312,7 @@ type RawExtractiondatatype {
   sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
   hazardType: String
   traceId: ID!
+  respData: DjangoFileType
   filesize: Float!
 }
 
@@ -328,7 +336,8 @@ type RawPystacdatatype {
   item: JSON!
   collectionId: String!
   transformId: ID!
-  source: SourceTypeEnum!
+  itemPrimaryCountry: [String!]
+  source: SourceTypeEnum
 }
 
 type RawPystacdatatypeOffsetPaginated {
@@ -500,7 +509,7 @@ input TransformOrder {
 }
 
 input TransformRetriggerInput {
-  transformId: [Int!]!
+  transformIds: [ID!]!
 }
 
 type UniqueCounts {
