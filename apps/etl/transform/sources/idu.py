@@ -1,3 +1,5 @@
+from tempfile import _TemporaryFileWrapper
+
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.idu import IDUDataSource, IDUTransformer
 
@@ -11,7 +13,7 @@ class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource])
     transformer_schema = IDUDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[IDUDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open("rb") as file_data:
             file_content = file_data.read()
 

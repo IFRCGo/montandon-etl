@@ -1,4 +1,5 @@
 import json
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
@@ -14,7 +15,7 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
     transformer_schema = USGSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[USGSDataSource, list[_TemporaryFileWrapper[bytes]]]:
         losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
 
         losses_data = []

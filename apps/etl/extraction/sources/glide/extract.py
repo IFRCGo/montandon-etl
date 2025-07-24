@@ -3,7 +3,6 @@ import typing
 from enum import Enum
 
 import pydantic
-from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
@@ -40,7 +39,7 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
 
     def handle_type_query(self):
         url = self.extraction_metadata.url
-        params = self.extraction_metadata.params
+        params = self.extraction_metadata.params.model_dump()
         headers = {"Content-Type": "application/json"}
         self._extraction_fetch_url(url, params, headers)
 
@@ -60,5 +59,5 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         bind=True,
         base=RetryableTask,
     )
-    def task(celery_task: Task, extraction_id: int) -> int:
+    def task(celery_task, extraction_id: int):
         GlideExtraction(celery_task, extraction_id).handle()

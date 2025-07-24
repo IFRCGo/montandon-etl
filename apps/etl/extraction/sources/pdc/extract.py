@@ -285,7 +285,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object):
+    def retrigger(self, extraction_object: ExtractionData):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == PDCExtractionMetaDataType.HAZARD:
             PDCExtractionV2.task.delay(extraction_object.id, retrigger=True)
@@ -304,5 +304,5 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
     )
-    def task(celery_task, extraction_id, retrigger: bool = False):
+    def task(celery_task, extraction_id: int, retrigger: bool = False):
         PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger)

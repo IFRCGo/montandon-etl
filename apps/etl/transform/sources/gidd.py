@@ -1,3 +1,5 @@
+from tempfile import _TemporaryFileWrapper
+
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
@@ -11,7 +13,7 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
     transformer_schema = GIDDDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[GIDDDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open() as file_data:
             file_content = file_data.read()
 

@@ -1,3 +1,5 @@
+from tempfile import _TemporaryFileWrapper
+
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gfd import GFDDataSource, GFDTransformer
 
@@ -12,7 +14,7 @@ class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource])
     transformer_schema = GFDDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData) -> tuple[GFDDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open("rb") as file_data:
             file_content = file_data.read()
 

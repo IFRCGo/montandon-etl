@@ -229,7 +229,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object):
+    def retrigger(self, extraction_object: ExtractionData):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == USGSExtractionMetadataType.QUERY:
             USGSExtraction.task.delay(extraction_object.id, retrigger=True)
@@ -247,5 +247,5 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         queue=CeleryQueue.USGS_EXTRACTION,
         rate_limit="100/m",  # limit is 500 requests per 5 minute window
     )
-    def task(celery_task, extraction_id, retrigger: bool = False):
+    def task(celery_task, extraction_id: int, retrigger: bool = False):
         USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger)

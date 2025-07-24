@@ -1,5 +1,6 @@
 import json
 import logging
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
@@ -16,7 +17,7 @@ class IFRCEventTransformHandler(BaseTransformerHandler[IFRCEventTransformer, IFR
     transformer_schema = IFRCEventDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[IFRCEventDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open() as file_data:
             data = json.loads(file_data.read())
 

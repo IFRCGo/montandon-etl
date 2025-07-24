@@ -1,4 +1,5 @@
 import logging
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
@@ -15,7 +16,7 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
     transformer_schema = IBTrACSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[IBTrACSDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
         data_file = write_into_temp_file(data)

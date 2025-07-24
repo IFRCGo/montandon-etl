@@ -3,7 +3,6 @@ import typing
 from enum import Enum
 
 import pydantic
-from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
@@ -65,5 +64,5 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.DEFAULT,
     )
-    def task(celery_task: Task, extraction_id: int) -> int:
+    def task(celery_task, extraction_id: int):
         EmdatExtraction(celery_task, extraction_id).handle()

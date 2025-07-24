@@ -1,4 +1,5 @@
 import logging
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
@@ -21,7 +22,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
     transformer_schema = GDACSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_object):
+    def get_schema_data(cls, extraction_object) -> tuple[GDACSDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_object.resp_data.open("rb") as f:
             file_content = f.read()
         data_file = write_into_temp_file(file_content)

@@ -1,4 +1,3 @@
-import json
 import logging
 import typing
 from enum import Enum
@@ -45,7 +44,7 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
     def handle_type_query(self):
         self._extraction_fetch_url(
             url=self.extraction_metadata.url,
-            params=json.dumps(self.extraction_metadata.params.model_dump()),
+            params=self.extraction_metadata.params.model_dump(),
             timeout=180,
             file_extension="zip",
         )

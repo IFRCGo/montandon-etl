@@ -62,7 +62,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
-            params=self.extraction_metadata.params,
+            params=self.extraction_metadata.params.model_dump(),
         )
 
         # FIXME: Handle error?
@@ -188,7 +188,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object):
+    def retrigger(self, extraction_object: ExtractionData):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == GdacsExtractionMetadataType.QUERY:
             GdacsExtraction.task.delay(extraction_object.id, retrigger=True)
@@ -205,5 +205,5 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         base=RetryableTask,
         rate_limit="100/m",
     )
-    def task(celery_task, extraction_id, retrigger: bool = False) -> int:
+    def task(celery_task, extraction_id: int, retrigger: bool = False) -> int:
         return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger)

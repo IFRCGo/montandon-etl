@@ -1,4 +1,5 @@
 import logging
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
@@ -17,7 +18,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
     transformer_schema = PDCDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData) -> tuple[PDCDataSource, list[_TemporaryFileWrapper[bytes]]]:
         metadata: dict | None = extraction_obj.metadata
         if not metadata:
             raise Exception("Metadata is not defined")

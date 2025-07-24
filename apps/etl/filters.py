@@ -19,7 +19,7 @@ class ExtractionDataFilter:
 @strawberry_django.filters.filter(Transform, lookups=True)
 class TransformDataFilter:
     created_at: strawberry.auto
-    status: Optional[DataStatusTypeEnum]
+    status: Optional[DataStatusTypeEnum]  # pyright: ignore[reportInvalidTypeForm]
     trace_id: strawberry.auto
 
     @strawberry_django.filter_field

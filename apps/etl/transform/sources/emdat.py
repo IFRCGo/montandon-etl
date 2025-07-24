@@ -1,4 +1,5 @@
 import logging
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
@@ -16,7 +17,7 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
     transformer_schema = EMDATDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData) -> tuple[EMDATDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open("rb") as f:
             data = f.read()
         data_file = write_into_temp_file(data)

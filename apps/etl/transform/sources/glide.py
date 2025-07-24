@@ -1,4 +1,5 @@
 import json
+from tempfile import _TemporaryFileWrapper
 
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
@@ -14,7 +15,7 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
     transformer_schema = GlideDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj) -> tuple[GlideDataSource, list[_TemporaryFileWrapper[bytes]]]:
         with extraction_obj.resp_data.open("rb") as f:
             data = f.read()
         data_file = write_into_temp_file(data)

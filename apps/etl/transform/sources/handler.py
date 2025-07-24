@@ -3,6 +3,7 @@ import logging
 import os
 import typing
 import uuid
+from tempfile import _TemporaryFileWrapper
 
 from django.conf import settings
 from pystac_monty.geocoding import TheirGeocoder
@@ -68,7 +69,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
 
     @classmethod
     @abc.abstractmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData) -> TransformerSchema:
+    def get_schema_data(cls, extraction_obj: ExtractionData) -> tuple[TransformerSchema, list[_TemporaryFileWrapper[bytes]]]:
         raise NotImplementedError()
 
     @classmethod
