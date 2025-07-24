@@ -130,7 +130,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                         )
         else:
             logger.warning(
-                "Response is not available",
+                "Response data object is not available",
                 extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
             )
             return
@@ -146,7 +146,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
 
         if not self.extraction_object.resp_data:
             logger.warning(
-                "Response is not available",
+                "Response data object is not available",
                 extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
             )
             return
