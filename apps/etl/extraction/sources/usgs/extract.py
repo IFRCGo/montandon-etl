@@ -83,11 +83,11 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         return False
 
     def handle_type_query(self, retrigger: bool):
-        extraction = self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
-        if not extraction:
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
@@ -136,8 +136,8 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             return
 
     def handle_type_detail(self, retrigger: bool):
-        extraction = self._extraction_fetch_url(self.extraction_metadata.url)
-        if not extraction:
+        extraction_status = self._extraction_fetch_url(self.extraction_metadata.url)
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
