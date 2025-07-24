@@ -11,6 +11,7 @@ from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
+from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -121,12 +122,25 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         return default_headers
 
     def handle_type_hazard(self, retrigger: bool):
-        self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             data=json.dumps(self.extraction_metadata.hazard.model_dump()),  # type: ignore
             headers=self._get_request_headers(),
             method="post",
         )
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
         response_data = json.loads(self.extraction_object.resp_data.read())
         if not retrigger:
             if response_data and len(response_data) == 100:

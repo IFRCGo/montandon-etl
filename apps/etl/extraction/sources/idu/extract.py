@@ -9,6 +9,7 @@ from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.idu import IDUTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
+from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -35,8 +36,13 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
         url = self.extraction_metadata.url
         headers = {"Content-Type": "application/json"}
         params = {"client_id": etl_config.IDMC_CLIENT_ID}
-        self._extraction_fetch_url(url, headers=headers, params=params)
-
+        extraction_status = self._extraction_fetch_url(url, headers=headers, params=params)
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
         IDUTransformHandler.task.delay(self.extraction_object.id)
 
     def handle_extract(self, retrigger: bool):

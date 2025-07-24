@@ -12,6 +12,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.usgs import USGSTransformHandler
 from main.celery import CeleryQueue, app
+from main.logging import log_extra
 from utils.celery import RetryableTask
 from utils.requests import RateLimitError
 
@@ -82,49 +83,73 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         return False
 
     def handle_type_query(self, retrigger: bool):
-        # Handles base extraction from the all day url
-        self._extraction_fetch_url(
+        extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
         )
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
 
         if self.extraction_object.resp_code == 400:
             return self.handle_response_exceeded()
 
-        # FIXME: Handle error?
-        response_data = json.loads(self.extraction_object.resp_data.read())
-        # FIXME: We might need to write a simple validator here
-        features_list = response_data["features"]
+        if self.extraction_object.resp_data:
+            response_data = json.loads(self.extraction_object.resp_data.read())
+            # FIXME: We might need to write a simple validator here
+            features_list = response_data["features"]
 
-        for feature_item in features_list:
-            if "detail" not in feature_item["properties"]:
-                continue
-            detail_url = feature_item["properties"]["detail"]
+            for feature_item in features_list:
+                if "detail" not in feature_item["properties"]:
+                    continue
+                detail_url = feature_item["properties"]["detail"]
 
-            metadata = USGSExtractionMetadata(
-                url=detail_url,
-                type=USGSExtractionMetadataType.DETAIL,
-            )
-
-            if not retrigger:
-                extraction_object = self.init_extraction(
-                    metadata=metadata,
-                    parent_extraction=self.extraction_object,
-                    queue_name=self.celery_queue,
+                metadata = USGSExtractionMetadata(
+                    url=detail_url,
+                    type=USGSExtractionMetadataType.DETAIL,
                 )
-            else:
-                extraction_object = ExtractionData.objects.filter(url=detail_url, metadata=metadata.dict()).first()
-                if extraction_object:
-                    USGSExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
-                else:
+
+                if not retrigger:
                     extraction_object = self.init_extraction(
                         metadata=metadata,
                         parent_extraction=self.extraction_object,
                         queue_name=self.celery_queue,
                     )
+                else:
+                    extraction_object = ExtractionData.objects.filter(url=detail_url, metadata=metadata.model_dump()).first()
+                    if extraction_object:
+                        USGSExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
+                    else:
+                        extraction_object = self.init_extraction(
+                            metadata=metadata,
+                            parent_extraction=self.extraction_object,
+                            queue_name=self.celery_queue,
+                        )
+        else:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
 
     def handle_type_detail(self, retrigger: bool):
-        self._extraction_fetch_url(self.extraction_metadata.url)
+        extraction_status = self._extraction_fetch_url(self.extraction_metadata.url)
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
 
         with self.extraction_object.resp_data.open() as file_data:
             detail_data = json.loads(file_data.read())
