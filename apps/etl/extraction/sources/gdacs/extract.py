@@ -140,6 +140,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                         parent_extraction=self.extraction_object,
                         add_to_queue=False,
                     )
+                    self.init_extraction(
+                        metadata=GdacsExtractionMetadata(
+                            params=None,
+                            url="",  # url is set in handle_type_episode method after data extraction
+                            type=GdacsExtractionMetadataType.GEOMETRY,
+                        ),
+                        parent_extraction=event_episode_extraction_obj,
+                        add_to_queue=False,
+                    )
 
             episode_tasks.append(chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s()))
 
