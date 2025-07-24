@@ -9,6 +9,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.glide import GlideTransformHandler
 from main.celery import app
+from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -42,8 +43,13 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         url = self.extraction_metadata.url
         params = self.extraction_metadata.params
         headers = {"Content-Type": "application/json"}
-        self._extraction_fetch_url(url, params, headers)
-
+        extraction = self._extraction_fetch_url(url, params, headers)
+        if not extraction:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
         GlideTransformHandler.task.delay(self.extraction_object.id)
 
     def handle_extract(self, retrigger: bool = False):
