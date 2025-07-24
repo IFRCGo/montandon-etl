@@ -43,8 +43,8 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         url = self.extraction_metadata.url
         params = self.extraction_metadata.params
         headers = {"Content-Type": "application/json"}
-        extraction = self._extraction_fetch_url(url, params, headers)
-        if not extraction:
+        extraction_status = self._extraction_fetch_url(url, params, headers)
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),

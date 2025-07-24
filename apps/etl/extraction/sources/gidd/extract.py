@@ -36,8 +36,8 @@ class GIDDExtraction(BaseExtractionV2[GIDDExtractionMetadata]):
         url = self.extraction_metadata.url
         headers = {"Content-Type": "application/json"}
         params = {"client_id": etl_config.IDMC_CLIENT_ID}
-        extraction = self._extraction_fetch_url(url, headers=headers, params=params)
-        if not extraction:
+        extraction_status = self._extraction_fetch_url(url, headers=headers, params=params)
+        if not extraction_status:
             logger.warning(
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
