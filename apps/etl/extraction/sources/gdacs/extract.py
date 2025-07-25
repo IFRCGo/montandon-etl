@@ -99,7 +99,9 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     parent_extraction=self.extraction_object,
                 )
             else:
-                extraction_object = ExtractionData.objects.filter(url=event_detail_url, metadata=metadata.dict()).first()
+                extraction_object = ExtractionData.objects.filter(
+                    url=event_detail_url, metadata=metadata.model_dump()
+                ).first()
                 if not extraction_object:
                     extraction_object = self.init_extraction(
                         metadata=metadata,
@@ -147,7 +149,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     metadata=GdacsExtractionMetadata(
                         url=event_episode_url,
                         type=GdacsExtractionMetadataType.EPISODE,
-                    ).dict(),
+                    ).model_dump(),
                 ).first()
                 if not event_episode_extraction_obj:
                     event_episode_extraction_obj = self.init_extraction(
@@ -164,11 +166,13 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                     extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
                 )
                 return
-            episode_tasks.append(chain(GdacsExtraction.task.s(event_episode_extraction_obj.id), GdacsExtraction.task.s()))
+            episode_tasks.append(
+                chain(GdacsExtraction.task.s(event_episode_extraction_obj.id, retrigger=retrigger), GdacsExtraction.task.s())
+            )
 
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
-    def handle_type_episode(self):
+    def handle_type_episode(self, retrigger: bool):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -187,19 +191,37 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             )
             return
 
-        # geometry url is set here so that _extraction_fetch_url() can be called next
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
         geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
 
-        geo_obj = self.init_extraction(
-            metadata=GdacsExtractionMetadata(
-                params=None,
-                url=geometry_episode_url,  # url is set in handle_type_episode method after data extraction
-                type=GdacsExtractionMetadataType.GEOMETRY,
-            ),
-            parent_extraction=self.extraction_object,
-            add_to_queue=False,
-        )
+        if not retrigger:
+            geo_obj = self.init_extraction(
+                metadata=GdacsExtractionMetadata(
+                    params=None,
+                    url=geometry_episode_url,
+                    type=GdacsExtractionMetadataType.GEOMETRY,
+                ),
+                parent_extraction=self.extraction_object,
+                add_to_queue=False,
+            )
+        else:
+            geo_obj = ExtractionData.objects.filter(
+                url=geometry_episode_url,
+                metadata=GdacsExtractionMetadata(
+                    url=geometry_episode_url,
+                    type=GdacsExtractionMetadataType.GEOMETRY,
+                ).model_dump(),
+            ).first()
+            if not geo_obj:
+                geo_obj = self.init_extraction(
+                    metadata=GdacsExtractionMetadata(
+                        params=None,
+                        url=geometry_episode_url,
+                        type=GdacsExtractionMetadataType.GEOMETRY,
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
 
         return geo_obj.id
 
@@ -218,7 +240,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             case GdacsExtractionMetadataType.DETAIL:
                 return self.handle_type_detail(retrigger=retrigger)
             case GdacsExtractionMetadataType.EPISODE:
-                return self.handle_type_episode()
+                return self.handle_type_episode(retrigger=retrigger)
             case GdacsExtractionMetadataType.GEOMETRY:
                 return self.handle_type_geometry()
             case _:
