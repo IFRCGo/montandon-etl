@@ -29,7 +29,10 @@ TEST_CASES = [
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+@override_settings(
+    TRANSFORM_SUCCESS_RATE=20,
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
 def test_handle_extraction_various_idu_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]
