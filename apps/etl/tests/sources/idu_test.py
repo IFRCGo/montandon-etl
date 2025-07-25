@@ -69,7 +69,7 @@ def test_handle_extraction_various_idu_files(case):
     # Assertions for outputs and database entries
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 19
+    assert PyStacLoadData.objects.count() == 23
 
     # Path for expected (fixed) JSON output
     expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/idmc_idu" / fixed_filename
