@@ -1060,17 +1060,21 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "pystac-monty" },
+    { name = "requests" },
+    { name = "requests-cache" },
+    { name = "sentry-sdk" },
+    { name = "termcolor" },
+    { name = "uwsgi" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "pytest-icdiff" },
     { name = "pytest-ordering" },
     { name = "pytest-profiling" },
-    { name = "requests" },
-    { name = "requests-cache" },
     { name = "requests-mock" },
-    { name = "sentry-sdk" },
-    { name = "termcolor" },
-    { name = "uwsgi" },
 ]
 
 [package.metadata]
@@ -1099,17 +1103,21 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.9,<3" },
     { name = "pydantic", specifier = ">=2.10.2,<3" },
     { name = "pystac-monty", editable = "libs/pystac-monty" },
+    { name = "requests", specifier = ">=2.32.3" },
+    { name = "requests-cache" },
+    { name = "sentry-sdk" },
+    { name = "termcolor" },
+    { name = "uwsgi" },
+]
+
+[package.metadata.requires-dev]
+dev = [
     { name = "pytest" },
     { name = "pytest-django" },
     { name = "pytest-icdiff" },
     { name = "pytest-ordering" },
     { name = "pytest-profiling" },
-    { name = "requests", specifier = ">=2.32.3" },
-    { name = "requests-cache" },
     { name = "requests-mock" },
-    { name = "sentry-sdk" },
-    { name = "termcolor" },
-    { name = "uwsgi" },
 ]
 
 [[package]]
