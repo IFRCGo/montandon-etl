@@ -36,3 +36,4 @@ class PystacOrder:
     )
     transform_id__extraction__status: strawberry.auto = strawberry.field(name="status", default=strawberry.UNSET)
     transform_id__extraction__hazard_type: strawberry.auto = strawberry.field(name="hazard_type", default=strawberry.UNSET)
+

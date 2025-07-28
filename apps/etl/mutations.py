@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 import strawberry
 from asgiref.sync import sync_to_async
@@ -31,8 +30,7 @@ from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
 from apps.etl.transform.sources.noaa_ibtracs import IbtracsTransformHandler
 from apps.etl.transform.sources.pdc import PDCTransformHandler
 from apps.etl.transform.sources.usgs import USGSTransformHandler
-from apps.etl.types import PipelineRetriggerType
-from utils.strawberry.mutations import MutationResponseType, _CustomErrorType
+from main.graphql.context import Info
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +39,7 @@ source_extraction_map = {
     ExtractionData.Source.GLIDE: GlideExtraction,
     ExtractionData.Source.GIDD: GIDDExtraction,
     ExtractionData.Source.IDU: IDUExtraction,
-    ExtractionData.Source.DREF: IFRCEventExtractionV2,
+    ExtractionData.Source.DREF: IFRCEventExtraction,
     ExtractionData.Source.DESINVENTAR: DesInventarExtraction,
     ExtractionData.Source.GFD: GFDExtraction,
     ExtractionData.Source.GDACS: GdacsExtraction,
@@ -182,39 +180,41 @@ class Mutation:
     @strawberry.mutation
     async def retrigger_pipeline(
         self,
-        data: PipelineRetriggerInput,
-    ) -> MutationResponseType[PipelineRetriggerType]:
-        try:
-            failed_extraction_objects_ids = await sync_to_async(validate_retrigger_pipeline)(data)
-            task_id = run_pipeline_retrigger.delay(failed_extraction_objects_ids)
-            return MutationResponseType(ok=True, result=PipelineRetriggerType(task_id=task_id, status=task_id.status))
-        except ValueError as e:
-            return MutationResponseType(
-                ok=False,
-                errors=_CustomErrorType.generate_message(str(e)),
-            )
-        except Exception:
-            return MutationResponseType(
-                ok=False,
-                errors=_CustomErrorType.generate_message("Fail to retrigger pipeline"),
-            )
+        data: PipelineRetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        info: Info,
+    ) -> str:
+        await sync_to_async(run_pipeline_retrigger)(data)
+        return "Successfully retriggered pipeline"
 
     @strawberry.mutation
     async def retrigger_transform(
         self,
-        data: TransformRetriggerInput,
-    ) -> MutationResponseType[PipelineRetriggerType]:
-        try:
-            failed_transform_objects_ids = await sync_to_async(validate_retrigger_transform)(data)
-            task_id = run_transform_retrigger.delay(failed_transform_objects_ids)
-            return MutationResponseType(ok=True, result=PipelineRetriggerType(task_id=task_id, status=task_id.status))
-        except ValueError as e:
-            return MutationResponseType(
-                ok=False,
-                errors=_CustomErrorType.generate_message(str(e)),
-            )
-        except Exception:
-            return MutationResponseType(
-                ok=False,
-                errors=_CustomErrorType.generate_message("Fail to retrigger failed transform objects"),
-            )
+        data: TransformRetriggerInput,  # type: ignore[reportInvalidTypeForm]
+        info: Info,
+    ) -> str:
+        await sync_to_async(run_transform_retrigger)(data)
+        return "Successfully retriggered failed transform objects"
+
+
+def run_transform_retrigger(data: TransformRetriggerInput) -> None:
+    logger.info("Transform retrigger processing")
+    failed_transform_objects = Transform.objects.filter(id__in=data.transform_id, status=Transform.Status.FAILED)
+
+    for obj in failed_transform_objects:
+        transform_class = source_transform_map[obj.extraction.source]
+        transform_class.task.delay(obj.extraction.id)
+
+
+def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
+    logger.info("Pipeline retrigger processing")
+
+    failed_extraction_objects = ExtractionData.objects.filter(
+        trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
+    )
+
+    for obj in failed_extraction_objects:
+        extraction_class = source_extraction_map[obj.source]
+        if extraction_class in [GdacsExtraction, USGSExtraction, PDCExtractionV2]:  # nested extraction
+            extraction_class.retrigger(obj)
+        else:
+            extraction_class.task.delay(obj.id)

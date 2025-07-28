@@ -1,20 +1,18 @@
-from typing import Optional
-
 import strawberry
 import strawberry_django
 from django.db import models
 from strawberry import auto
 
-from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
+from apps.etl.enums import (
+    DataStatusTypeEnum,
+    ExtractionValidationTypeEnum,
+    PyStacLoadDataItemTypeEnum,
+    SourceTypeEnum,
+    TableNameEnum,
+)
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model, sync_to_async
-
-
-@strawberry.type
-class PipelineRetriggerType:
-    task_id: strawberry.ID
-    status: str
 
 
 class ExtractionDataQuerysetMixin:
@@ -32,8 +30,7 @@ class TransformDataQuerysetMixin:
 class PyStacDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
-        qs = get_queryset_for_model(PyStacLoadData, queryset)
-        return qs.select_related("transform_id", "transform_id__extraction")
+        return get_queryset_for_model(PyStacLoadData, queryset)
 
 
 @strawberry_django.type(ExtractionData)
@@ -48,12 +45,11 @@ class RawExtractiondatatype:
     source_validation_status: ExtractionValidationTypeEnum
     hazard_type: auto
     trace_id: auto = strawberry_django.field(only=["trace_id"])
-    resp_data: auto
 
     @strawberry.field
     @sync_to_async
     def filesize(self, info: Info) -> float:
-        return round(len(self.resp_data) / 1024, 2) if self.resp_data else 0
+        return round(self.resp_data.size / (1024), 2) if self.resp_data else 0
 
 
 @strawberry_django.type(Transform)
@@ -84,18 +80,11 @@ class RawPystacdatatype:
     item: auto
     collection_id: auto
     transform_id: auto = strawberry_django.field(only=["transform_id"])
-    item_primary_country: auto
-
-    @classmethod
-    def get_queryset(cls, queryset, info):
-        return queryset.select_related("transform_id__extraction")
 
     @strawberry.field
     @sync_to_async
-    def source(self, info: Info) -> Optional[SourceTypeEnum]:
-        if self.transform_id and self.transform_id.extraction:
-            return SourceTypeEnum(self.transform_id.extraction.source)
-        return None
+    def source(self, info: Info) -> SourceTypeEnum:
+        return SourceTypeEnum(self.transform_id.extraction.source)
 
 
 @strawberry.type
@@ -126,6 +115,16 @@ class ValStatusSourceCount(ExtractionDataQuerysetMixin):
 
 
 @strawberry.type
+class ItemTypeSourceStatusSummary(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    success_count: int
+    failed_count: int
+    pending_count: int
+    item_type: PyStacLoadDataItemTypeEnum
+    total: int
+
+
+@strawberry.type
 class CountbytraceID(ExtractionDataQuerysetMixin):
     source: SourceTypeEnum
     trace_id: int
@@ -143,7 +142,7 @@ class StatusCountTransform(TransformDataQuerysetMixin):
 
 
 @strawberry.type
-class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
+class StatusSourceCountTransform(TransformDataQuerysetMixin):
     source: SourceTypeEnum
     in_progress_count: int
     success_count: int
@@ -193,3 +192,17 @@ class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
     event_count: int
     hazard_count: int
     impact_count: int
+
+
+@strawberry.type
+class PystacItembyItemType(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_count: int
+    hazard_count: int
+    impact_count: int
+
+
+@strawberry.type
+class TableSize:
+    tablename: TableNameEnum
+    size: str

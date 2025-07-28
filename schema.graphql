@@ -51,9 +51,6 @@ type CountbytraceID {
   stacCount: Int!
 }
 
-"""A generic type to return error messages"""
-scalar CustomErrorType
-
 enum DataStatusTypeEnum {
   PENDING
   IN_PROGRESS
@@ -109,13 +106,6 @@ input DatetimeDatetimeFilterLookup {
 input DatetimeRangeLookup {
   start: DateTime = null
   end: DateTime = null
-}
-
-type DjangoFileType {
-  name: String!
-  path: String!
-  size: Int!
-  url: String!
 }
 
 type DjangoModelType {
@@ -202,6 +192,15 @@ input IntRangeLookup {
   end: Int = null
 }
 
+type ItemTypeSourceStatusSummary {
+  source: SourceTypeEnum!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+  itemType: PyStacLoadDataItemTypeEnum!
+  total: Int!
+}
+
 type ItemsbySource {
   source: SourceTypeEnum!
   eventItems: Int!
@@ -217,8 +216,8 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
-  retriggerPipeline(data: PipelineRetriggerInput!): StrMutationResponseType!
-  retriggerTransform(data: TransformRetriggerInput!): StrMutationResponseType!
+  retriggerPipeline(data: PipelineRetriggerInput!): String!
+  retriggerTransform(data: TransformRetriggerInput!): String!
 }
 
 type OffsetPaginationInfo {
@@ -296,6 +295,8 @@ type Query {
   extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
+  statusCountsBySourceForItemtype: [ItemTypeSourceStatusSummary!]!
+  specificTableSizes: [TableSize!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -312,7 +313,6 @@ type RawExtractiondatatype {
   sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
   hazardType: String
   traceId: ID!
-  respData: DjangoFileType
   filesize: Float!
 }
 
@@ -336,8 +336,7 @@ type RawPystacdatatype {
   item: JSON!
   collectionId: String!
   transformId: ID!
-  itemPrimaryCountry: [String!]
-  source: SourceTypeEnum
+  source: SourceTypeEnum!
 }
 
 type RawPystacdatatypeOffsetPaginated {
@@ -482,10 +481,15 @@ input StrFilterLookup {
   iRegex: String
 }
 
-type StrMutationResponseType {
-  ok: Boolean!
-  errors: CustomErrorType
-  result: String
+enum TableNameEnum {
+  Transform
+  Extraction
+  Load
+}
+
+type TableSize {
+  tablename: TableNameEnum!
+  size: String!
 }
 
 input TransformDataFilter {
