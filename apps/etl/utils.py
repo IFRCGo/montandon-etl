@@ -125,6 +125,7 @@ def generate_item_index_fields_values(transformed_item: dict):
 <<<<<<< HEAD
 
 
+
 def remove_ignored_keys(obj, keys_to_ignore):
     """
     Recursively remove keys from dicts if the key is in keys_to_ignore.
