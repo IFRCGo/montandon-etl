@@ -5,7 +5,13 @@ import strawberry_django
 from django.db import models
 from strawberry import auto
 
-from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
+from apps.etl.enums import (
+    DataStatusTypeEnum,
+    ExtractionValidationTypeEnum,
+    PyStacLoadDataItemTypeEnum,
+    SourceTypeEnum,
+    TableNameEnum,
+)
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model, sync_to_async
@@ -126,6 +132,16 @@ class ValStatusSourceCount(ExtractionDataQuerysetMixin):
 
 
 @strawberry.type
+class ItemTypeSourceStatusSummary(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    success_count: int
+    failed_count: int
+    pending_count: int
+    item_type: PyStacLoadDataItemTypeEnum
+    total: int
+
+
+@strawberry.type
 class CountbytraceID(ExtractionDataQuerysetMixin):
     source: SourceTypeEnum
     trace_id: int
@@ -143,7 +159,7 @@ class StatusCountTransform(TransformDataQuerysetMixin):
 
 
 @strawberry.type
-class StatusSourceCountTransform(ExtractionDataQuerysetMixin):
+class StatusSourceCountTransform(TransformDataQuerysetMixin):
     source: SourceTypeEnum
     in_progress_count: int
     success_count: int
@@ -193,3 +209,17 @@ class StatusSourceCountPystacByItem(PyStacDataQuerysetMixin):
     event_count: int
     hazard_count: int
     impact_count: int
+
+
+@strawberry.type
+class PystacItembyItemType(PyStacDataQuerysetMixin):
+    source: SourceTypeEnum
+    event_count: int
+    hazard_count: int
+    impact_count: int
+
+
+@strawberry.type
+class TableSize:
+    tablename: TableNameEnum
+    size: str
