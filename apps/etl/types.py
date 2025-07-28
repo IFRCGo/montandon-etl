@@ -3,7 +3,13 @@ import strawberry_django
 from django.db import models
 from strawberry import auto
 
-from apps.etl.enums import DataStatusTypeEnum, ExtractionValidationTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
+from apps.etl.enums import (
+    DataStatusTypeEnum,
+    ExtractionValidationTypeEnum,
+    PyStacLoadDataItemTypeEnum,
+    SourceTypeEnum,
+    TableNameEnum,
+)
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model, sync_to_async
@@ -194,3 +200,9 @@ class PystacItembyItemType(PyStacDataQuerysetMixin):
     event_count: int
     hazard_count: int
     impact_count: int
+
+
+@strawberry.type
+class TableSize:
+    tablename: TableNameEnum
+    size: str

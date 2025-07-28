@@ -1,6 +1,9 @@
+from typing import List
+
 import strawberry
 import strawberry_django
 from asgiref.sync import sync_to_async
+from django.db import connection
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from strawberry_django.pagination import OffsetPaginated
@@ -23,10 +26,13 @@ from apps.etl.types import (
     StatusSourceCountPyStac,
     StatusSourceCountPystacByItem,
     StatusSourceCountTransform,
+    TableSize,
     UniqueCounts,
     ValStatusSourceCount,
 )
 from main.graphql.context import Info
+
+from .enums import TableNameEnum
 
 
 @strawberry.type
@@ -342,3 +348,28 @@ class Query:
             )
             async for event in results
         ]
+
+    @strawberry.field
+    async def specific_table_sizes(self, info) -> List[TableSize]:
+        # tables = ('etl_transform', 'etl_extractiondata', 'etl_pystacloaddata')
+        tables = [e.value for e in TableNameEnum]
+
+        placeholders = ",".join(["%s"] * len(tables))
+        sql = f"""
+            SELECT
+                tablename,
+                pg_size_pretty(pg_relation_size(tablename::regclass)) AS size
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            AND tablename IN ({placeholders})
+            ORDER BY pg_relation_size(tablename::regclass) DESC;
+        """
+
+        @sync_to_async
+        def run_query():
+            with connection.cursor() as cursor:
+                cursor.execute(sql, tables)
+                return cursor.fetchall()
+
+        results = await run_query()
+        return [TableSize(tablename=row[0], size=row[1]) for row in results]
