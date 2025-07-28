@@ -296,6 +296,7 @@ type Query {
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
   statusCountsBySourceForItemtype: [ItemTypeSourceStatusSummary!]!
+  specificTableSizes: [TableSize!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -478,6 +479,17 @@ input StrFilterLookup {
   Case-insensitive regular expression match. Filter will be skipped on `null` value
   """
   iRegex: String
+}
+
+enum TableNameEnum {
+  Transform
+  Extraction
+  Load
+}
+
+type TableSize {
+  tablename: TableNameEnum!
+  size: String!
 }
 
 input TransformDataFilter {
