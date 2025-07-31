@@ -13,6 +13,10 @@ ingress:
     secretName:
 
 redis:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 6.2.9-debian-11-r0
   enabled: true
   architecture: standalone
   fullnameOverride: montandon-etl-redis
@@ -30,6 +34,10 @@ redis:
       storageClass:
 
 rabbitmq:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/rabbitmq
+    tag: 3.10.2-debian-10-r8
   enabled: true
   fullnameOverride: montandon-etl-rabbitmq
   auth:
@@ -57,6 +65,10 @@ rabbitmq:
 # https://artifacthub.io/packages/helm/bitnami/minio
 # extraEnvVars: https://github.com/bitnami/containers/blob/main/bitnami/minio/README.md#environment-variables
 minio:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/minio
+    tag: 2025.7.23-debian-12-r0
   enabled: false
   disableWebUI: true
   mode: standalone
@@ -86,6 +98,10 @@ minio:
       - "mc anonymous set download provisioning/montandon-etl-static"
 
 postgresql:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: 11.2.0-debian-9-r44
   enabled: false
   fullnameOverride: ""
   architecture: standalone
