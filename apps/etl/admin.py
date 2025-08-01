@@ -8,7 +8,7 @@ from django.db.models.functions import Cast
 from django.utils.safestring import mark_safe
 from djangoql.admin import DjangoQLSearchMixin
 
-from apps.common.admin import AdminReadOnlyMixin, linkify
+from apps.common.admin import linkify
 
 from .models import EtlTrace, ExtractionData, PyStacLoadData, Transform
 
@@ -64,7 +64,7 @@ class EtlResourceAdminMixin(admin.ModelAdmin):
 
 
 @admin.register(EtlTrace)
-class EtlTraceAdmin(AdminReadOnlyMixin, admin.ModelAdmin):
+class EtlTraceAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     list_display = (
@@ -74,7 +74,7 @@ class EtlTraceAdmin(AdminReadOnlyMixin, admin.ModelAdmin):
 
 
 @admin.register(ExtractionData)
-class ExtractionDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
+class ExtractionDataAdmin(DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),
@@ -97,7 +97,7 @@ class ExtractionDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
 
 
 @admin.register(Transform)
-class TransformAdmin(EtlResourceAdminMixin, AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
+class TransformAdmin(EtlResourceAdminMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),
@@ -131,7 +131,7 @@ class TransformAdmin(EtlResourceAdminMixin, AdminReadOnlyMixin, DjangoQLSearchMi
 
 
 @admin.register(PyStacLoadData)
-class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
+class PyStacLoadDataAdmin(DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),
