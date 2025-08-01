@@ -59,7 +59,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     source_enum = ExtractionData.Source.GDACS
     extraction_metadata_class = GdacsExtractionMetadata
 
-    def handle_type_query(self, retrigger: bool):
+    def handle_type_query(self, retrigger: bool, failed_int: int | None = None):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -107,10 +107,31 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                         metadata=metadata,
                         parent_extraction=self.extraction_object,
                     )
+                else:
+                    GdacsExtraction.task.delay(extraction_object.pk, retrigger, failed_int=None)
 
-                GdacsExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
+    def handle_type_detail(self, retrigger: bool, failed_int: int | None = None):
+        print("failed int is here", failed_int)
+        if failed_int is not None:
+            print("failed int is not none")
+            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            if failed_obj.metadata.get("type") == GdacsExtractionMetadataType.DETAIL:
+                ...
 
-    def handle_type_detail(self, retrigger: bool):
+            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.EPISODE:
+                chord(
+                    [chain(GdacsExtraction.task.s(failed_int, retrigger=retrigger), GdacsExtraction.task.s())],
+                    GDACSTransformHandler.task.si(self.extraction_object.id),
+                ).apply_async()
+                return
+
+            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.GEOMETRY:  # THis if for geometry failed
+                chord(
+                    [GdacsExtraction.task.s(failed_int)],
+                    GDACSTransformHandler.task.si(self.extraction_object.id),
+                ).apply_async()
+                return
+
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url, params=self.extraction_metadata.event_params
         )
@@ -167,12 +188,16 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 )
                 return
             episode_tasks.append(
-                chain(GdacsExtraction.task.s(event_episode_extraction_obj.id, retrigger=retrigger), GdacsExtraction.task.s())
+                chain(
+                    GdacsExtraction.task.s(event_episode_extraction_obj.id, retrigger=retrigger),
+                    GdacsExtraction.task.s(retrigger=retrigger),
+                )
             )
 
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
-    def handle_type_episode(self, retrigger: bool):
+    def handle_type_episode(self, retrigger: bool, failed_int: int | None = None):
+        print("failed int is here", failed_int)
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -231,31 +256,32 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             headers={"Content-Type": "application/json"},
         )
 
-    def handle_extract(self, retrigger: bool):
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
+        print("///////////////////////////", self.extraction_metadata.type, self.extraction_object.status, retrigger)
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
             case GdacsExtractionMetadataType.QUERY:
-                return self.handle_type_query(retrigger=retrigger)
+                return self.handle_type_query(retrigger=retrigger, failed_int=failed_int)
             case GdacsExtractionMetadataType.DETAIL:
-                return self.handle_type_detail(retrigger=retrigger)
+                return self.handle_type_detail(retrigger=retrigger, failed_int=failed_int)
             case GdacsExtractionMetadataType.EPISODE:
-                return self.handle_type_episode(retrigger=retrigger)
+                return self.handle_type_episode(retrigger=retrigger, failed_int=failed_int)
             case GdacsExtractionMetadataType.GEOMETRY:
                 return self.handle_type_geometry()
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object):
+    def retrigger(extraction_object: ExtractionData):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == GdacsExtractionMetadataType.QUERY:
-            GdacsExtraction.task.delay(extraction_object.id, retrigger=True)
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == GdacsExtractionMetadataType.DETAIL:
-            GdacsExtraction.task.delay(extraction_object.id, retrigger=True)
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == GdacsExtractionMetadataType.EPISODE:
-            GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True)
+            GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == GdacsExtractionMetadataType.GEOMETRY:
-            GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True)
+            GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True, failed_int=extraction_object.id)
 
     @staticmethod
     @app.task(
@@ -264,5 +290,5 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         queue=CeleryQueue.EXTRACTION,
         rate_limit="100/m",
     )
-    def task(celery_task, extraction_id, retrigger: bool = False) -> int:
-        return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger)
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None) -> int:
+        return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
