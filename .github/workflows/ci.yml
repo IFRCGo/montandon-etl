@@ -114,11 +114,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: 🚀 Start geocoding-service
+        env:
+          DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
+        run: |
+          docker compose up -d geocoding-service
+
       - name: Prep django containers
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          touch .env && docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
+          touch .env
+          docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
+          # Another wait for geocoding-service (Move this to wait-for-it using custom python script)
+          sleep 60
 
       - name: 🕮 Validate if there are no pending django migrations.
         env:
