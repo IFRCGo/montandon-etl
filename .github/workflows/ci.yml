@@ -23,7 +23,7 @@ env:
   COMPOSE_FILE: docker-compose.yml:gh-docker-compose.yml
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
   # ETL app configs
-  GEOCODER_URL: https://geocoding-service:8001
+  GEOCODER_URL: http://geocoding-service:8001 
 
 jobs:
   pre_commit_checks:
