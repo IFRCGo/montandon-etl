@@ -115,6 +115,8 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: 🚀 Start geocoding-service
+        env:
+          DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
           docker compose up -d geocoding-service
 
