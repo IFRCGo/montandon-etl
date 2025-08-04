@@ -136,8 +136,13 @@ jobs:
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          docker compose up web geocoding-service
-          docker compose exec web bash -c 'until curl -sf https://geocoding-service:8001/health; do echo "Waiting for geocoding-service..."; sleep 2; done'
+          docker compose up -d
+      
+          # Wait for 10 seconds to ensure services are initialized
+          echo "Waiting for 20 seconds for services to initialize..."
+          sleep 20
+
+          # Run the tests
           docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
 
       - name: 🐳 Docker push
