@@ -136,11 +136,11 @@ jobs:
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          docker compose up -d
-      
+          docker compose up web geocoding-service 
+          docker compose logs geocoding-service 
           # Wait for 10 seconds to ensure services are initialized
-          echo "Waiting for 20 seconds for services to initialize..."
-          sleep 20
+          echo "Waiting for 60 seconds for services to initialize..."
+          sleep 60
 
           # Run the tests
           docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
