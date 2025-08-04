@@ -7,6 +7,7 @@ services:
       CI: "true"
     volumes:
       - ./coverage/:/code/coverage/
-
+  geocoding-service:
+    image: ghcr.io/ifrcgo/geocoding-service:main.99b10c8
   celery-beat: !reset null
   worker:  !reset null

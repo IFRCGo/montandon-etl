@@ -23,7 +23,7 @@ env:
   COMPOSE_FILE: docker-compose.yml:gh-docker-compose.yml
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
   # ETL app configs
-  GEOCODER_URL: https://geocoder.dummy.com
+  GEOCODER_URL: https://geocoding-service:8001
 
 jobs:
   pre_commit_checks:
@@ -115,8 +115,6 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: 🚀 Start geocoding-service
-        env:
-          DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
           docker compose up -d geocoding-service
 
