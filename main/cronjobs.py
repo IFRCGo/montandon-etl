@@ -65,10 +65,10 @@ SCHEDULES: dict[str, CronJob] = {
         task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
         schedule=crontab(hour=16, minute=0),
     ),
-    "trigger_pending_extraction": CronJob(
-        task="apps.etl.tasks.trigger_pending_extraction",
-        schedule=crontab(hour="23,5", minute=30),
-    ),
+    # "trigger_pending_extraction": CronJob(
+    #     task="apps.etl.tasks.trigger_pending_extraction",
+    #     schedule=crontab(hour="23,5", minute=30),
+    # ),
     "load_data_to_stac": CronJob(
         task="apps.etl.tasks.load_data",
         schedule=crontab(hour="*", minute=0),  # Every hour
