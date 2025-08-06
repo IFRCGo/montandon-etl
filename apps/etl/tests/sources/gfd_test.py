@@ -1,9 +1,8 @@
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import json5
 import pytest
-import requests
 from django.conf import settings
 from django.core.serializers import serialize
 from django.test import override_settings
@@ -12,7 +11,6 @@ from pystac_monty.sources.common import MontyDataTransformer
 from apps.etl.etl_tasks.gfd import ext_and_transform_gfd_historical_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import remove_ignored_keys
-from main.configs import etl_config
 
 # Set base_collection_url
 MontyDataTransformer.base_collection_url = settings.BASE_DIR / "libs/pystac-monty/monty-stac-extension/examples"
