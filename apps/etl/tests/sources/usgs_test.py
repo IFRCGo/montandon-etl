@@ -41,12 +41,12 @@ def test_handle_extraction_various_usgs_files(case):
     losses_response = json.load(open(input_dir / input_files["losses"], encoding="utf-8"))
 
     def is_usgs_url(url):
-        return ("all_day" in url and "earthquakes" in url) or "detail" in url or "losses.json" in url
+        return ("fdsnws" in url and "earthquakes" in url) or "detail" in url or "losses.json" in url
 
     real_requests_get = requests.get
 
     def custom_get(url, *args, **kwargs):
-        if "all_day" in url:
+        if "fdsnws" in url:
             return _mock_response(query_response, content_type="application/geo+json")
         elif "detail" in url:
             return _mock_response(detail_response)
@@ -60,7 +60,7 @@ def test_handle_extraction_various_usgs_files(case):
         ext_and_transform_usgs_latest_data()
 
     # Assertions
-    assert ExtractionData.objects.count() == 1
+    assert ExtractionData.objects.count() == 3
     assert Transform.objects.count() == 1
     assert PyStacLoadData.objects.count() == 2
 
