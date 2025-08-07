@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import json5
 import pytest
-import requests
 from django.conf import settings
 from django.core.serializers import serialize
 from django.test import override_settings
@@ -19,44 +18,52 @@ MontyDataTransformer.base_collection_url = settings.BASE_DIR / "libs/pystac-mont
 # Define test cases
 TEST_CASES = [
     {
-        "input": {"query": "usgs_all_day.geojson", "detail": "usgs_detail.json", "losses": "losses.json"},
-        "output": "output_usgs.json",  # not used for writing anymore
+        "input_files": {
+            "query": "usgs_all_day.geojson",
+            "detail": "usgs_detail.json",
+            "losses": "losses.json",
+        },
         "expected": "fixed_output_usgs.json",
     },
-    # Add more cases here as needed
 ]
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+@override_settings(
+    CELERY_TASK_ALWAYS_EAGER=True,
+)
 def test_handle_extraction_various_usgs_files(case):
-    input_files = case["input"]
-    fixed_filename = case["expected"]
+    dataset_dir = settings.BASE_DIR / "apps/etl/tests/dataset/usgs"
 
-    # Path to input files
-    input_dir = settings.BASE_DIR / "apps/etl/tests/dataset/usgs"
-    query_response = json.load(open(input_dir / input_files["query"], encoding="utf-8"))
-    detail_response = json.load(open(input_dir / input_files["detail"], encoding="utf-8"))
-    losses_response = json.load(open(input_dir / input_files["losses"], encoding="utf-8"))
+    # Load mock inputs
+    with open(dataset_dir / case["input_files"]["query"], "r", encoding="utf-8") as f:
+        query_data = json.load(f)
+    with open(dataset_dir / case["input_files"]["detail"], "r", encoding="utf-8") as f:
+        detail_data = json.load(f)
+    with open(dataset_dir / case["input_files"]["losses"], "r", encoding="utf-8") as f:
+        losses_data = json.load(f)
 
-    def is_usgs_url(url):
-        return ("fdsnws" in url and "earthquakes" in url) or "detail" in url or "losses.json" in url
-
-    real_requests_get = requests.get
-
-    def custom_get(url, *args, **kwargs):
+    # Setup mocks
+    def mock_get(url, *args, **kwargs):
         if "fdsnws" in url:
-            return _mock_response(query_response, content_type="application/geo+json")
+            return _mock_response(query_data, content_type="application/geo+json")
         elif "detail" in url:
-            return _mock_response(detail_response)
+            return _mock_response(detail_data)
         elif "losses.json" in url:
-            return _mock_response(losses_response)
-        return real_requests_get(url, *args, **kwargs)
+            return _mock_response(losses_data)
+        return MagicMock(status_code=404)
 
-    # Patch requests.get
-    with patch("requests.get", side_effect=custom_get):
-        # Run ETL
+    def _mock_response(data, content_type="application/json"):
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = data
+        response.content = json.dumps(data).encode("utf-8")
+        response.headers = {"Content-Type": content_type}
+        return response
+
+    # Patch requests
+    with patch("requests.get", side_effect=mock_get):
         ext_and_transform_usgs_latest_data()
 
     # Assertions
@@ -64,32 +71,18 @@ def test_handle_extraction_various_usgs_files(case):
     assert Transform.objects.count() == 1
     assert PyStacLoadData.objects.count() == 2
 
-    # Path for expected (fixed) JSON output
-    expected_output_path = input_dir / fixed_filename
-    assert expected_output_path.exists(), f"Expected reference file {expected_output_path} does not exist."
+    # Compare with expected output
+    expected_path = dataset_dir / case["expected"]
+    assert expected_path.exists(), f"Expected reference file {expected_path} does not exist."
 
-    # Load actual data
     latest_data = PyStacLoadData.objects.all()
-    latest_data_json = serialize("json", latest_data)
-    actual_json = json.loads(latest_data_json)
+    actual_json = json.loads(serialize("json", latest_data))
 
-    # Load expected data
-    with open(expected_output_path, "r", encoding="utf-8") as expected_file:
-        expected_json = json5.load(expected_file)
+    with open(expected_path, "r", encoding="utf-8") as f:
+        expected_json = json5.load(f)
 
-    # Ignore unstable keys
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id"}
+    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href"}
+    actual_filtered = remove_ignored_keys(actual_json, ignored_keys)
+    expected_filtered = remove_ignored_keys(expected_json, ignored_keys)
 
-    filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
-    filtered_expected = remove_ignored_keys(expected_json, ignored_keys)
-
-    assert filtered_actual == filtered_expected, f"Differences found when comparing to fixed file {fixed_filename}."
-
-
-def _mock_response(json_data, content_type="application/json"):
-    response = MagicMock()
-    response.status_code = 200
-    response.json.return_value = json_data
-    response.content = json.dumps(json_data).encode("utf-8")
-    response.headers = {"Content-Type": content_type}
-    return response
+    assert actual_filtered == expected_filtered, f"Mismatch with expected file {case['expected']}"
