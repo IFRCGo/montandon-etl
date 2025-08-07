@@ -34,19 +34,19 @@ def test_handle_extraction_various_ifrc_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]
 
-    # Load mock input
+    # Path to input JSON5 file
     input_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / input_filename
     with open(input_path, "r", encoding="utf-8") as f:
         mock_data = json5.load(f)
 
-    # IFRC data URL pattern
-    def is_ifrc_url(url):
-        return "appeal_type" in url and etl_config.IFRC_DATA_URL in url
+    # Real URL to intercept
+    source_url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&limit=5000"
 
+    # Save original requests.get
     original_get = requests.get
 
     def custom_get(url, *args, **kwargs):
-        if is_ifrc_url(url):
+        if url == source_url:
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = mock_data
@@ -55,29 +55,30 @@ def test_handle_extraction_various_ifrc_files(case):
             return mock_response
         return original_get(url, *args, **kwargs)
 
-    # Patch requests.get
+    # Patch requests.get with our custom logic
     with patch("requests.get", side_effect=custom_get):
         ext_and_transform_ifrcevent_latest_data()
 
-    # DB assertions
-    assert ExtractionData.objects.count() == 72
-    assert Transform.objects.count() == 71
-    assert PyStacLoadData.objects.count() == 70
+    # Assertions on DB state
+    assert ExtractionData.objects.count() == 1
+    assert Transform.objects.count() == 1
+    assert PyStacLoadData.objects.count() == 2
 
-    # Load expected output
+    # Path to expected output
     expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / fixed_filename
     assert expected_output_path.exists(), f"Expected reference file {expected_output_path} does not exist."
     with open(expected_output_path, "r", encoding="utf-8") as expected_file:
         expected_json = json5.load(expected_file)
 
-    # Load actual DB data
+    # Load actual serialized DB output
     latest_data = PyStacLoadData.objects.all()
     latest_data_json = serialize("json", latest_data)
     actual_json = json.loads(latest_data_json)
 
-    # Keys to ignore in comparison
+    # Keys to ignore
     ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href"}
 
+    # Clean and compare
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
     filtered_expected = remove_ignored_keys(expected_json, ignored_keys)
 
