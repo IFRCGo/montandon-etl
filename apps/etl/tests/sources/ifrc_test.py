@@ -32,6 +32,7 @@ TEST_CASES = [
 def test_handle_extraction_various_ifrc_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]
+    output_filename = case["output"]
 
     # Path to input JSON5 file
     input_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / input_filename
@@ -73,6 +74,11 @@ def test_handle_extraction_various_ifrc_files(case):
     latest_data = PyStacLoadData.objects.all()
     latest_data_json = serialize("json", latest_data)
     actual_json = json.loads(latest_data_json)
+
+    output_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / output_filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(latest_data_json)
 
     # Keys to ignore
     ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href"}
