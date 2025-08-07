@@ -12,7 +12,6 @@ from pystac_monty.sources.common import MontyDataTransformer
 from apps.etl.etl_tasks.ifrc_event import ext_and_transform_ifrcevent_latest_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.utils import remove_ignored_keys
-from main.configs import etl_config
 
 # Set base_collection_url
 MontyDataTransformer.base_collection_url = settings.BASE_DIR / "libs/pystac-monty/monty-stac-extension/examples"
@@ -33,20 +32,21 @@ TEST_CASES = [
 def test_handle_extraction_various_ifrc_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]
+    output_filename = case["output"]
 
     # Path to input JSON5 file
     input_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / input_filename
     with open(input_path, "r", encoding="utf-8") as f:
         mock_data = json5.load(f)
 
-    # Real URL to intercept
-    source_url = f"{etl_config.IFRC_DATA_URL}/api/v2/event/?appeal_type=0,1&limit=5000"
-
     # Save original requests.get
     original_get = requests.get
 
+    def check_for_ifrc_url(url):
+        return True if "appeal_type" in url else False
+
     def custom_get(url, *args, **kwargs):
-        if url == source_url:
+        if check_for_ifrc_url(url):
             mock_response = MagicMock()
             mock_response.status_code = 200
             mock_response.json.return_value = mock_data
@@ -62,7 +62,7 @@ def test_handle_extraction_various_ifrc_files(case):
     # Assertions on DB state
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 2
+    assert PyStacLoadData.objects.count() == 1
 
     # Path to expected output
     expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / fixed_filename
@@ -74,6 +74,11 @@ def test_handle_extraction_various_ifrc_files(case):
     latest_data = PyStacLoadData.objects.all()
     latest_data_json = serialize("json", latest_data)
     actual_json = json.loads(latest_data_json)
+
+    output_path = settings.BASE_DIR / "apps/etl/tests/dataset/ifrc" / output_filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(latest_data_json)
 
     # Keys to ignore
     ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href"}

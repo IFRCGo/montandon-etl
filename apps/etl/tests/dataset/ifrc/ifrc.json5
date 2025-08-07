@@ -1,6 +1,6 @@
 {
     "count": 1,
-    "next": "https://goadmin-stage.ifrc.org/api/v2/event/?appeal_type=0%2C1&disaster_start_date__gte=2025-01-01&format=json&limit=1&offset=1&ordering=-id",
+    "next": null,
     "previous": null,
     "results": [
         {
