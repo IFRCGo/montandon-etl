@@ -4,6 +4,10 @@ image:
   name: SET-BY-CICD-IMAGE
   tag: SET-BY-CICD-TAG
 
+global:
+  security:
+    allowInsecureImages: true    
+
 ingress:
   enabled: false
   host:
