@@ -6,7 +6,7 @@ image:
 
 global:
   security:
-    allowInsecureImages: true    
+    allowInsecureImages: true
 
 ingress:
   enabled: false
