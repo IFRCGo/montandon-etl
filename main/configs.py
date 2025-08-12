@@ -214,7 +214,6 @@ class EtlConfig:
         self.PDC_SENTRY_BASE_URL = self.parse_base_url_required("PDC_SENTRY_BASE_URL")
         self.PDC_SENTRY_AUTHORIZATION_KEY = self.parse_non_empty_value("PDC_SENTRY_AUTHORIZATION_KEY")
         self.PDC_START_DATE = self.parse_date_value_required("PDC_START_DATE")
-        self.PDC_EXTRACTION_INTERVAL_YEARS = self.parse_int_value_required("PDC_EXTRACTION_INTERVAL_YEARS")
 
     def get_http_proxy(self) -> dict[str, str] | None:
         if self.REQUESTS_PROXY_HOST:
