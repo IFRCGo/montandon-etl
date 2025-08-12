@@ -26,6 +26,6 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR("Skipped...."))
             return
 
-        ext_and_transform_emdat_historical_data(start_date=start_date, end_date=end_date)
+        ext_and_transform_emdat_historical_data(start_date=start_date.year, end_date=end_date.year)
 
         self.stdout.write(self.style.SUCCESS("Triggered successfully"))
