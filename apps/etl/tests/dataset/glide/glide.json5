@@ -1,0 +1,186 @@
+{
+"glideset": [
+// POSITIVE TESTS
+{
+// ACTUAL DATA (1)
+"comments": "A strong earthquake struck central Myanmar on Friday, earthquake monitoring services said, which affected Bangkok as well with hundreds of people pouring out of buildings in the Thai capital in panic after the tremors.\r\nThere was no immediate word from Myanmar on damage after the quake, which the United States Geological Survey (USGS) said had a 7.7 magnitude and was at a depth of 10 km (6.2 miles).",
+"year": 2025,
+"docid": 23489,
+"latitude": 21.9588282,
+"homeless": 0,
+"source": "",
+"idsource": "",
+"killed": 0,
+"affected": 0,
+"duration": 0,
+"number": "2025-000043",
+"injured": 0,
+"month": 3,
+"geocode": "MMR",
+"location": "Mandalay",
+"magnitude": "",
+"time": "",
+"id": "",
+"event": "EQ",
+"day": 28,
+"status": "A",
+"longitude": 96.0891032
+},
+{
+  // Positive Test – Same Country EQ Event: Thailand (2025)
+  "comments": "An earthquake with epicenter near Chiang Mai caused minor structural damages in Bangkok, but no casualties were reported.",
+  "year": 2025,
+  "docid": 23491,
+  "latitude": 18.7883,
+  "homeless": 0,
+  "source": "Thai News Agency https://www.thaipbsworld.com/earthquake-chiang-mai-thailand-2025/",
+  "idsource": "",
+  "killed": 0,
+  "affected": 20,
+  "duration": 1,
+  "number": "2025-000044",
+  "injured": 3,
+  "month": 3,
+  "geocode": "THA",
+  "location": "Chiang Mai",
+  "magnitude": "5.4",
+  "time": "14:35",
+  "id": "EQ-TH-2025-CHIANGMAI",
+  "event": "EQ",
+  "day": 29,
+  "status": "A",
+  "longitude": 98.9853
+},
+{
+  // Positive Test – Same data, different key order
+  "docid": 30005,
+  "number": "2025-000145",
+  "event": "EQ",
+  "id": "EQ-TH-2025-NONTHABURI",
+  "year": 2025,
+  "month": 5,
+  "day": 10,
+  "time": "09:20",
+  "location": "Nonthaburi",
+  "geocode": "THA",
+  "latitude": 13.8591,
+  "longitude": 100.5217,
+  "magnitude": "5.3",
+  "duration": 1,
+  "killed": 1,
+  "injured": 10,
+  "homeless": 0,
+  "affected": 150,
+  "status": "A",
+  "source": "https://www.bangkokpost.com/thailand/general/2025-nonthaburi-quake-report",
+  "comments": "A moderate earthquake shook Nonthaburi causing panic and minor damage. One fatality reported.",
+  "idsource": ""
+},
+ // NEGATIVE TESTS
+{
+  // Negative Test – Unsupported Hazard Type: "XX"
+  "comments": "Unknown disaster occurred with unspecified hazard type in southern Thailand.",
+  "year": 2025,
+  "docid": 40001,
+  "latitude": 6.620,
+  "homeless": 0,
+  "source": "https://example.com/news/unknown-disaster-xx-2025",
+  "idsource": "",
+  "killed": 0,
+  "affected": 0,
+  "duration": 0,
+  "number": "2025-000199",
+  "injured": 0,
+  "month": 11,
+  "geocode": "THA",
+  "location": "Yala",
+  "magnitude": "",
+  "time": "",
+  "id": "XX-TH-2025-YALA",
+  "event": "XX",
+  "day": 14,
+  "status": "A",
+  "longitude": 101.251
+},
+{
+  // Negative Test – Many fields missing or empty
+  "comments": "",
+  "year": 4532,
+  "docid": 60002,
+  "latitude": 13.7563,
+  "homeless": null,
+  "source": "",
+  "idsource": "",
+  "killed": null,
+  "affected": null,
+  "duration": null,
+  "number": "2025-000600",
+  "injured": null,
+  "month": null,
+  "geocode": "THA",
+  "location": "",
+  "magnitude": "",
+  "time": "",
+  "id": "",
+  "event": "EQ",
+  "day": null,
+  "status": "",
+  "longitude": 100.5018
+},
+{
+  // Negative Test  fields invalid or missing
+  "comments": 12345,
+  "year": "Two Thousand Twenty Five",
+  "docid": 60004,
+  "latitude": 13.7563,
+  "homeless": "none",
+  "source": 98765,
+  "idsource": false,
+  "killed": "ten",
+  "affected": "many",
+  "duration": "three days",
+  "number": "2025-000604",
+  "injured": "yes",
+  "month": "March",
+  "geocode": "THA",
+  "location": 123,
+  "magnitude": 5.6,
+  "time": 1435,
+  "id": 789,
+  "event": "EQ",
+  "day": "twenty-eight",
+  "status": true,
+  "longitude": 100.5017
+},
+{
+  // Negative Test – The structure of the data i.e. the json is changed
+  "core": {
+    "id": "EQ-TH-2025-STRUCT",
+    "event_type": "EQ",
+    "code": "2025-000605",
+    "coordinates": {
+      "lat": 13.7563,
+      "lon": 100.5017
+    },
+    "country_code": "THA"
+  },
+  "meta": {
+    "docid": 60005,
+    "year": 2025,
+    "month": 3,
+    "day": 20,
+    "location": "Bangkok",
+    "comments": "This structure uses nested objects and renamed keys.",
+    "source": "https://example.com/structural-change",
+    "status": "A"
+  },
+  "impact": {
+    "killed": 0,
+    "injured": 2,
+    "affected": 100,
+    "homeless": 5,
+    "duration": 1
+  }
+}
+]
+}
