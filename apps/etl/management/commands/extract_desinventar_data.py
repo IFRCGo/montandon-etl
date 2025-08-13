@@ -15,7 +15,6 @@ class Command(BaseCommand):
         return input(prompt).strip().lower() == "y"
 
     def add_arguments(self, parser):
-        parser.add_argument("--queue", required=True)
         parser.add_argument("--country_code", required=True, help="if multiple make sure to pass comma separated")
 
     def handle(self, *args, **options):
