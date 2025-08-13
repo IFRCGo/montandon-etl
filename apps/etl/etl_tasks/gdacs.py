@@ -44,6 +44,8 @@ def ext_and_transform_gdacs_latest_data():
     )
     if ext_object:
         start_date = ext_object.created_at.date()
+        if start_date < etl_config.GDACS_START_DATE:
+            start_date = etl_config.GDACS_START_DATE
     else:
         start_date = etl_config.GDACS_START_DATE
 
@@ -53,10 +55,8 @@ def ext_and_transform_gdacs_latest_data():
 
 
 @shared_task
-def ext_and_transform_gdacs_historical_data():
+def ext_and_transform_gdacs_historical_data(start_date: datetime.datetime, end_date: datetime.datetime):
     from apps.etl.etl_tasks.segment_gdacs import deep_dive
 
-    start_date = datetime.date(2000, 1, 1)
-    end_date = datetime.date(2025, 1, 1)
     for hazard, size in HAZARDS:
         deep_dive(session, hazard, start_date, end_date, size, "")
