@@ -122,8 +122,6 @@ def generate_item_index_fields_values(transformed_item: dict):
 
     logger.info("Item extracted: id=%s, datetime=%s, country=%s", item_id, item_datetime, item_primary_country)
     return item_id, item_datetime, item_primary_country
-<<<<<<< HEAD
-
 
 
 def remove_ignored_keys(obj, keys_to_ignore):
@@ -141,22 +139,3 @@ def remove_ignored_keys(obj, keys_to_ignore):
         for item in obj:
             remove_ignored_keys(item, keys_to_ignore)
     return obj
-||||||| parent of d057542 (IDU E2E test with necessary changes)
-=======
-
-def remove_ignored_keys(obj, keys_to_ignore):
-    """
-    Recursively remove keys from dicts if the key is in keys_to_ignore.
-    Works on nested dicts and lists.
-    """
-    if isinstance(obj, dict):
-        for key in list(obj.keys()):
-            if key in keys_to_ignore:
-                obj.pop(key)
-            else:
-                remove_ignored_keys(obj[key], keys_to_ignore)
-    elif isinstance(obj, list):
-        for item in obj:
-            remove_ignored_keys(item, keys_to_ignore)
-    return obj
->>>>>>> d057542 (IDU E2E test with necessary changes)
