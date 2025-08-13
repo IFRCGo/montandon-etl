@@ -1947,11 +1947,6 @@ socks = [
     { name = "pysocks" },
 ]
 
-[package.optional-dependencies]
-socks = [
-    { name = "pysocks" },
-]
-
 [[package]]
 name = "requests-cache"
 version = "1.2.1"
