@@ -1,3 +1,5 @@
+import datetime
+from datetime import date
 from urllib.parse import urlencode
 
 from celery import shared_task
@@ -32,6 +34,7 @@ def ext_and_transform_ifrcevent_latest_data():
 
     params = IfrcEventExtractionInputMetadata(
         disaster_start_date__gte=str(start_date),
+        disaster_start_date__lte=str(datetime.datetime.today().date()),
         limit=50,
         offset=0,
         ordering="-id",
@@ -45,9 +48,13 @@ def ext_and_transform_ifrcevent_latest_data():
 
 
 @shared_task
-def ext_and_transform_ifrcevent_historical_data():
+def ext_and_transform_ifrcevent_historical_data(
+    start_date: date,
+    end_date: date,
+):
     params = IfrcEventExtractionInputMetadata(
-        disaster_start_date__gte=None,
+        disaster_start_date__gte=str(start_date),
+        disaster_start_date__lte=str(end_date),
         limit=500,
         offset=0,
         ordering="-id",

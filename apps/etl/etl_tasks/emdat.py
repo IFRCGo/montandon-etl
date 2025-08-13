@@ -113,8 +113,8 @@ def ext_and_transform_emdat_latest_data(**kwargs):
 
 
 @shared_task
-def ext_and_transform_emdat_historical_data(**kwargs):
-    for i in range(etl_config.EMDAT_START_YEAR, etl_config.EMDAT_END_YEAR + 1):
+def ext_and_transform_emdat_historical_data(start_date, end_date, **kwargs):
+    for i in range(start_date, end_date + 1):
         extraction_object = EmdatExtraction.init_extraction(
             metadata=EmdatExtractionMetadata(
                 params=EmdatExtractionParamsMetadata(
