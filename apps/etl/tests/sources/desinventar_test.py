@@ -49,12 +49,11 @@ def test_handle_extraction_various_desinventar_files(case):
             mock_response.status_code = 200
             mock_response.content = zip_data
             mock_response.headers = {"Content-Type": "application/zip"}
-            return mock_response
         else:
             # Simulate failure for other countries
             mock_response = MagicMock()
             mock_response.status_code = 404
-            return mock_response
+        return mock_response
 
     with patch("requests.get", side_effect=custom_get):
         ext_and_transform_desinventar_historical_data()
