@@ -72,7 +72,7 @@ def test_handle_gdacs_extraction_with_mocked_request():
 
     # Compare actual output with fixed JSON (ignoring volatile fields)
     latest_data = list(PyStacLoadData.objects.values())
-    ignore_keys = ["created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "item_datetime"]
+    ignore_keys = ["created_at", "modified_at", "monty:etl_id", "pk", "trace_id", "transform_id_id", "item_datetime", "id"]
 
     filtered_actual = remove_ignored_keys(latest_data, ignore_keys)
     filtered_expected = remove_ignored_keys(expected_output, ignore_keys)
