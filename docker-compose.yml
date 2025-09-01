@@ -26,6 +26,7 @@ x-server: &base_server_setup
       # Geocoder
       # FIXME: Add geocoder to docker compose and use that service here
       GEOCODER_URL: ${GEOCODER_URL?error}
+      GEOCODER_PORT: ${GEOCODER_PORT:-8001}
   extra_hosts:
       - "host.docker.internal:host-gateway"
   volumes:

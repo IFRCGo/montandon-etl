@@ -9,6 +9,8 @@ services:
       - ./coverage/:/code/coverage/
   geocoding-service:
     image: ghcr.io/ifrcgo/geocoding-service:main.99b10c8
-    command: /bin/sh -c "uvicorn service:app --host 0.0.0.0 --port 8001 --reload --workers 1"
+    environment:
+      GEOCODER_PORT: ${GEOCODER_PORT:-8001}
+    command: /bin/sh -c "uvicorn service:app --host 0.0.0.0 --port ${GEOCODING_PORT} --reload --workers 1"
   celery-beat: !reset null
   worker:  !reset null
