@@ -1,99 +1,107 @@
 {
-"type": "Feature",
-"bbox": [
--92.6005,
--39.0218,
--92.6005,
--39.0218
-],
-"geometry": {
-"type": "Point",
-"coordinates": [
--92.6005,
--39.0218
-]
-},
-"properties": {
-"eventtype": "EQ",
-"eventid": 1466272,
-"episodeid": 1620062,
-"eventname": "",
-"glide": "",
-"name": "Earthquake in ",
-"description": "Earthquake in ",
-"htmldescription": "Green M 4.6 Earthquake off-shore at: 05 Feb 2025 22:53:38.",
-"icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
-"iconoverall": null,
-"url": {
-"geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1466272&episodeid=1620062",
-"report": "https://www.gdacs.org/report.aspx?eventid=1466272&episodeid=1620062&eventtype=EQ",
-"media": "https://www.gdacs.org/gdacsapi/api/emm/getemmnewsbykey?eventtype=EQ&eventid=1466272"
-},
-"alertlevel": "Green",
-"alertscore": 1,
-"episodealertlevel": "Green",
-"episodealertscore": 0,
-"istemporary": "false",
-"iscurrent": "false",
-"country": "",
-"fromdate": "2025-02-05T22:53:38",
-"todate": "2025-02-05T22:53:38",
-"datemodified": "2025-02-05T23:18:22",
-"iso3": "",
-"source": "NEIC",
-"sourceid": "us7000pbp5",
-"polygonlabel": "Centroid",
-"Class": "Point_Centroid",
-"affectedcountries": [],
-"severitydata": {
-"severity": 4.6,
-"severitytext": "Magnitude 4.6M, Depth:10km",
-"severityunit": "M"
-},
-"episodes": [
-{
-"details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=EQ&eventid=1466272&episodeid=1620062"
-}
-],
-"impacts": [
-{
-"source": "NEIC",
-"resource": {
-"impact": "https://www.gdacs.org/gdacsapi/api/export/getimpact?id=657480",
-"shake_preliminary": "https://www.gdacs.org/gdacsapi/api/export/getimpact?id=657481"
-}
-}
-],
-"images": {
-"neic": "http://earthquake.usgs.gov/eqcenter/shakemap/global/shake/7000pbp5/download/intensity.jpg",
-"overviewmap": "https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_2.png",
-"neic_pager": "https://www.gdacs.org/contentdata/resources/EQ/1466272/1466272_1620062_alertfatal_small.png",
-"thumbnailmap_cached": "https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_1.png",
-"populationmap_cached": "https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_4.png",
-"shakemap_populationmap_overview": "http://GDACS_ARCGIS/gdacsimages/getservicemap.aspx?mapservice=GDACS/EQShakeMap&bboxSR=&layers=&layerdefs=0:gdacsID=1466272;1:gdacs_id=1466272;2:gdacsID=1466272;4:gdacs_id=1466272&imageSR=&format=png24&transparent=false&dpi=&bbox={boundingbox|1.5,1}&size=500,350&Filename=gdacs\\eq\\sm\\eq1466272_1.png&f=cache",
-"shakemap_populationmap": "http://GDACS_ARCGIS/gdacsimages/getservicemap.aspx?mapservice=GDACS/ShakeMap&bboxSR=&layers=&layerdefs=0:gdacsID=1466272;1:gdacs_id=1466272;2:gdacsID=1466272&imageSR=&format=png24&transparent=false&dpi=&bbox=84.3995,-41.0218,90.3995,-37.0218&size=500,350&Filename=gdacs\\eq\\sm\\eq1466272_2.png&f=cache",
-"meteoimages": "https://www.gdacs.org/contentdata/resources/EQ/1466272/meteo/",
-"mslpimages": "https://www.gdacs.org/contentdata/img/mslp/",
-"locations_affected_alert_image": "https://www.gdacs.org/contentdata/resources/EQ/1466272/tsunami/{identifiers.value:identifierid='tsalertoutputpath'}/tslocations_1466272_1620062.png",
-"event_icon_map": "https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
-"event_icon": "https://www.gdacs.org/images/gdacs_icons/big/Green/EQ.png",
-"shake_preliminary_image": "https://www.gdacs.org/contentdata/resources/EQ/1466272/smpreliminary_1466272_1620062_intensity.jpg",
-"thumbnailmap": "https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_1.png",
-"locations_affected_alert_image_newserver": "https://www.gdacs.org/contentdata/resources/EQ/1466272/tsunami/{identifiers.value:identifierid='tsalertoutputpath'}/tslocations_1466272_1620062.png",
-"npp_icon": "https://www.gdacs.org/images/gdacs_icons/iconmap/Nuclear.png"
-},
-"additionalinfos": {},
-"earthquakedetails": {
-"country": "",
-"depth": "10",
-"episodedatelocal": "2025-02-05T16:53:38",
-"magnitude": "4.6",
-"shakepop": "0",
-"shakepopdescription": "",
-"rapidpop": "0",
-"rapidpopdescription": ""
-},
-"documents": {},
-"shakemap": []
-}
+   "type":"Feature",
+   "bbox":[
+      -92.6005,
+      -39.0218,
+      -92.6005,
+      -39.0218
+   ],
+   "geometry":{
+      "type":"Point",
+      "coordinates":[
+         -92.6005,
+         -39.0218
+      ]
+   },
+   "properties":{
+      "eventtype":"EQ",
+      "eventid":1466272,
+      "episodeid":1620062,
+      "eventname":"",
+      "glide":"",
+      "name":"Earthquake in ",
+      "description":"Earthquake in ",
+      "htmldescription":"Green M 4.6 Earthquake off-shore at: 05 Feb 2025 22:53:38.",
+      "icon":"https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+      "iconoverall":null,
+      "url":{
+         "geometry":"https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1466272&episodeid=1620062",
+         "report":"https://www.gdacs.org/report.aspx?eventid=1466272&episodeid=1620062&eventtype=EQ",
+         "media":"https://www.gdacs.org/gdacsapi/api/emm/getemmnewsbykey?eventtype=EQ&eventid=1466272"
+      },
+      "alertlevel":"Green",
+      "alertscore":1,
+      "episodealertlevel":"Green",
+      "episodealertscore":0,
+      "istemporary":"false",
+      "iscurrent":"false",
+      "country":"",
+      "fromdate":"2025-02-05T22:53:38",
+      "todate":"2025-02-05T22:53:38",
+      "datemodified":"2025-02-05T23:18:22",
+      "iso3":"",
+      "source":"NEIC",
+      "sourceid":"us7000pbp5",
+      "polygonlabel":"Centroid",
+      "Class":"Point_Centroid",
+      "affectedcountries":[
+
+      ],
+      "severitydata":{
+         "severity":4.6,
+         "severitytext":"Magnitude 4.6M, Depth:10km",
+         "severityunit":"M"
+      },
+      "episodes":[
+         {
+            "details":"https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=EQ&eventid=1466272&episodeid=1620062"
+         }
+      ],
+      "impacts":[
+         {
+            "source":"NEIC",
+            "resource":{
+               "impact":"https://www.gdacs.org/gdacsapi/api/export/getimpact?id=657480",
+               "shake_preliminary":"https://www.gdacs.org/gdacsapi/api/export/getimpact?id=657481"
+            }
+         }
+      ],
+      "images":{
+         "neic":"http://earthquake.usgs.gov/eqcenter/shakemap/global/shake/7000pbp5/download/intensity.jpg",
+         "overviewmap":"https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_2.png",
+         "neic_pager":"https://www.gdacs.org/contentdata/resources/EQ/1466272/1466272_1620062_alertfatal_small.png",
+         "thumbnailmap_cached":"https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_1.png",
+         "populationmap_cached":"https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_4.png",
+         "shakemap_populationmap_overview":"http://GDACS_ARCGIS/gdacsimages/getservicemap.aspx?mapservice=GDACS/EQShakeMap&bboxSR=&layers=&layerdefs=0:gdacsID=1466272;1:gdacs_id=1466272;2:gdacsID=1466272;4:gdacs_id=1466272&imageSR=&format=png24&transparent=false&dpi=&bbox={boundingbox|1.5,1}&size=500,350&Filename=gdacs\\eq\\sm\\eq1466272_1.png&f=cache",
+         "shakemap_populationmap":"http://GDACS_ARCGIS/gdacsimages/getservicemap.aspx?mapservice=GDACS/ShakeMap&bboxSR=&layers=&layerdefs=0:gdacsID=1466272;1:gdacs_id=1466272;2:gdacsID=1466272&imageSR=&format=png24&transparent=false&dpi=&bbox=84.3995,-41.0218,90.3995,-37.0218&size=500,350&Filename=gdacs\\eq\\sm\\eq1466272_2.png&f=cache",
+         "meteoimages":"https://www.gdacs.org/contentdata/resources/EQ/1466272/meteo/",
+         "mslpimages":"https://www.gdacs.org/contentdata/img/mslp/",
+         "locations_affected_alert_image":"https://www.gdacs.org/contentdata/resources/EQ/1466272/tsunami/{identifiers.value:identifierid='tsalertoutputpath'}/tslocations_1466272_1620062.png",
+         "event_icon_map":"https://www.gdacs.org/images/gdacs_icons/maps/Green/EQ.png",
+         "event_icon":"https://www.gdacs.org/images/gdacs_icons/big/Green/EQ.png",
+         "shake_preliminary_image":"https://www.gdacs.org/contentdata/resources/EQ/1466272/smpreliminary_1466272_1620062_intensity.jpg",
+         "thumbnailmap":"https://www.gdacs.org/contentdata/resources/EQ/1466272/eq1620062_1.png",
+         "locations_affected_alert_image_newserver":"https://www.gdacs.org/contentdata/resources/EQ/1466272/tsunami/{identifiers.value:identifierid='tsalertoutputpath'}/tslocations_1466272_1620062.png",
+         "npp_icon":"https://www.gdacs.org/images/gdacs_icons/iconmap/Nuclear.png"
+      },
+      "additionalinfos":{
+
+      },
+      "earthquakedetails":{
+         "country":"",
+         "depth":"10",
+         "episodedatelocal":"2025-02-05T16:53:38",
+         "magnitude":"4.6",
+         "shakepop":"0",
+         "shakepopdescription":"",
+         "rapidpop":"0",
+         "rapidpopdescription":""
+      },
+      "documents":{
+
+      },
+      "shakemap":[
+
+      ]
+   }
 }
