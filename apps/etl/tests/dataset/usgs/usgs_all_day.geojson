@@ -1,0 +1,61 @@
+{
+    "type": "FeatureCollection",
+    "metadata": {
+        "generated": 1753041277000,
+        "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+        "title": "USGS All Earthquakes, Past Day",
+        "status": 200,
+        "api": "1.14.1",
+        "count": 307
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "mag": 6,
+                "place": "166 km E of Petropavlovsk-Kamchatsky, Russia",
+                "time": 1752996377438,
+                "updated": 1753005500439,
+                "tz": null,
+                "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000qdz8",
+                "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us7000qdz8.geojson",
+                "felt": null,
+                "cdi": null,
+                "mmi": 4.144,
+                "alert": "green",
+                "status": "reviewed",
+                "tsunami": 0,
+                "sig": 554,
+                "net": "us",
+                "code": "7000qdz8",
+                "ids": ",us7000qdz8,",
+                "sources": ",us,",
+                "types": ",ground-failure,losspager,origin,phase-data,shakemap,",
+                "nst": 75,
+                "dmin": 1.482,
+                "rms": 0.74,
+                "gap": 107,
+                "magType": "mb",
+                "type": "earthquake",
+                "title": "M 6.0 - 166 km E of Petropavlovsk-Kamchatsky, Russia"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    161.1039,
+                    53.0421,
+                    10
+                ]
+            },
+            "id": "us7000qdz8"
+        }
+    ],
+    "bbox": [
+        -178.3624,
+        -56.6925,
+        -1.2400000095367,
+        161.1127,
+        65.9047,
+        137.708
+    ]
+}
