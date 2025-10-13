@@ -24,6 +24,7 @@ class CeleryBeatSchedule(typing.TypedDict):
     task: str
     schedule: crontab
     options: CronJobOption
+    args: tuple[typing.Any, ...] | None
 
 
 class CronJobSentryConfig(typing.NamedTuple):
@@ -144,6 +145,7 @@ SCHEDULES: dict[str, CronJob] = {
 BEAT_SCHEDULES: dict[str, CeleryBeatSchedule] = {
     name: {
         "task": config.task,
+        "args": config.args,
         "schedule": config.schedule,
         "options": config.options,
     }
