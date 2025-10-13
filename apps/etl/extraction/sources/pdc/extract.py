@@ -184,7 +184,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                 hazard_extraction_objects.append(PDCExtractionV2.task.si(exposure_extraction_obj.pk))
             else:
                 geo_object = ExtractionData.objects.filter(
-                    metadata__url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",  # noqa
+                    metadata__url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",
                 ).first()
 
                 if not geo_object:
@@ -302,11 +302,11 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def retrigger(extraction_object):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == PDCExtractionMetaDataType.HAZARD:
-            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True)
+            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == PDCExtractionMetaDataType.POLYGON:
-            PDCExtractionV2.task.delay(extraction_object.parent.id, retrigger=True)
+            PDCExtractionV2.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == PDCExtractionMetaDataType.EXPOSURE_LIST:
-            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True)
+            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == PDCExtractionMetaDataType.EXPOSURE_DETAIL:
             chain(
                 PDCExtractionV2.task.si(extraction_object.pk), PDCTransformHandler.task.si(extraction_object.id)
@@ -318,5 +318,5 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
     )
-    def task(celery_task, extraction_id, retrigger: bool = False):
-        PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger)
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
+        PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
