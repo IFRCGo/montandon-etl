@@ -457,7 +457,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         ExtractionData.objects.filter(pk=self.extraction_object.pk).update(attempt_no=models.F("attempt_no") + 1)
         raise self.celery_task.retry(exc=exc, countdown=delay)
 
-    def handle(self, retrigger: bool, failed_int: int | None = None):
+    def handle(self, retrigger: bool = False, failed_int: int | None = None):
         print(
             "from handle base ",
             retrigger,
