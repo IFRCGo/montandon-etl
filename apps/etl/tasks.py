@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def load_data():
+    """Load the data to STAC eoAPI server"""
     call_command("load_data_to_stac")
 
 
 @shared_task
 def trigger_pending_extraction() -> None:
+    """Trigger pending extractions"""
     logger.info("Trigger pending extraction in process")
 
     two_days_ago = datetime.today() - timedelta(days=2)
@@ -35,3 +37,9 @@ def trigger_pending_extraction() -> None:
             extraction_class.retrigger(obj)
         else:
             extraction_class.task.delay(obj.id)
+
+
+@shared_task
+def celery_queue_uptime_check(queue: str):
+    """Check the availability of the Queue"""
+    logger.info("Celery Queue %s is consuming tasks.", queue)
