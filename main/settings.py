@@ -49,6 +49,8 @@ env = environ.Env(
     # Celery
     CELERY_BROKER_URL=str,
     CELERY_RESULT_BACKEND=str,
+    # Cache
+    CACHE_REDIS_URL=str,
     # Storage
     # -- Static, Media configs
     DJANGO_STATIC_URL=(str, "/static/"),
@@ -171,6 +173,21 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Redis lock
 REDIS_LOCK_EXPIRE = 60 * 60  # Lock expires in 1 hr
+
+CACHE_REDIS_URL = env("CACHE_REDIS_URL")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": CACHE_REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "local-memory": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        },
+    },
+}
 
 # Application definition
 
