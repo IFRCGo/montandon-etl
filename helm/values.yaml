@@ -171,6 +171,10 @@ worker:
       enabled: true
       replicaCount: 1
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "usgs-extraction", "--prefetch-multiplier", "2"]
+    load-to-stac:
+      enabled: true
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "load-to-stac", "--prefetch-multiplier", "2"]
 
 argoHooks:
   # NOTE: Make sure keys are lowercase

@@ -18,6 +18,7 @@ class CronJobOption(typing.TypedDict, total=False):
 
     time_limit: int
     soft_time_limit: int
+    queue: str
 
 
 class CeleryBeatSchedule(typing.TypedDict):
@@ -118,7 +119,7 @@ SCHEDULES: dict[str, CronJob] = {
             max_runtime=60,
             failure_issue_threshold=2,
         ),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR),
+        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR, queue="load-to-stac"),
     ),
     **{
         f"celery_queue_uptime_{celery_queue_name}": CronJob(
