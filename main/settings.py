@@ -169,6 +169,9 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+# Redis lock
+REDIS_LOCK_EXPIRE = 60 * 60  # Lock expires in 1 hr
+
 # Application definition
 
 INSTALLED_APPS = [
