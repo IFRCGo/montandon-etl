@@ -2,9 +2,15 @@ import datetime
 from datetime import datetime as dt
 
 import requests_cache
-from celery import shared_task
+from celery import chain, shared_task
 from celery.utils.log import get_task_logger
 
+from apps.etl.extraction.sources.gdacs.extract import (
+    GdacsExtraction,
+    GdacsExtractionMetadata,
+    GdacsExtractionMetadataType,
+    GdacsExtractionParamsMetadata,
+)
 from apps.etl.models import ExtractionData, HazardType
 from main.configs import etl_config
 
@@ -30,6 +36,24 @@ URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
 
 
 @shared_task
+def gdacs_init_extraction(params_list):
+    for params_dict in params_list:
+        GdacsExtraction.init_extraction(
+            metadata=GdacsExtractionMetadata(
+                params=GdacsExtractionParamsMetadata(
+                    fromDate=str(params_dict.get("iter_date")),
+                    toDate=str(params_dict.get("session_end_date")),
+                    alertlevel="Green;Orange;Red",
+                    eventlist=params_dict.get("hazard"),
+                    country=None,
+                ),
+                url=URL,
+                type=GdacsExtractionMetadataType.QUERY,
+            ),
+        )
+
+
+@shared_task
 def ext_and_transform_gdacs_latest_data():
     from apps.etl.etl_tasks.segment_gdacs import deep_dive
 
@@ -49,7 +73,7 @@ def ext_and_transform_gdacs_latest_data():
 
     end_date = dt.today().date()
     for hazard, size in HAZARDS:
-        deep_dive(session, hazard, start_date, end_date, size, "")
+        chain(deep_dive.si(session, hazard, start_date, end_date, size, ""), gdacs_init_extraction.s()).apply_async()
 
 
 @shared_task
@@ -59,4 +83,4 @@ def ext_and_transform_gdacs_historical_data():
     start_date = datetime.date(2000, 1, 1)
     end_date = datetime.date(2025, 1, 1)
     for hazard, size in HAZARDS:
-        deep_dive(session, hazard, start_date, end_date, size, "")
+        chain(deep_dive.si(session, hazard, start_date, end_date, size, ""), gdacs_init_extraction.s()).apply_async()
