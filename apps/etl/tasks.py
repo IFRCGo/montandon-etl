@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @shared_task
 def load_data():
     """Load the data to STAC eoAPI server"""
-    with CeleryLock.redis_lock(CeleryLock.Key.LOAD_TO_STAC, lock_expire=TimeConstants.SECONDS_IN_A_HOUR) as acquired:
+    with CeleryLock.redis_lock(CeleryLock.Key.LOAD_TO_STAC, lock_expire=TimeConstants.SECONDS_IN_SIX_HOURS) as acquired:
         if not acquired:
             logger.warning("Load to STAC server already running")
             return
