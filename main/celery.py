@@ -30,8 +30,6 @@ class CeleryQueue:
 
     # Specific
     USGS_EXTRACTION = "usgs-extraction"
-    # Load to STAC
-    LOAD_TO_STAC = "load-to-stac"
 
 
 app.conf.task_default_queue = CeleryQueue.DEFAULT

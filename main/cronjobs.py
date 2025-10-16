@@ -46,8 +46,9 @@ class TimeConstants:
     SECONDS_IN_A_HOUR = 60 * 60
     SECONDS_IN_A_WEEK = 7 * 24 * 60 * 60
     SECONDS_IN_A_MINUTE = 60
-    SECONDS_IN_A_DAY = 60 * 60 * 24
-    SECONDS_IN_HALF_DAY = 60 * 60 * 12
+    SECONDS_IN_A_DAY = 24 * 60 * 60
+    SECONDS_IN_HALF_DAY = 12 * 60 * 60
+    SECONDS_IN_SIX_HOURS = 6 * 60 * 60
 
 
 class CronJob(typing.NamedTuple):
@@ -170,7 +171,7 @@ SCHEDULES: dict[str, CronJob] = {
             checkin_margin=5,
             max_runtime=60,
         ),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR, queue="load-to-stac"),
+        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR),
     ),
     **{
         f"celery_queue_uptime_{celery_queue_name}": CronJob(
