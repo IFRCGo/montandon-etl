@@ -44,7 +44,7 @@ class IBTrACSExtraction(BaseExtractionV2[IBTrACSExtractionMetadata]):
             return
         IbtracsTransformHandler.task.delay(self.extraction_object.id)
 
-    def handle_extract(self, retrigger: bool = False):
+    def handle_extract(self, retrigger: bool = False, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
@@ -59,5 +59,5 @@ class IBTrACSExtraction(BaseExtractionV2[IBTrACSExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
     )
-    def task(celery_task, extraction_id):  # type: ignore[reportIncompatibleMethodOverride]
-        IBTrACSExtraction(celery_task, extraction_id).handle()
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):  # type: ignore[reportIncompatibleMethodOverride]
+        IBTrACSExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)

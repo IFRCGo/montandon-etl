@@ -239,7 +239,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             queue_name=self.celery_queue,
         )
 
-    def handle_extract(self, retrigger: bool):
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
@@ -272,5 +272,5 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         queue=CeleryQueue.USGS_EXTRACTION,
         rate_limit="100/m",  # limit is 500 requests per 5 minute window
     )
-    def task(celery_task, extraction_id, retrigger: bool = False):
-        USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger)
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
+        return USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
