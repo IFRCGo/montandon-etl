@@ -11,6 +11,7 @@ from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.etl_tasks.ifrc_event import ext_and_transform_ifrcevent_latest_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.tests.common.base_settings_test import TEST_CACHES
 from apps.etl.utils import remove_ignored_keys
 
 # Set base_collection_url
@@ -28,7 +29,7 @@ TEST_CASES = [
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+@override_settings(CELERY_TASK_ALWAYS_EAGER=True, CACHES=TEST_CACHES)
 def test_handle_extraction_various_ifrc_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]

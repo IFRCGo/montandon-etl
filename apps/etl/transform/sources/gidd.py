@@ -27,6 +27,6 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
         return result, tmp_files
 
     @staticmethod
-    @app.task(queue=CeleryQueue.DEFAULT)
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         GIDDTransformHandler().handle_transformation(extraction_id)

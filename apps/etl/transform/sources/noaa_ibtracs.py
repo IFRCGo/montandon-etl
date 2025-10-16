@@ -5,7 +5,7 @@ from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,6 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
         return result, tmp_files
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         IbtracsTransformHandler().handle_transformation(extraction_id)
