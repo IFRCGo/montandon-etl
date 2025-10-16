@@ -45,7 +45,7 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
             return
         IDUTransformHandler.task.delay(self.extraction_object.id)
 
-    def handle_extract(self, retrigger: bool):
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
@@ -56,5 +56,5 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id):  # type: ignore[reportIncompatibleMethodOverride]
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):  # type: ignore[reportIncompatibleMethodOverride]
         IDUExtraction(celery_task, extraction_id).handle()
