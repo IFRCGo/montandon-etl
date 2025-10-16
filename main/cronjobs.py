@@ -171,7 +171,7 @@ SCHEDULES: dict[str, CronJob] = {
             checkin_margin=5,
             max_runtime=60,
         ),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR, queue="load-to-stac"),
+        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR),
     ),
     **{
         f"celery_queue_uptime_{celery_queue_name}": CronJob(

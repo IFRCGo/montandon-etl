@@ -156,25 +156,21 @@ worker:
     # NOTE: Make sure keys are lowercase
     default:
       enabled: true
-      replicaCount: 5
+      replicaCount: 1
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "default", "--prefetch-multiplier", "2"]
     extraction:
       enabled: true
-      replicaCount: 2
+      replicaCount: 5
       celeryArgs: ["--concurrency", "3", "--max-tasks-per-child", "5", "-Q", "extraction", "--prefetch-multiplier", "2"]
     transform:
       enabled: true
-      replicaCount: 2
+      replicaCount: 3
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "transform", "--prefetch-multiplier", "2"]
     # By source
     usgs-extraction:
       enabled: true
       replicaCount: 1
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "usgs-extraction", "--prefetch-multiplier", "2"]
-    load-to-stac:
-      enabled: true
-      replicaCount: 1
-      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "load-to-stac", "--prefetch-multiplier", "2"]
 
 argoHooks:
   # NOTE: Make sure keys are lowercase

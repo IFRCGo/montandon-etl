@@ -153,6 +153,6 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
                 typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.DEFAULT)
+    @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
     def task(celery_task, extraction_id):  # type: ignore[reportIncompatibleMethodOverride]
         GFDExtraction(celery_task, extraction_id).handle()
