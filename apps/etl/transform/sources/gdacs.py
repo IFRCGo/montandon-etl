@@ -9,7 +9,7 @@ from pystac_monty.sources.gdacs import (
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,6 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         return result, tmp_files
 
     @staticmethod
-    @app.task(rate_limit="50/m")
+    @app.task(rate_limit="50/m", queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         GDACSTransformHandler().handle_transformation(extraction_id)

@@ -15,7 +15,7 @@ logger = get_task_logger(__name__)
 HEADERS = {"Content-Type": "application/json"}
 
 
-def load_collections(*, eoapi_domain: str, skip_collection_create: bool) -> list[str]:
+def load_collections(*, eoapi_domain: str, skip_collection_create: bool, timeout: int = 30) -> list[str]:
     """
     Create missing collections in eoAPI
     """
@@ -27,7 +27,7 @@ def load_collections(*, eoapi_domain: str, skip_collection_create: bool) -> list
     # get the length from the ITEM_TYPE_COLLEcTION_ID_MAP.keys() but the issue is
     # there are more collections in the eoAPI than required which fails to get
     # the genuine collection ids using the below request.
-    response = requests.get(f"{url}?limit=50", headers=HEADERS)
+    response = requests.get(f"{url}?limit=50", headers=HEADERS, timeout=timeout)
 
     if response.status_code != 200:
         logger.error(
@@ -54,6 +54,7 @@ def load_collections(*, eoapi_domain: str, skip_collection_create: bool) -> list
             json={
                 "id": collection_id,
             },
+            timeout=timeout,
         )
         if response.status_code == 200:
             remote_collections.append(collection_id)

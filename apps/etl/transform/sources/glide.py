@@ -6,7 +6,7 @@ from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 
 class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSource]):
@@ -29,7 +29,7 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
         return result, tmp_files
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
         with extraction_obj.resp_data.open() as file_data:

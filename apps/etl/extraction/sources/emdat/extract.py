@@ -63,7 +63,7 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
     @app.task(
         bind=True,
         base=RetryableTask,
-        queue=CeleryQueue.DEFAULT,
+        queue=CeleryQueue.EXTRACTION,
     )
     def task(celery_task: Task, extraction_id: int) -> int:
         EmdatExtraction(celery_task, extraction_id).handle()

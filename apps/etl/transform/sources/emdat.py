@@ -6,7 +6,7 @@ from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
-from main.celery import app
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,6 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
         return result, tmp_files
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         EMDATTransformHandler().handle_transformation(extraction_id)

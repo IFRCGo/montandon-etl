@@ -9,6 +9,8 @@ from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.mutations import source_extraction_map
+from main.cache import CeleryLock
+from main.cronjobs import TimeConstants
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,12 @@ logger = logging.getLogger(__name__)
 @shared_task
 def load_data():
     """Load the data to STAC eoAPI server"""
-    call_command("load_data_to_stac")
+    with CeleryLock.redis_lock(CeleryLock.Key.LOAD_TO_STAC, lock_expire=TimeConstants.SECONDS_IN_SIX_HOURS) as acquired:
+        if not acquired:
+            logger.warning("Load to STAC server already running")
+            return
+
+        call_command("load_data_to_stac")
 
 
 @shared_task
