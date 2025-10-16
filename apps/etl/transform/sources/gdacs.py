@@ -22,6 +22,8 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
 
     @classmethod
     def get_schema_data(cls, extraction_object):
+        from apps.etl.extraction.sources.gdacs.extract import GdacsExtractionMetadataType
+
         with extraction_object.resp_data.open("rb") as f:
             file_content = f.read()
         data_file = write_into_temp_file(file_content)
@@ -39,7 +41,9 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                     source_url=episode_obj.url, input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE)
                 ),
             )
-            geometry_object = episode_obj.child_extractions.all().first()
+            geometry_object = (
+                episode_obj.child_extractions.all().filter(metadata__type=GdacsExtractionMetadataType.GEOMETRY).first()
+            )
 
             with geometry_object.resp_data.open("rb") as f:
                 file_content = f.read()
@@ -52,7 +56,21 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                 ),
             )
 
-            episode_data_tuple = (event_episode_data, geometry_episode_data)
+            impact_object = (
+                episode_obj.child_extractions.all().filter(metadata__type=GdacsExtractionMetadataType.IMPACT).first()
+            )
+
+            with impact_object.resp_data.open("rb") as f:
+                file_content = f.read()
+            impact_detail_temp_file = write_into_temp_file(file_content)
+            impact_episode_data = GdacsEpisodes(
+                type=GDACSDataSourceType.IMPACT,
+                data=GenericDataSource(
+                    source_url=impact_object.url,
+                    input_data=File(path=impact_detail_temp_file.name, data_type=DataType.FILE),
+                ),
+            )
+            episode_data_tuple = (event_episode_data, geometry_episode_data, impact_episode_data)
             episodes.append(episode_data_tuple)
 
         result = cls.transformer_schema(
