@@ -173,7 +173,7 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Redis lock
-DEFAULT_REDIS_LOCK_EXPIRE = 6 * 60 * 60  # Lock expires in 6 hrs (in mins)
+DEFAULT_REDIS_LOCK_EXPIRE = 30 * 60  # Lock expires in 30 mins
 
 CACHE_REDIS_URL = env("CACHE_REDIS_URL")
 TEST_CACHE_REDIS_URL = env("TEST_CACHE_REDIS_URL")
