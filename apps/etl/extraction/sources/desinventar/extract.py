@@ -59,7 +59,7 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
 
         DesinventarTransformHandler.task.delay(self.extraction_object.id)
 
-    def handle_extract(self, retrigger: bool):
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
@@ -70,5 +70,5 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id):
-        DesInventarExtraction(celery_task, extraction_id).handle()
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
+        DesInventarExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
