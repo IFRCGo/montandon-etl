@@ -10,6 +10,7 @@ from pystac_monty.sources.common import MontyDataTransformer
 from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_historical_data
 from apps.etl.etl_tasks.segment_gdacs import deep_dive
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.tests.common.base_settings_test import TEST_CACHES
 from apps.etl.utils import remove_ignored_keys
 
 MontyDataTransformer.base_collection_url = "/code/libs/pystac-monty/monty-stac-extension/examples"
@@ -21,7 +22,7 @@ step3_episode_url = "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?ev
 step4_geom_url = "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=EQ&eventid=1466272&episodeid=1620062"
 
 
-@override_settings(CELERY_TASK_ALWAYS_EAGER=True)
+@override_settings(CELERY_TASK_ALWAYS_EAGER=True, CACHES=TEST_CACHES)
 @pytest.mark.django_db
 def test_handle_gdacs_extraction_with_mocked_request():
     """

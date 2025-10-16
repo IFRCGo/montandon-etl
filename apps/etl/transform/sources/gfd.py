@@ -26,6 +26,6 @@ class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource])
         return result, tmp_files
 
     @staticmethod
-    @app.task(queue=CeleryQueue.DEFAULT)
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
         GFDTransformHandler().handle_transformation(extraction_id)

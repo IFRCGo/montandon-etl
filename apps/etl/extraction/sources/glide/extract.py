@@ -8,7 +8,7 @@ from celery import Task
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.glide import GlideTransformHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.logging import log_extra
 from utils.celery import RetryableTask
 
@@ -65,6 +65,7 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
     @app.task(
         bind=True,
         base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
     )
     def task(celery_task: Task, extraction_id: int) -> int:
         GlideExtraction(celery_task, extraction_id).handle()

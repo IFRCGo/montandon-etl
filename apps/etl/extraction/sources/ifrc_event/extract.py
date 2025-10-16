@@ -13,7 +13,7 @@ from apps.etl.extraction.sources.base.handler import BaseExtraction, BaseExtract
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.ifrc_event import IFRCEventTransformHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from main.logging import log_extra
 from utils.celery import RetryableTask
@@ -194,9 +194,6 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
                 typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task(
-        bind=True,
-        base=RetryableTask,
-    )
+    @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
     def task(celery_task, extraction_id):
         IFRCEventExtractionV2(celery_task, extraction_id).handle()
