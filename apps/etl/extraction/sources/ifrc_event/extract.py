@@ -185,7 +185,7 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
                 ),
             )
 
-    def handle_extract(self, retrigger: bool):
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
@@ -196,5 +196,5 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id):
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
         IFRCEventExtractionV2(celery_task, extraction_id).handle()

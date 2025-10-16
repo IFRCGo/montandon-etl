@@ -458,17 +458,8 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         raise self.celery_task.retry(exc=exc, countdown=delay)
 
     def handle(self, retrigger: bool = False, failed_int: int | None = None):
-        print(
-            "from handle base ",
-            retrigger,
-            failed_int,
-            self.extraction_object.status,
-            self.extraction_object.metadata.get("type"),
-        )
-
         # if self.extraction_object.status != ExtractionData.Status.SUCCESS:
         self.extraction_object.mark_as_started()
-        print(self.extraction_object.metadata.get("type"), self.extraction_object.status, self.extraction_object.id)
         try:
             resp = self.handle_extract(retrigger=retrigger, failed_int=failed_int)
             self.extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS)
