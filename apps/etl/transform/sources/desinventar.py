@@ -11,7 +11,7 @@ from pystac_monty.sources.desinventar import (
 
 from apps.etl.models import ExtractionData, Transform, get_trace_id
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from main.logging import log_extra
 
@@ -83,6 +83,6 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             raise e
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
         DesinventarTransformHandler().handle_transformation(extraction_id)
