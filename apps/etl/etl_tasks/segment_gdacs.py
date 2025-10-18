@@ -9,6 +9,7 @@ from apps.etl.extraction.sources.gdacs.extract import (
     GdacsExtractionMetadataType,
     GdacsExtractionParamsMetadata,
 )
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
@@ -349,6 +350,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                                     url=URL,
                                                     type=GdacsExtractionMetadataType.QUERY,
                                                 ),
+                                                queue_name=CeleryQueue.EXTRACTION,
                                             )
 
                                             total_items += items
@@ -382,6 +384,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                         url=URL,
                                         type=GdacsExtractionMetadataType.QUERY,
                                     ),
+                                    queue_name=CeleryQueue.EXTRACTION,
                                 )
                                 total_items += items
                         elif response.status_code == 204:
@@ -420,6 +423,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                         url=URL,
                         type=GdacsExtractionMetadataType.QUERY,
                     ),
+                    queue_name=CeleryQueue.EXTRACTION,
                 )
 
                 total_items = items

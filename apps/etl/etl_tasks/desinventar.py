@@ -8,6 +8,7 @@ from apps.etl.extraction.sources.desinventar.extract import (
     DesInventarExtractionParamsMetadata,
     DesInventarMetadataType,
 )
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
@@ -130,7 +131,8 @@ def ext_and_transform_desinventar_historical_data():
                 url=url,
                 type=DesInventarMetadataType.QUERY,
                 params=DesInventarExtractionParamsMetadata(country_code=country_code, iso3=country_code),
-            )
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
         )
     for country_code, iso3 in additional_region_code_to_iso3_map.items():
         url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
@@ -139,5 +141,6 @@ def ext_and_transform_desinventar_historical_data():
                 url=url,
                 type=DesInventarMetadataType.QUERY,
                 params=DesInventarExtractionParamsMetadata(country_code=country_code, iso3=country_code),
-            )
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
         )
