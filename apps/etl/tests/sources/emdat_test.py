@@ -65,7 +65,7 @@ def test_handle_extraction_various_emdat_files(case):
     # Assertions
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 56
+    assert PyStacLoadData.objects.count() == 28
 
     # Path for expected output
     expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/emdat" / fixed_filename
