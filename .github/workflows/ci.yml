@@ -138,8 +138,8 @@ jobs:
         run: |
           docker compose up -d web geocoding-service 
           # Wait for 60 seconds to ensure services are initialized
-          echo "Waiting for 30 seconds for services to initialize..."
-          sleep 30
+          echo "Waiting for 60 seconds for services to initialize..."
+          sleep 60
           # Run the tests
           docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
 
