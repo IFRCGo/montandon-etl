@@ -86,4 +86,7 @@ def test_handle_extraction_various_emdat_files(case):
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
     filtered_expected = remove_ignored_keys(expected_json, ignored_keys)
 
+    print("filtered_actual_emdat", json.dumps(filtered_actual))
+    print("filtered expected_emdat", json.dumps(filtered_expected))
+
     assert filtered_actual == filtered_expected, f"Differences found when comparing to fixed file {fixed_filename}."
