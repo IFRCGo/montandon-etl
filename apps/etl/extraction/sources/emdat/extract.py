@@ -40,7 +40,6 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
     def handle_type_query(self):
         from apps.etl.etl_tasks.emdat import QUERY
 
-        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         url = self.extraction_metadata.url
         params = self.extraction_metadata.params
         headers = {"Authorization": etl_config.EMDAT_AUTHORIZATION_KEY}
@@ -65,5 +64,5 @@ class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
     )
-    def task(celery_task: Task, extraction_id: int) -> int:
+    def task(celery_task: Task, extraction_id: int):
         EmdatExtraction(celery_task, extraction_id).handle()
