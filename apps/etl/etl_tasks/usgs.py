@@ -5,6 +5,7 @@ from celery import shared_task
 
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction, USGSExtractionMetadata, USGSExtractionMetadataType
 from apps.etl.models import ExtractionData
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,7 @@ def ext_and_transform_usgs_latest_data():
             url=url,
             type=USGSExtractionMetadataType.QUERY,
         ),
+        queue_name=CeleryQueue.EXTRACTION,
     )
 
 

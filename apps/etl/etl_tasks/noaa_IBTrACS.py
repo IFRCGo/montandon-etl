@@ -8,6 +8,7 @@ from apps.etl.extraction.sources.noaa_IBTrACS.extract import (
     IBTrACSExtractionMetadata,
     IBTrACSExtractionMetadataType,
 )
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ def ext_and_transform_ibtracs_historical_data():
             url=url,
             type=IBTrACSExtractionMetadataType.QUERY,
         ),
+        queue_name=CeleryQueue.EXTRACTION,
     )
 
 
@@ -42,4 +44,5 @@ def ext_and_transform_ibtracs_latest_data():
             url=url,
             type=IBTrACSExtractionMetadataType.QUERY,
         ),
+        queue_name=CeleryQueue.EXTRACTION,
     )

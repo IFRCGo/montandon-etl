@@ -1,6 +1,7 @@
 from celery import shared_task
 
 from apps.etl.extraction.sources.gidd.extract import GIDDExtraction, GIDDExtractionMetadata, GIDDExtractionMetadataType
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 
@@ -8,7 +9,6 @@ from main.configs import etl_config
 def ext_and_transform_gidd_latest_data():
     """Extract and Transform the GIDD data"""
     url = f"{etl_config.IDMC_DATA_URL}/external-api/gidd/disaggregations/disaggregation-geojson/"
-    extraction_obj = GIDDExtraction.init_extraction(
-        metadata=GIDDExtractionMetadata(url=url, type=GIDDExtractionMetadataType.QUERY), add_to_queue=False
+    GIDDExtraction.init_extraction(
+        metadata=GIDDExtractionMetadata(url=url, type=GIDDExtractionMetadataType.QUERY), queue_name=CeleryQueue.EXTRACTION
     )
-    GIDDExtraction.task.delay(extraction_obj.id)

@@ -9,6 +9,7 @@ from apps.etl.extraction.sources.glide.extract import (
     GlideExtractionParamsMetadata,
 )
 from apps.etl.models import ExtractionData, HazardType
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 GLIDE_HAZARDS = [
@@ -49,7 +50,7 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date
         if end_date > to_date:
             end_date = to_date
 
-        extraction_object = GlideExtraction.init_extraction(
+        GlideExtraction.init_extraction(
             metadata=GlideExtractionMetadata(
                 url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
                 params=GlideExtractionParamsMetadata(
@@ -63,10 +64,9 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date
                 ),
                 type=GlideExtractionMetadataType.QUERY,
             ),
-            add_to_queue=False,
+            queue_name=CeleryQueue.EXTRACTION,
         )
 
-        GlideExtraction.task.delay(extraction_object.id)
         start_date = end_date + timedelta(days=1)
 
 
@@ -90,7 +90,7 @@ def ext_and_transform_glide_latest_data():
     to_date = datetime.today().date()
 
     for hazard_type in GLIDE_HAZARDS:
-        extraction_object = GlideExtraction.init_extraction(
+        GlideExtraction.init_extraction(
             metadata=GlideExtractionMetadata(
                 url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
                 params=GlideExtractionParamsMetadata(
@@ -104,9 +104,8 @@ def ext_and_transform_glide_latest_data():
                 ),
                 type=GlideExtractionMetadataType.QUERY,
             ),
-            add_to_queue=False,
+            queue_name=CeleryQueue.EXTRACTION,
         )
-        GlideExtraction.task.delay(extraction_object.id)
 
 
 @shared_task
