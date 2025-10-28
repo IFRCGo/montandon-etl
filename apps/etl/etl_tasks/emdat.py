@@ -10,6 +10,7 @@ from apps.etl.extraction.sources.emdat.extract import (
 )
 from apps.etl.models import ExtractionData
 from apps.etl.utils import get_cluster_codes
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 QUERY = """
@@ -96,7 +97,7 @@ def ext_and_transform_emdat_latest_data(**kwargs):
         if not exist_extraction_object.status == ExtractionData.Status.SUCCESS:
             from_date_year = exist_extraction_object.metadata["params"]["from_"]
 
-    extraction_object = EmdatExtraction.init_extraction(
+    EmdatExtraction.init_extraction(
         metadata=EmdatExtractionMetadata(
             params=EmdatExtractionParamsMetadata(
                 limit=-1,
@@ -108,14 +109,14 @@ def ext_and_transform_emdat_latest_data(**kwargs):
             url=f"{etl_config.EMDAT_URL}/v1",
             type=EmdatExtractionMetadataType.QUERY,
         ),
+        queue_name=CeleryQueue.EXTRACTION,
     )
-    EmdatExtraction.task.delay(extraction_object.id)
 
 
 @shared_task
 def ext_and_transform_emdat_historical_data(**kwargs):
     for i in range(etl_config.EMDAT_START_YEAR, etl_config.EMDAT_END_YEAR + 1):
-        extraction_object = EmdatExtraction.init_extraction(
+        EmdatExtraction.init_extraction(
             metadata=EmdatExtractionMetadata(
                 params=EmdatExtractionParamsMetadata(
                     limit=-1,
@@ -127,6 +128,5 @@ def ext_and_transform_emdat_historical_data(**kwargs):
                 url=f"{etl_config.EMDAT_URL}/v1",
                 type=EmdatExtractionMetadataType.QUERY,
             ),
+            queue_name=CeleryQueue.EXTRACTION,
         )
-
-        EmdatExtraction.task.delay(extraction_object.id)
