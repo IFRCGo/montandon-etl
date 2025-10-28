@@ -12,6 +12,7 @@ from apps.etl.extraction.sources.pdc.extract import (
     Restriction,
 )
 from apps.etl.models import ExtractionData
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 
@@ -47,6 +48,7 @@ def extract_and_transform_pdc_latest_data():
                 url=data_url,
                 type=PDCExtractionMetaDataType.HAZARD,
             ),
+            queue_name=CeleryQueue.EXTRACTION,
         )
 
 
@@ -75,4 +77,5 @@ def extract_and_transform_historical_pdc_data(
                 url=url,
                 type=PDCExtractionMetaDataType.HAZARD,
             ),
+            queue_name=CeleryQueue.EXTRACTION,
         )
