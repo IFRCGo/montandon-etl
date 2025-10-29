@@ -114,7 +114,7 @@ SCHEDULES: dict[str, CronJob] = {
     ),
     "import_gidd_data": CronJob(
         task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
-        schedule=crontab(hour=13, minute=30),
+        schedule=crontab(hour=13, minute=30, day_of_week="sunday"),
         options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,

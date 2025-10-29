@@ -4,6 +4,7 @@ import typing
 from enum import Enum
 
 import pydantic
+from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
@@ -70,5 +71,5 @@ class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
-        DesInventarExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+    def task(celery_task: Task, extraction_id: int):
+        DesInventarExtraction(celery_task, extraction_id).handle()

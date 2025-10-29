@@ -154,5 +154,6 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):  # type: ignore[reportIncompatibleMethodOverride]
+    def task(celery_task, extraction_id):  # type: ignore[reportIncompatibleMethodOverride]
+        # NOTE : The below `extraction_id` could be both failed extraction id or normal extraction id.
         GFDExtraction(celery_task, extraction_id).handle()
