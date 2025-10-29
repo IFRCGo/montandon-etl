@@ -3,6 +3,7 @@ import typing
 from enum import Enum
 
 import pydantic
+from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
@@ -56,5 +57,6 @@ class IDUExtraction(BaseExtractionV2[IDUExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):  # type: ignore[reportIncompatibleMethodOverride]
+    def task(celery_task: Task, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
+        # NOTE : The below `extraction_id` could be both failed extraction id or normal extraction id.
         IDUExtraction(celery_task, extraction_id).handle()
