@@ -458,7 +458,6 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         raise self.celery_task.retry(exc=exc, countdown=delay)
 
     def handle(self, retrigger: bool = False, failed_int: int | None = None):
-        # if self.extraction_object.status != ExtractionData.Status.SUCCESS:
         self.extraction_object.mark_as_started()
         try:
             resp = self.handle_extract(retrigger=retrigger, failed_int=failed_int)

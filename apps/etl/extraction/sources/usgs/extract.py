@@ -6,7 +6,7 @@ from enum import Enum
 
 import pydantic
 import requests
-from celery import chord
+from celery import Task, chord
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
@@ -82,7 +82,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             logger.warning("No data found in response")
         return False
 
-    def handle_type_query(self, retrigger: bool):
+    def handle_type_query(self, retrigger: bool, failed_int: int | None):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -112,22 +112,11 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                     type=USGSExtractionMetadataType.DETAIL,
                 )
 
-                if not retrigger:
-                    extraction_object = self.init_extraction(
-                        metadata=metadata,
-                        parent_extraction=self.extraction_object,
-                        queue_name=self.celery_queue,
-                    )
-                else:
-                    extraction_object = ExtractionData.objects.filter(url=detail_url, metadata=metadata.model_dump()).first()
-                    if extraction_object:
-                        USGSExtraction.task.delay(extraction_object.pk, retrigger=retrigger)
-                    else:
-                        extraction_object = self.init_extraction(
-                            metadata=metadata,
-                            parent_extraction=self.extraction_object,
-                            queue_name=self.celery_queue,
-                        )
+                self.init_extraction(
+                    metadata=metadata,
+                    parent_extraction=self.extraction_object,
+                    queue_name=self.celery_queue,
+                )
         else:
             logger.warning(
                 "Response data object is not available",
@@ -135,7 +124,22 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             )
             return
 
-    def handle_type_detail(self, retrigger: bool):
+    def handle_type_detail(self, retrigger: bool, failed_int: int | None):
+        if failed_int:
+            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            if failed_obj.metadata.get("type") == USGSExtractionMetadataType.DETAIL:
+                ...
+            elif failed_obj.metadata.get("type") == USGSExtractionMetadataType.LOSSE:
+                chord(
+                    [
+                        USGSExtraction.task.s(extraction_id=failed_int, failed_int=failed_int, retrigger=retrigger).set(
+                            queue=self.celery_queue
+                        )
+                    ],
+                    USGSTransformHandler.task.si(self.extraction_object.pk),
+                ).apply_async()
+                return
+
         extraction_status = self._extraction_fetch_url(self.extraction_metadata.url)
         if not extraction_status:
             logger.warning(
@@ -160,33 +164,14 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                 if "json/losses.json" in item["contents"]:
                     url = item["contents"]["json/losses.json"]["url"]
 
-                    if not retrigger:
-                        losses_extraction_obj = self.init_extraction(
-                            metadata=USGSExtractionMetadata(
-                                url=url,
-                                type=USGSExtractionMetadataType.LOSSE,
-                            ),
-                            parent_extraction=self.extraction_object,
-                            add_to_queue=False,
-                        )
-                    else:
-                        losses_extraction_obj = ExtractionData.objects.filter(
+                    losses_extraction_obj = self.init_extraction(
+                        metadata=USGSExtractionMetadata(
                             url=url,
-                            metadata=USGSExtractionMetadata(
-                                url=url,
-                                type=USGSExtractionMetadataType.LOSSE,
-                            ).dict(),
-                        ).first()
-                        if not losses_extraction_obj:
-                            losses_extraction_obj = self.init_extraction(
-                                metadata=USGSExtractionMetadata(
-                                    url=url,
-                                    type=USGSExtractionMetadataType.LOSSE,
-                                ),
-                                parent_extraction=self.extraction_object,
-                                add_to_queue=False,
-                            )
-
+                            type=USGSExtractionMetadataType.LOSSE,
+                        ),
+                        parent_extraction=self.extraction_object,
+                        add_to_queue=False,
+                    )
                     losses_tasks.append(USGSExtraction.task.s(losses_extraction_obj.pk).set(queue=self.celery_queue))
 
         if losses_tasks:
@@ -244,9 +229,9 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
             case USGSExtractionMetadataType.QUERY:
-                return self.handle_type_query(retrigger=retrigger)
+                return self.handle_type_query(retrigger=retrigger, failed_int=failed_int)
             case USGSExtractionMetadataType.DETAIL:
-                return self.handle_type_detail(retrigger=retrigger)
+                return self.handle_type_detail(retrigger=retrigger, failed_int=failed_int)
             case USGSExtractionMetadataType.LOSSE:
                 return self.handle_type_losse()
             case USGSExtractionMetadataType.RESPONSE_EXCEEDED:
@@ -257,11 +242,11 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
     def retrigger(extraction_object):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == USGSExtractionMetadataType.QUERY:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True)
+            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == USGSExtractionMetadataType.DETAIL:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True)
+            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == USGSExtractionMetadataType.LOSSE:
-            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True)
+            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == USGSExtractionMetadataType.RESPONSE_EXCEEDED:
             USGSExtraction.task.delay(extraction_object.id)
 
@@ -272,5 +257,5 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         queue=CeleryQueue.USGS_EXTRACTION,
         rate_limit="100/m",  # limit is 500 requests per 5 minute window
     )
-    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
+    def task(celery_task: Task, extraction_id: int, retrigger: bool = False, failed_int: int | None = None):
         return USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)

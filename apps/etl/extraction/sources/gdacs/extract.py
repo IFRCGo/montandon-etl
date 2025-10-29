@@ -59,7 +59,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     source_enum = ExtractionData.Source.GDACS
     extraction_metadata_class = GdacsExtractionMetadata
 
-    def handle_type_query(self, retrigger: bool, failed_int: int | None = None):
+    def handle_type_query(self):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -92,32 +92,16 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 url=event_detail_url,
                 type=GdacsExtractionMetadataType.DETAIL,
             )
-
-            if not retrigger:
-                self.init_extraction(
-                    metadata=metadata,
-                    parent_extraction=self.extraction_object,
-                )
-            else:
-                extraction_object = ExtractionData.objects.filter(
-                    url=event_detail_url, metadata=metadata.model_dump()
-                ).first()
-                if not extraction_object:
-                    extraction_object = self.init_extraction(
-                        metadata=metadata,
-                        parent_extraction=self.extraction_object,
-                    )
-                else:
-                    GdacsExtraction.task.delay(extraction_object.pk, retrigger, failed_int=None)
+            self.init_extraction(
+                metadata=metadata,
+                parent_extraction=self.extraction_object,
+            )
 
     def handle_type_detail(self, retrigger: bool, failed_int: int | None = None):
-        print("failed int is here", failed_int)
         if failed_int is not None:
-            print("failed int is not none")
             failed_obj = ExtractionData.objects.filter(id=failed_int).first()
             if failed_obj.metadata.get("type") == GdacsExtractionMetadataType.DETAIL:
                 ...
-
             elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.EPISODE:
                 chord(
                     [chain(GdacsExtraction.task.s(failed_int, retrigger=retrigger), GdacsExtraction.task.s())],
@@ -125,7 +109,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 ).apply_async()
                 return
 
-            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.GEOMETRY:  # THis if for geometry failed
+            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.GEOMETRY:  # This if for geometry failed
                 chord(
                     [GdacsExtraction.task.s(failed_int)],
                     GDACSTransformHandler.task.si(self.extraction_object.id),
@@ -154,50 +138,23 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         episode_tasks = []
         for episode_data in event_response_data["properties"]["episodes"]:
             event_episode_url = episode_data["details"]
-            if not retrigger:
-                event_episode_extraction_obj = self.init_extraction(
-                    metadata=GdacsExtractionMetadata(
-                        url=event_episode_url,
-                        type=GdacsExtractionMetadataType.EPISODE,
-                    ),
-                    parent_extraction=self.extraction_object,
-                    add_to_queue=False,
-                )
-
-            else:
-                event_episode_extraction_obj = ExtractionData.objects.filter(
+            event_episode_extraction_obj = self.init_extraction(
+                metadata=GdacsExtractionMetadata(
                     url=event_episode_url,
-                    metadata=GdacsExtractionMetadata(
-                        url=event_episode_url,
-                        type=GdacsExtractionMetadataType.EPISODE,
-                    ).model_dump(),
-                ).first()
-                if not event_episode_extraction_obj:
-                    event_episode_extraction_obj = self.init_extraction(
-                        metadata=GdacsExtractionMetadata(
-                            url=event_episode_url,
-                            type=GdacsExtractionMetadataType.EPISODE,
-                        ),
-                        parent_extraction=self.extraction_object,
-                        add_to_queue=False,
-                    )
-            if not event_episode_extraction_obj:
-                logger.warning(
-                    "Failed to extract data",
-                    extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
-                )
-                return
+                    type=GdacsExtractionMetadataType.EPISODE,
+                ),
+                parent_extraction=self.extraction_object,
+                add_to_queue=False,
+            )
             episode_tasks.append(
                 chain(
                     GdacsExtraction.task.s(event_episode_extraction_obj.id, retrigger=retrigger),
                     GdacsExtraction.task.s(retrigger=retrigger),
                 )
             )
-
         chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
 
-    def handle_type_episode(self, retrigger: bool, failed_int: int | None = None):
-        print("failed int is here", failed_int)
+    def handle_type_episode(self):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
             headers={"Content-Type": "application/json"},
@@ -219,35 +176,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
         geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
 
-        if not retrigger:
-            geo_obj = self.init_extraction(
-                metadata=GdacsExtractionMetadata(
-                    params=None,
-                    url=geometry_episode_url,
-                    type=GdacsExtractionMetadataType.GEOMETRY,
-                ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=False,
-            )
-        else:
-            geo_obj = ExtractionData.objects.filter(
+        geo_obj = self.init_extraction(
+            metadata=GdacsExtractionMetadata(
+                params=None,
                 url=geometry_episode_url,
-                metadata=GdacsExtractionMetadata(
-                    url=geometry_episode_url,
-                    type=GdacsExtractionMetadataType.GEOMETRY,
-                ).model_dump(),
-            ).first()
-            if not geo_obj:
-                geo_obj = self.init_extraction(
-                    metadata=GdacsExtractionMetadata(
-                        params=None,
-                        url=geometry_episode_url,
-                        type=GdacsExtractionMetadataType.GEOMETRY,
-                    ),
-                    parent_extraction=self.extraction_object,
-                    add_to_queue=False,
-                )
-
+                type=GdacsExtractionMetadataType.GEOMETRY,
+            ),
+            parent_extraction=self.extraction_object,
+            add_to_queue=False,
+        )
         return geo_obj.id
 
     def handle_type_geometry(self):
@@ -261,11 +198,11 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
         match handler_type:
             case GdacsExtractionMetadataType.QUERY:
-                return self.handle_type_query(retrigger=retrigger, failed_int=failed_int)
+                return self.handle_type_query()
             case GdacsExtractionMetadataType.DETAIL:
                 return self.handle_type_detail(retrigger=retrigger, failed_int=failed_int)
             case GdacsExtractionMetadataType.EPISODE:
-                return self.handle_type_episode(retrigger=retrigger, failed_int=failed_int)
+                return self.handle_type_episode()
             case GdacsExtractionMetadataType.GEOMETRY:
                 return self.handle_type_geometry()
             case _:
