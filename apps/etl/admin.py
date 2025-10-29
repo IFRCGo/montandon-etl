@@ -8,12 +8,12 @@ from django.db.models.functions import Cast
 from django.utils.safestring import mark_safe
 from djangoql.admin import DjangoQLSearchMixin
 
-from apps.common.admin import linkify
+from apps.common.admin import AdminReadOnlyMixin, linkify
 
 from .models import EtlTrace, ExtractionData, PyStacLoadData, Transform
 
 
-class EtlResourceAdminMixin(admin.ModelAdmin):
+class EtlResourceAdminMixin(AdminReadOnlyMixin, admin.ModelAdmin):
     @admin.display(description="Total Rows", ordering="total_rows")
     def total_rows(self, instance):
         return instance.total_rows
@@ -64,7 +64,7 @@ class EtlResourceAdminMixin(admin.ModelAdmin):
 
 
 @admin.register(EtlTrace)
-class EtlTraceAdmin(admin.ModelAdmin):
+class EtlTraceAdmin(AdminReadOnlyMixin, admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     list_display = (
@@ -74,7 +74,7 @@ class EtlTraceAdmin(admin.ModelAdmin):
 
 
 @admin.register(ExtractionData)
-class ExtractionDataAdmin(DjangoQLSearchMixin, admin.ModelAdmin):
+class ExtractionDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),
@@ -97,7 +97,7 @@ class ExtractionDataAdmin(DjangoQLSearchMixin, admin.ModelAdmin):
 
 
 @admin.register(Transform)
-class TransformAdmin(EtlResourceAdminMixin, DjangoQLSearchMixin, admin.ModelAdmin):
+class TransformAdmin(EtlResourceAdminMixin, AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),
@@ -131,7 +131,7 @@ class TransformAdmin(EtlResourceAdminMixin, DjangoQLSearchMixin, admin.ModelAdmi
 
 
 @admin.register(PyStacLoadData)
-class PyStacLoadDataAdmin(DjangoQLSearchMixin, admin.ModelAdmin):
+class PyStacLoadDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAdmin):
     list_display = (
         "id",
         linkify("trace"),

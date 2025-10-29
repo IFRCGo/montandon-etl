@@ -67,5 +67,6 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
     )
-    def task(celery_task: Task, extraction_id: int, retrigger: bool = False, failed_int: int | None = None) -> int:
-        GlideExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+    def task(celery_task: Task, extraction_id: int):
+        # NOTE : The below `extraction_id` could be both failed extraction id or normal extraction id.
+        GlideExtraction(celery_task, extraction_id).handle()

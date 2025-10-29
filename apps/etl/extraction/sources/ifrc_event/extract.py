@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 import pydantic
 import requests
+from celery import Task
 
 from apps.etl.extraction.sources.base.handler import BaseExtraction, BaseExtractionV2
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
@@ -195,5 +196,6 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
 
     @staticmethod
     @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
-    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
+    def task(celery_task: Task, extraction_id: int):
+        # NOTE : The below `extraction_id` could be both failed extraction id or normal extraction id.
         IFRCEventExtractionV2(celery_task, extraction_id).handle()
