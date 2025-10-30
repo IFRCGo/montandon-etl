@@ -1,5 +1,4 @@
 import typing
-from datetime import datetime
 
 from celery.schedules import crontab
 from sentry_sdk.integrations.celery import beat as sentry_celery_beat
@@ -10,9 +9,9 @@ class CronJobOption(typing.TypedDict, total=False):
 
     # https://docs.celeryq.dev/en/latest/reference/celery.app.task.html#celery.app.task.Task.apply_async
 
-    expires: float | datetime
+    expire_seconds: float
     """
-    Datetime or seconds in the future for the task should expire.
+    Seconds in the future for the task should expire.
     The task won't be executed after the expiration time.
     """
 
@@ -66,7 +65,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_glide_data": CronJob(
         task="apps.etl.etl_tasks.glide.ext_and_transform_glide_latest_data",
         schedule=crontab(hour=11, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -76,7 +75,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_ifrc_event_data": CronJob(
         task="apps.etl.etl_tasks.ifrc_event.ext_and_transform_ifrcevent_latest_data",
         schedule=crontab(hour=11, minute=30),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -86,7 +85,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_emdat_data": CronJob(
         task="apps.etl.etl_tasks.emdat.ext_and_transform_emdat_latest_data",
         schedule=crontab(hour=12, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -96,7 +95,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_ibtracs_data": CronJob(
         task="apps.etl.etl_tasks.noaa_IBTrACS.ext_and_transform_ibtracs_latest_data",
         schedule=crontab(hour=12, minute=30),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -106,7 +105,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_idu_data": CronJob(
         task="apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
         schedule=crontab(hour=13, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -116,7 +115,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_gidd_data": CronJob(
         task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
         schedule=crontab(hour=13, minute=30),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
@@ -126,7 +125,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_gdacs_data": CronJob(
         task="apps.etl.etl_tasks.gdacs.ext_and_transform_gdacs_latest_data",
         schedule=crontab(hour=14, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=10,
@@ -136,7 +135,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_usgs_data": CronJob(
         task="apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
         schedule=crontab(hour=15, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=10,
@@ -146,7 +145,7 @@ SCHEDULES: dict[str, CronJob] = {
     "import_pdc_data": CronJob(
         task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
         schedule=crontab(hour=16, minute=0),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=10,
@@ -156,7 +155,7 @@ SCHEDULES: dict[str, CronJob] = {
     "trigger_pending_extraction": CronJob(
         task="apps.etl.tasks.trigger_pending_extraction",
         schedule=crontab(hour="23,11", minute=30),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_HALF_DAY),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=10,
@@ -171,14 +170,14 @@ SCHEDULES: dict[str, CronJob] = {
             checkin_margin=5,
             max_runtime=60,
         ),
-        options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
     ),
     **{
         f"celery_queue_uptime_{celery_queue_name}": CronJob(
             task="apps.etl.tasks.celery_queue_uptime_check",
             args=(celery_queue_name,),
             schedule=crontab(minute="0", hour="*"),
-            options=CronJobOption(expires=TimeConstants.SECONDS_IN_A_HOUR),
+            options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
             sentry_config=CronJobSentryConfig(
                 failure_issue_threshold=2,
                 checkin_margin=2,
