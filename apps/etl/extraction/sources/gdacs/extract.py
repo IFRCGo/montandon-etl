@@ -95,6 +95,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             self.init_extraction(
                 metadata=metadata,
                 parent_extraction=self.extraction_object,
+                queue_name=CeleryQueue.EXTRACTION,
             )
 
     def handle_type_detail(self, retrigger: bool, failed_int: int | None = None):
