@@ -184,6 +184,7 @@ class IFRCEventExtractionV2(BaseExtractionV2[IFRCExtractionMetadata]):
                     url=next_url,
                     type=IFRCExtractionMetadataType.QUERY,
                 ),
+                queue_name=CeleryQueue.EXTRACTION,
             )
 
     def handle_extract(self, retrigger: bool, failed_int: int | None = None):

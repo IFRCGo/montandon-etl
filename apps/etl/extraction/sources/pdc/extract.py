@@ -153,6 +153,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
                     ),
+                    queue_name=CeleryQueue.EXTRACTION,
                 )
 
         geo_objects = []
