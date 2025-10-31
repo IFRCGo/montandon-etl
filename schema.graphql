@@ -12,10 +12,15 @@ directive @isAuthenticated repeatable on FIELD_DEFINITION
 
 type AppEnumCollection {
   ExtractionDataSource: [AppEnumCollectionExtractionDataSource!]!
-  ExtractionDataStatus: [AppEnumCollectionExtractionDataStatus!]!
+  DataStatusTypeEnum: [AppEnumCollectionDataStatusTypeEnum!]!
   ExtractionDataSourceValidationStatus: [AppEnumCollectionExtractionDataSourceValidationStatus!]!
   PyStacLoadDataStatus: [AppEnumCollectionPyStacLoadDataStatus!]!
   PyStacLoadDataItemType: [AppEnumCollectionPyStacLoadDataItemType!]!
+}
+
+type AppEnumCollectionDataStatusTypeEnum {
+  key: DataStatusTypeEnum!
+  label: String!
 }
 
 type AppEnumCollectionExtractionDataSource {
@@ -25,11 +30,6 @@ type AppEnumCollectionExtractionDataSource {
 
 type AppEnumCollectionExtractionDataSourceValidationStatus {
   key: ExtractionDataValidationStatusTypeEnum!
-  label: String!
-}
-
-type AppEnumCollectionExtractionDataStatus {
-  key: DataStatusTypeEnum!
   label: String!
 }
 
@@ -257,7 +257,7 @@ enum PyStacLoadDataStatusEnum {
 
 input PystacDataFilter {
   createdAt: DatetimeDatetimeFilterLookup
-  status: DataStatusTypeEnum
+  status: PyStacLoadDataStatusEnum
   traceId: IDBaseFilterLookup
   itemType: PyStacLoadDataItemTypeEnum
   AND: PystacDataFilter

@@ -80,7 +80,7 @@ class Mutation:
 
 def run_transform_retrigger(data: TransformRetriggerInput) -> None:
     logger.info("Transform retrigger processing")
-    failed_transform_objects = Transform.objects.filter(id__in=data.transform_id, status=Transform.Status.FAILED)
+    failed_transform_objects = Transform.objects.filter(id__in=data.transform_ids, status=Transform.Status.FAILED)
 
     for obj in failed_transform_objects:
         transform_class = source_transform_map[obj.extraction.source]
@@ -91,7 +91,7 @@ def run_pipeline_retrigger(data: PipelineRetriggerInput) -> None:
     logger.info("Pipeline retrigger processing")
 
     failed_extraction_objects = ExtractionData.objects.filter(
-        trace_id__in=data.trace_id, status=ExtractionData.Status.FAILED
+        trace_id__in=data.trace_ids, status=ExtractionData.Status.FAILED
     )
 
     for obj in failed_extraction_objects:
