@@ -34,7 +34,7 @@ def trigger_pending_extraction() -> None:
     two_days_ago = datetime.today() - timedelta(days=2)
     pending_extraction_objects = ExtractionData.objects.filter(
         status=ExtractionData.Status.PENDING, created_at__date__lte=two_days_ago
-    )
+    )[:500]
 
     for obj in pending_extraction_objects:
         if obj.status == ExtractionData.Status.SUCCESS:
