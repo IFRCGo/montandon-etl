@@ -47,7 +47,7 @@ class TimeConstants:
     SECONDS_IN_A_MINUTE = 60
     SECONDS_IN_A_DAY = 24 * 60 * 60
     SECONDS_IN_HALF_DAY = 12 * 60 * 60
-    SECONDS_IN_SIX_HOURS = 6 * 60 * 60
+    SECONDS_IN_THREE_HOURS = 3 * 60 * 60
 
 
 class CronJob(typing.NamedTuple):
