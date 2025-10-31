@@ -1,4 +1,5 @@
 from enum import Enum
+
 import strawberry
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Status
