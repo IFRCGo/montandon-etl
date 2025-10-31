@@ -1,6 +1,7 @@
 import datetime
 import math
 
+import requests_cache
 from celery import shared_task
 from termcolor import colored
 
@@ -290,7 +291,12 @@ def get_gdacs_url(
 
 
 @shared_task
-def deep_dive(session, hazard, start_date, end_date, NUM, indent):
+def deep_dive(hazard, start_date, end_date, NUM, indent):
+    session = requests_cache.CachedSession(
+        "gdacs_request",
+        expire_after=-1,
+        allowable_codes=[200, 204],
+    )
     parameter_dict_list = []
     iter_date = start_date
     iteration = 1
