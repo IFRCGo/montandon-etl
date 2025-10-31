@@ -71,6 +71,7 @@ class Query:
                 success_count=Count("id", filter=Q(status=Status.SUCCESS)),
                 failed_count=Count("id", filter=Q(status=Status.FAILED)),
                 pending_count=Count("id", filter=Q(status=Status.PENDING)),
+                on_retry_count=Count("id", filter=Q(status=Status.ON_RETRY)),
             )
         )()
 
@@ -80,6 +81,7 @@ class Query:
                 success_count=query_total_count["success_count"],
                 failed_count=query_total_count["failed_count"],
                 pending_count=query_total_count["pending_count"],
+                on_retry_count=query_total_count["on_retry_count"],
             )
         ]
 

@@ -407,6 +407,7 @@ type StatusCountExtraction {
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
+  onRetryCount: Int!
 }
 
 type StatusCountTransform {

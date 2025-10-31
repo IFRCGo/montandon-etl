@@ -99,6 +99,7 @@ class StatusCountExtraction(ExtractionDataQuerysetMixin):
     success_count: int
     failed_count: int
     pending_count: int
+    on_retry_count: int
 
 
 @strawberry.type
