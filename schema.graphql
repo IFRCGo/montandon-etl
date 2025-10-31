@@ -51,6 +51,9 @@ type CountbytraceID {
   stacCount: Int!
 }
 
+"""A generic type to return error messages"""
+scalar CustomErrorType
+
 enum DataStatusTypeEnum {
   PENDING
   IN_PROGRESS
@@ -216,8 +219,8 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
-  retriggerPipeline(data: PipelineRetriggerInput!): String!
-  retriggerTransform(data: TransformRetriggerInput!): String!
+  retriggerPipeline(data: PipelineRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
+  retriggerTransform(data: TransformRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
 }
 
 type OffsetPaginationInfo {
@@ -241,6 +244,17 @@ enum Ordering {
 
 input PipelineRetriggerInput {
   traceIds: [ID!]!
+}
+
+type PipelineRetriggerType {
+  taskId: ID!
+  status: String!
+}
+
+type PipelineRetriggerTypeMutationResponseType {
+  ok: Boolean!
+  errors: CustomErrorType
+  result: PipelineRetriggerType
 }
 
 enum PyStacLoadDataItemTypeEnum {
