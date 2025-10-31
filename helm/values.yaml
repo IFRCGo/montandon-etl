@@ -23,7 +23,7 @@ redis:
       postStart:
         exec:
           # NOTE: Set maxmemory for database /0 (celery results backend)
-          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"]
+          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 1024mb"]
     persistence:
       enabled: true
       size: 1Gi
@@ -160,11 +160,11 @@ worker:
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "default", "--prefetch-multiplier", "2"]
     extraction:
       enabled: true
-      replicaCount: 5
+      replicaCount: 3
       celeryArgs: ["--concurrency", "3", "--max-tasks-per-child", "5", "-Q", "extraction", "--prefetch-multiplier", "2"]
     transform:
       enabled: true
-      replicaCount: 3
+      replicaCount: 1
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "transform", "--prefetch-multiplier", "2"]
     # By source
     usgs-extraction:
