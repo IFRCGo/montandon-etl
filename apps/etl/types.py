@@ -15,6 +15,12 @@ from main.graphql.context import Info
 from utils.common import get_queryset_for_model, sync_to_async
 
 
+@strawberry.type
+class PipelineRetriggerType:
+    task_id: strawberry.ID
+    status: str
+
+
 class ExtractionDataQuerysetMixin:
     @staticmethod
     def get_queryset(_, queryset: models.QuerySet | None, info: Info):
