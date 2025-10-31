@@ -24,6 +24,20 @@ def get_enum_name_from_django_field(
     model_name=None,
     serializer_name=None,
 ):
+    # ✅ Add this override map at the top
+    ENUM_NAME_OVERRIDES = {
+        ("ExtractionData", "status"): "DataStatusTypeEnum",
+    }
+
+    # Detect model + field name early
+    _model_name = getattr(getattr(field, "model", None), "__name__", None)
+    _field_name = getattr(field, "name", None)
+
+    # ✅ Apply override before rest of logic
+    if _model_name and _field_name and (_model_name, _field_name) in ENUM_NAME_OVERRIDES:
+        return ENUM_NAME_OVERRIDES[(_model_name, _field_name)]
+
+    # --- original logic continues ---
     def _have_model(_field):
         if hasattr(_field, "model") or hasattr(getattr(_field, "Meta", None), "model"):
             return True

@@ -4,7 +4,7 @@ import strawberry
 import strawberry_django
 from django.db import models
 
-from apps.etl.enums import DataStatusTypeEnum, PyStacLoadDataItemTypeEnum, SourceTypeEnum
+from apps.etl.enums import DataStatusTypeEnum, PyStacLoadDataItemTypeEnum, PyStacLoadDataStatusEnum, SourceTypeEnum
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 
 
@@ -35,7 +35,7 @@ class TransformDataFilter:
 @strawberry_django.filters.filter(PyStacLoadData, lookups=True)
 class PystacDataFilter:
     created_at: strawberry.auto
-    status: Optional[DataStatusTypeEnum]
+    status: Optional[PyStacLoadDataStatusEnum]
     trace_id: strawberry.auto
     item_type: Optional[PyStacLoadDataItemTypeEnum]
 
