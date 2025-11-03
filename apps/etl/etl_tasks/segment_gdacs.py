@@ -1,15 +1,10 @@
 import datetime
 import math
 
+import requests_cache
+from celery import shared_task
 from termcolor import colored
 
-from apps.etl.extraction.sources.gdacs.extract import (
-    GdacsExtraction,
-    GdacsExtractionMetadata,
-    GdacsExtractionMetadataType,
-    GdacsExtractionParamsMetadata,
-)
-from main.celery import CeleryQueue
 from main.configs import etl_config
 
 URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
@@ -295,7 +290,14 @@ def get_gdacs_url(
     return url
 
 
-def deep_dive(session, hazard, start_date, end_date, NUM, indent):
+@shared_task
+def deep_dive(hazard, start_date, end_date, NUM, indent):
+    session = requests_cache.CachedSession(
+        "gdacs_request",
+        expire_after=-1,
+        allowable_codes=[200, 204],
+    )
+    parameter_dict_list = []
     iter_date = start_date
     iteration = 1
 
@@ -338,20 +340,15 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                                     "green",
                                                 )
                                             )
-                                            GdacsExtraction.init_extraction(
-                                                metadata=GdacsExtractionMetadata(
-                                                    params=GdacsExtractionParamsMetadata(
-                                                        fromDate=str(iter_date),
-                                                        toDate=str(session_end_date),
-                                                        alertlevel=alert_level,
-                                                        eventlist=hazard,
-                                                        country=country,
-                                                    ),
-                                                    url=URL,
-                                                    type=GdacsExtractionMetadataType.QUERY,
-                                                ),
-                                                queue_name=CeleryQueue.EXTRACTION,
-                                            )
+
+                                            data = {
+                                                "fromDate": str(iter_date),
+                                                "toDate": str(session_end_date),
+                                                "alertlevel": alert_level,
+                                                "eventlist": hazard,
+                                                "country": country,
+                                            }
+                                            parameter_dict_list.append(data)
 
                                             total_items += items
                                     elif response.status_code == 204:
@@ -372,20 +369,14 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                         "green",
                                     )
                                 )
-                                GdacsExtraction.init_extraction(
-                                    metadata=GdacsExtractionMetadata(
-                                        params=GdacsExtractionParamsMetadata(
-                                            fromDate=str(iter_date),
-                                            toDate=str(session_end_date),
-                                            alertlevel=alert_level,
-                                            eventlist=hazard,
-                                            country=None,
-                                        ),
-                                        url=URL,
-                                        type=GdacsExtractionMetadataType.QUERY,
-                                    ),
-                                    queue_name=CeleryQueue.EXTRACTION,
-                                )
+                                data = {
+                                    "fromDate": str(iter_date),
+                                    "toDate": str(session_end_date),
+                                    "alertlevel": alert_level,
+                                    "eventlist": hazard,
+                                    "country": None,
+                                }
+                                parameter_dict_list.append(data)
                                 total_items += items
                         elif response.status_code == 204:
                             print(
@@ -411,20 +402,14 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                 print(
                     colored(f"{indent}Good: {iter_date} to {session_end_date} for {hazard} and got {items} items", "green")
                 )
-                GdacsExtraction.init_extraction(
-                    metadata=GdacsExtractionMetadata(
-                        params=GdacsExtractionParamsMetadata(
-                            fromDate=str(iter_date),
-                            toDate=str(session_end_date),
-                            alertlevel="Green;Orange;Red",
-                            eventlist=hazard,
-                            country=None,
-                        ),
-                        url=URL,
-                        type=GdacsExtractionMetadataType.QUERY,
-                    ),
-                    queue_name=CeleryQueue.EXTRACTION,
-                )
+                data = {
+                    "fromDate": str(iter_date),
+                    "toDate": str(session_end_date),
+                    "alertlevel": "Green;Orange;Red",
+                    "eventlist": hazard,
+                    "country": None,
+                }
+                parameter_dict_list.append(data)
 
                 total_items = items
         elif response.status_code == 204:
@@ -439,4 +424,4 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
         iter_date = next_date
         iteration += 1
 
-    return total_items
+    return parameter_dict_list

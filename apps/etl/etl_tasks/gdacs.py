@@ -2,10 +2,17 @@ import datetime
 from datetime import datetime as dt
 
 import requests_cache
-from celery import shared_task
+from celery import chain, shared_task
 from celery.utils.log import get_task_logger
 
+from apps.etl.extraction.sources.gdacs.extract import (
+    GdacsExtraction,
+    GdacsExtractionMetadata,
+    GdacsExtractionMetadataType,
+    GdacsExtractionParamsMetadata,
+)
 from apps.etl.models import ExtractionData, HazardType
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 logger = get_task_logger(__name__)
@@ -30,6 +37,25 @@ URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
 
 
 @shared_task
+def gdacs_init_extraction(params_list):
+    for params_dict in params_list:
+        GdacsExtraction.init_extraction(
+            metadata=GdacsExtractionMetadata(
+                params=GdacsExtractionParamsMetadata(
+                    fromDate=str(params_dict.get("fromDate")),
+                    toDate=str(params_dict.get("toDate")),
+                    alertlevel=params_dict.get("alertlevel"),
+                    eventlist=str(params_dict.get("eventlist")),
+                    country=params_dict.get("country"),
+                ),
+                url=URL,
+                type=GdacsExtractionMetadataType.QUERY,
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
+        )
+
+
+@shared_task
 def ext_and_transform_gdacs_latest_data():
     from apps.etl.etl_tasks.segment_gdacs import deep_dive
 
@@ -49,7 +75,7 @@ def ext_and_transform_gdacs_latest_data():
 
     end_date = dt.today().date()
     for hazard, size in HAZARDS:
-        deep_dive(session, hazard, start_date, end_date, size, "")
+        chain(deep_dive.si(hazard, start_date, end_date, size, ""), gdacs_init_extraction.s()).apply_async()
 
 
 @shared_task
@@ -59,4 +85,4 @@ def ext_and_transform_gdacs_historical_data():
     start_date = datetime.date(2000, 1, 1)
     end_date = datetime.date(2025, 1, 1)
     for hazard, size in HAZARDS:
-        deep_dive(session, hazard, start_date, end_date, size, "")
+        chain(deep_dive.si(hazard, start_date, end_date, size, ""), gdacs_init_extraction.s()).apply_async()
