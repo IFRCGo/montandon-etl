@@ -84,6 +84,8 @@ minio:
       enabled: true
     extraCommands:
       - "mc anonymous set download provisioning/montandon-etl-static"
+      - "mc anonymous set download provisioning/montandon-etl-data"
+
 
 postgresql:
   enabled: false
