@@ -154,7 +154,7 @@ SCHEDULES: dict[str, CronJob] = {
     ),
     "trigger_pending_extraction": CronJob(
         task="apps.etl.tasks.trigger_pending_extraction",
-        schedule=crontab(hour="11,23", minute=0),
+        schedule=crontab(hour="6,11,16,23", minute=0),
         options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,

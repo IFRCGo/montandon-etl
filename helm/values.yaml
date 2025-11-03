@@ -160,7 +160,7 @@ worker:
       celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "default", "--prefetch-multiplier", "2"]
     extraction:
       enabled: true
-      replicaCount: 3
+      replicaCount: 2
       celeryArgs: ["--concurrency", "3", "--max-tasks-per-child", "5", "-Q", "extraction", "--prefetch-multiplier", "2"]
     transform:
       enabled: true
