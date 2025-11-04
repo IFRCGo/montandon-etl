@@ -381,6 +381,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
 
         if add_to_queue:
             cls.task.apply_async([extraction_obj.pk], queue=queue_name or cls.DEFAULT_CELERY_QUEUE)
+
         return extraction_obj
 
     @abc.abstractmethod
