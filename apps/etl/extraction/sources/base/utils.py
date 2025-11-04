@@ -1,9 +1,12 @@
 import hashlib
 import json
+import logging
 
 from django.core.files.base import ContentFile
 
 from apps.etl.models import ExtractionData, get_trace_id
+
+logger = logging.getLogger(__name__)
 
 
 def hash_file_content(content):
@@ -38,6 +41,10 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
         instance.revision_id = duplicate_extraction_obj.id
     else:
         instance.resp_data.save(file_name, ContentFile(response_data))
+
+    if not instance.resp_data.storage.exists(instance.resp_data.name):
+        logger.warning("File not found in the path")
+        instance.resp_data = None
 
     instance.save()
 

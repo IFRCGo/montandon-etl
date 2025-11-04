@@ -29,31 +29,34 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         episodes = []
         event_objects = extraction_object.child_extractions.all()
         for episode_obj in event_objects:
-            with episode_obj.resp_data.open("rb") as f:
-                file_content = f.read()
-            episode_data_temp_file = write_into_temp_file(file_content)
+            if episode_obj.resp_data:
+                with episode_obj.resp_data.open("rb") as f:
+                    file_content = f.read()
+                episode_data_temp_file = write_into_temp_file(file_content)
 
-            event_episode_data = GdacsEpisodes(
-                type=GDACSDataSourceType.EVENT,
-                data=GenericDataSource(
-                    source_url=episode_obj.url, input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE)
-                ),
-            )
-            geometry_object = episode_obj.child_extractions.all().first()
+                event_episode_data = GdacsEpisodes(
+                    type=GDACSDataSourceType.EVENT,
+                    data=GenericDataSource(
+                        source_url=episode_obj.url,
+                        input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
+                    ),
+                )
+                geometry_object = episode_obj.child_extractions.all().first()
 
-            with geometry_object.resp_data.open("rb") as f:
-                file_content = f.read()
-            geometry_detail_temp_file = write_into_temp_file(file_content)
-            geometry_episode_data = GdacsEpisodes(
-                type=GDACSDataSourceType.GEOMETRY,
-                data=GenericDataSource(
-                    source_url=geometry_object.url,
-                    input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
-                ),
-            )
+                if geometry_object.resp_data:
+                    with geometry_object.resp_data.open("rb") as f:
+                        file_content = f.read()
+                    geometry_detail_temp_file = write_into_temp_file(file_content)
+                    geometry_episode_data = GdacsEpisodes(
+                        type=GDACSDataSourceType.GEOMETRY,
+                        data=GenericDataSource(
+                            source_url=geometry_object.url,
+                            input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
+                        ),
+                    )
 
-            episode_data_tuple = (event_episode_data, geometry_episode_data)
-            episodes.append(episode_data_tuple)
+                    episode_data_tuple = (event_episode_data, geometry_episode_data)
+                    episodes.append(episode_data_tuple)
 
         result = cls.transformer_schema(
             data=GdacsDataSourceType(
