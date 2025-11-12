@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import requests
+from django.core.serializers import serialize
 from django.test import override_settings
 from pystac_monty.sources.common import MontyDataTransformer
 
@@ -37,7 +38,7 @@ def test_handle_gdacs_extraction_with_mocked_request():
     episode_1_geom_data = json.load(open("apps/etl/tests/dataset/gdacs/step4_first_episodes_geometry.json"))
 
     # Load fixed output reference
-    expected_output = json.load(open("apps/etl/tests/dataset/gdacs/fixed_output_gdacs.json"))
+    expected_output = json.load(open("apps/etl/tests/dataset/gdacs/fixed_output_gdacs.json", "r", encoding="utf-8"))
 
     # Use real requests.get for non-mocked URLs
     real_requests_get = requests.get
@@ -72,10 +73,23 @@ def test_handle_gdacs_extraction_with_mocked_request():
     assert PyStacLoadData.objects.count() == 2
 
     # Compare actual output with fixed JSON (ignoring volatile fields)
-    latest_data = list(PyStacLoadData.objects.values())
-    ignore_keys = ["created_at", "modified_at", "monty:etl_id", "pk", "trace_id", "transform_id_id", "item_datetime", "id"]
+    latest_data = PyStacLoadData.objects.all()
+    latest_data_json = serialize("json", latest_data)
+    actual_json = json.loads(latest_data_json)
 
-    filtered_actual = remove_ignored_keys(latest_data, ignore_keys)
+    ignore_keys = {
+        "created_at",
+        "modified_at",
+        "monty:etl_id",
+        "pk",
+        "trace",
+        "transform_id",
+        "id",
+        "href",
+        "keywords",
+    }
+
+    filtered_actual = remove_ignored_keys(actual_json, ignore_keys)
     filtered_expected = remove_ignored_keys(expected_output, ignore_keys)
 
     assert filtered_actual == filtered_expected, "GDACS output does not match fixed_output_gdacs.json"

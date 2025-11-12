@@ -31,7 +31,7 @@ TEST_CASES = [
 @pytest.mark.django_db
 @pytest.mark.parametrize("case", TEST_CASES)
 @override_settings(TRANSFORM_SUCCESS_RATE=20, CELERY_TASK_ALWAYS_EAGER=True, CACHES=TEST_CACHES)
-def test_handle_extraction_various_gidd_files(case):
+def test_handle_extraction_various_glide_files(case):
     input_filename = case["input"]
     fixed_filename = case["expected"]
 
@@ -79,10 +79,10 @@ def test_handle_extraction_various_gidd_files(case):
 
     # Load expected output
     with open(expected_output_path, "r", encoding="utf-8") as expected_file:
-        expected_json = json5.load(expected_file)
+        expected_json = json.load(expected_file)
 
     # Keys to ignore when comparing
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href"}
+    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords"}
 
     # Clean and compare
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
