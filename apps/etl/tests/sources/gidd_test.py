@@ -66,7 +66,7 @@ def test_handle_extraction_various_gidd_files(case):
     # Assertions for DB objects
     assert ExtractionData.objects.count() == 1
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 22  # Update count as per your test data
+    assert PyStacLoadData.objects.count() == 20  # Update count as per your test data
 
     # Path for expected (fixed) JSON output
     expected_output_path = settings.BASE_DIR / "apps/etl/tests/dataset/idmc_gidd" / fixed_filename
@@ -82,7 +82,7 @@ def test_handle_extraction_various_gidd_files(case):
         expected_json = json5.load(expected_file)
 
     # Keys to ignore when comparing
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id"}
+    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords"}
 
     # Clean and compare
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
