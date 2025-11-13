@@ -14,18 +14,11 @@ class Command(BaseCommand):
         prompt = self.style.NOTICE(f"{message} (y/n): ")
         return input(prompt).strip().lower() == "y"
 
-    def add_arguments(self, parser):
-        parser.add_argument("--country_code", required=True, help="if multiple make sure to pass comma separated")
-
     def handle(self, *args, **options):
-        country_code = options["country_code"]
-
-        confirm_message = (
-            f"Are you sure? This will trigger Desinventar import\nCountry code:\t{country_code}\nPlease confirm"
-        )
+        confirm_message = "Are you sure? This will trigger Desinventar import. Please confirm"
         if not self.confirm(confirm_message):
             self.stderr.write(self.style.ERROR("Skipped...."))
             return
 
-        ext_and_transform_desinventar_historical_data(country_code_list=[country_code])
+        ext_and_transform_desinventar_historical_data()
         self.stdout.write(self.style.SUCCESS("Triggered successfully"))
