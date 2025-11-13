@@ -39,14 +39,13 @@ def ext_and_transform_usgs_latest_data():
         f"&endtime={end_date.strftime('%Y-%m-%d')}"
     )
 
-    ext_object = USGSExtraction.init_extraction(
+    USGSExtraction.init_extraction(
         metadata=USGSExtractionMetadata(
             url=url,
             type=USGSExtractionMetadataType.QUERY,
         ),
-        queue_name=CeleryQueue.EXTRACTION,
+        queue_name=CeleryQueue.USGS_EXTRACTION,
     )
-    USGSExtraction.task.delay(ext_object.id)
 
 
 @shared_task
