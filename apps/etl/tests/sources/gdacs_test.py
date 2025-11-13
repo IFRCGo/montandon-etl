@@ -8,7 +8,7 @@ from django.core.serializers import serialize
 from django.test import override_settings
 from pystac_monty.sources.common import MontyDataTransformer
 
-from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_historical_data
+from apps.etl.etl_tasks.gdacs import ext_and_transform_gdacs_latest_data
 from apps.etl.etl_tasks.segment_gdacs import deep_dive
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.tests.common.base_settings_test import TEST_CACHES
@@ -65,7 +65,7 @@ def test_handle_gdacs_extraction_with_mocked_request():
         mock_get.side_effect = mock_get_side_effect
 
         # Run the ETL pipeline
-        ext_and_transform_gdacs_historical_data()
+        ext_and_transform_gdacs_latest_data()
 
     # Basic model assertions
     assert ExtractionData.objects.count() == 12
