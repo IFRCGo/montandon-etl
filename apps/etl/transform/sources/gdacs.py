@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
     GDACSDataSource,
@@ -72,4 +73,4 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
     @staticmethod
     @app.task(rate_limit="50/m", queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        GDACSTransformHandler().handle_transformation(extraction_id)
+        GDACSTransformHandler().handle_transformation(extraction_id, settings.GDACS_TRANSFORMER_VERSION)

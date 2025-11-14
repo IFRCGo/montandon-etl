@@ -1,3 +1,4 @@
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.idu import IDUDataSource, IDUTransformer
 
@@ -29,4 +30,4 @@ class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource])
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        IDUTransformHandler().handle_transformation(extraction_id)
+        IDUTransformHandler().handle_transformation(extraction_id, settings.IDU_TRANSFORMER_VERSION)

@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 
@@ -34,4 +35,4 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        EMDATTransformHandler().handle_transformation(extraction_id)
+        EMDATTransformHandler().handle_transformation(extraction_id, settings.EMDAT_TRANSFORMER_VERSION)

@@ -85,4 +85,4 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
-        DesinventarTransformHandler().handle_transformation(extraction_id)
+        DesinventarTransformHandler().handle_transformation(extraction_id, settings.DESINVENTAR_TRANSFROMER_VERSION)
