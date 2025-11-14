@@ -78,7 +78,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         return 100 * (1 - (failed_rows / total_rows))
 
     @classmethod
-    def handle_transformation(cls, extraction_id: int):
+    def handle_transformation(cls, extraction_id: int, version: str):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
 
@@ -89,11 +89,13 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         transform_obj = Transform.objects.filter(
             extraction=extraction_obj,
             trace_id=trace_id,
+            version=version,
         ).first()
         if not transform_obj:
             transform_obj = Transform.objects.create(
                 extraction=extraction_obj,
                 trace_id=trace_id,
+                version=version,
             )
 
         SentryTag.set_tags(

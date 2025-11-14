@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
 
@@ -49,4 +50,4 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        USGSTransformHandler().handle_transformation(extraction_id)
+        USGSTransformHandler().handle_transformation(extraction_id, settings.USGS_TRANSFORMER_VERSION)

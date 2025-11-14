@@ -1,6 +1,7 @@
 import json
 import logging
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ifrc_events import IFRCEventDataSource, IFRCEventTransformer
 
@@ -33,4 +34,4 @@ class IFRCEventTransformHandler(BaseTransformerHandler[IFRCEventTransformer, IFR
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        IFRCEventTransformHandler().handle_transformation(extraction_id)
+        IFRCEventTransformHandler().handle_transformation(extraction_id, settings.IFRC_TRANSFORMER_VERSION)

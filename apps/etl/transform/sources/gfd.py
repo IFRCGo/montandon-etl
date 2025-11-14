@@ -1,3 +1,4 @@
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gfd import GFDDataSource, GFDTransformer
 
@@ -28,4 +29,4 @@ class GFDTransformHandler(BaseTransformerHandler[GFDTransformer, GFDDataSource])
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        GFDTransformHandler().handle_transformation(extraction_id)
+        GFDTransformHandler().handle_transformation(extraction_id, settings.GFD_TRANSFORMER_VERSION)

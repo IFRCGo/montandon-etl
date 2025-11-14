@@ -213,6 +213,7 @@ class Transform(EtlResource):
     Status = Status
 
     # METADATA
+    version = models.CharField(max_length=10, default="1.0.0")
     metadata = models.JSONField(default=dict)
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
 
