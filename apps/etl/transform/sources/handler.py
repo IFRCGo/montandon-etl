@@ -89,7 +89,6 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         transform_obj = Transform.objects.filter(
             extraction=extraction_obj,
             trace_id=trace_id,
-            version=version,
         ).first()
         if not transform_obj:
             transform_obj = Transform.objects.create(
