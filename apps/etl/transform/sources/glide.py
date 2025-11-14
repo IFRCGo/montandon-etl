@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.glide import GlideDataSource, GlideTransformer
 
@@ -38,4 +39,4 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
         if not json.loads(data)["glideset"]:
             return
         else:
-            GlideTransformHandler().handle_transformation(extraction_id)
+            GlideTransformHandler().handle_transformation(extraction_id, settings.GLIDE_TRANSFORMER_VERSION)

@@ -1,3 +1,4 @@
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
@@ -29,4 +30,4 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        GIDDTransformHandler().handle_transformation(extraction_id)
+        GIDDTransformHandler().handle_transformation(extraction_id, settings.GIDD_TRANSFORMER_VERSION)

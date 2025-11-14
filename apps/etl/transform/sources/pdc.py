@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
@@ -53,4 +54,4 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        return PDCTransformHandler().handle_transformation(extraction_id)
+        return PDCTransformHandler().handle_transformation(extraction_id, settings.PDC_TRANSFORMER_VERSION)
