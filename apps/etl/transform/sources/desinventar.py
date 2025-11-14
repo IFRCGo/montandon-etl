@@ -43,7 +43,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         return result, tmp_files
 
     @classmethod
-    def handle_transformation(cls, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
+    def handle_transformation(cls, extraction_id: int, version: str):  # type: ignore[reportIncompatibleMethodOverride]
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
         from apps.etl.extraction.sources.desinventar.extract import DesInventarExtractionMetadata
@@ -57,6 +57,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         transform_obj, _ = Transform.objects.get_or_create(
             extraction=extraction_obj,
             trace_id=get_trace_id(extraction_obj),
+            version=version,
         )
 
         transform_obj.mark_as_started()
