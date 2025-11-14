@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
@@ -33,4 +34,4 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        IbtracsTransformHandler().handle_transformation(extraction_id)
+        IbtracsTransformHandler().handle_transformation(extraction_id, settings.IBTRACS_TRANSFORMER_VERSION)
