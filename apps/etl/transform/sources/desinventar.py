@@ -1,5 +1,7 @@
 import logging
+import os
 import tempfile
+from pathlib import Path
 
 from django.conf import settings
 from pystac_monty.geocoding import TheirGeocoder
@@ -11,6 +13,7 @@ from pystac_monty.sources.desinventar import (
 
 from apps.etl.models import ExtractionData, Transform, get_trace_id
 from apps.etl.transform.sources.handler import BaseTransformerHandler
+from apps.etl.utils import remove_tmp_directory
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from main.logging import log_extra
@@ -24,11 +27,14 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
 
-        # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_zip_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        tmp_zip_file = tempfile.NamedTemporaryFile(dir=tmp_dir_path, suffix=".zip", delete=False)
         tmp_zip_file.write(file_content)
 
         data_source = DesinventarDataSourceType(
@@ -39,8 +45,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         )
         result = cls.transformer_schema(data_source)
 
-        tmp_files = [tmp_zip_file]
-        return result, tmp_files
+        return result
 
     @classmethod
     def handle_transformation(cls, extraction_id: int, version: str):  # type: ignore[reportIncompatibleMethodOverride]
@@ -64,7 +69,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
         geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
         try:
-            schema, tmp_files = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
+            schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
             transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.get_stac_items()
 
@@ -77,10 +82,12 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             }
             transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
+            remove_tmp_directory(extraction_obj)
+
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
             transform_obj.mark_as_ended(Transform.Status.FAILED)
-            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
+            remove_tmp_directory(extraction_obj)
             raise e
 
     @staticmethod

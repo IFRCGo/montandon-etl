@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 
 from django.conf import settings
 from pystac_monty.sources.common import DataType, File
@@ -19,6 +21,10 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         metadata: dict | None = extraction_obj.metadata
         if not metadata:
             raise Exception("Metadata is not defined")
@@ -31,12 +37,12 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_hazard_file = write_into_temp_file(file_content)
+        tmp_hazard_file = write_into_temp_file(file_content, tmp_dir_path)
 
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_exposure_detail_file = write_into_temp_file(file_content)
+        tmp_exposure_detail_file = write_into_temp_file(file_content, tmp_dir_path)
 
         result = cls.transformer_schema(
             data=PDCDataSourceType(
@@ -48,8 +54,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
             )
         )
 
-        tmp_files = [tmp_hazard_file, tmp_exposure_detail_file]
-        return result, tmp_files
+        return result
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

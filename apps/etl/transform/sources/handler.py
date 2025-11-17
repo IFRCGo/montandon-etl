@@ -1,6 +1,5 @@
 import abc
 import logging
-import os
 import typing
 import uuid
 
@@ -9,7 +8,7 @@ from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
-from apps.etl.utils import generate_item_index_fields_values
+from apps.etl.utils import generate_item_index_fields_values, remove_tmp_directory
 from main.celery import app
 from main.configs import etl_config
 from main.logging import log_extra
@@ -108,7 +107,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         try:
             geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
-            schema, tmp_files = cls.get_schema_data(extraction_obj)
+            schema = cls.get_schema_data(extraction_obj)
             transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.get_stac_items()
@@ -129,9 +128,8 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                 PyStacLoadData.objects.filter(transform_id=transform_obj).delete()
             logger.info("Transformation ended")
 
-            for tmp_file in tmp_files:
-                if os.path.exists(tmp_file.name):
-                    os.remove(tmp_file.name)
+            # Clean up tmp files
+            remove_tmp_directory(extraction_obj)
 
         except Exception as e:
             logger.error(
@@ -139,6 +137,9 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                 exc_info=True,
                 extra=log_extra({"extraction_id": extraction_obj.id}),
             )
+            # Delete the directory incase of failures
+            remove_tmp_directory(extraction_obj)
+
             transform_obj.mark_as_ended(Transform.Status.FAILED)
             raise e
 

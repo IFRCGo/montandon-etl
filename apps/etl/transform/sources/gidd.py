@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
@@ -13,10 +16,14 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
 
     @classmethod
     def get_schema_data(cls, extraction_obj):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         with extraction_obj.resp_data.open() as file_data:
             file_content = file_data.read()
 
-        data_file = write_into_temp_file(content=file_content)
+        data_file = write_into_temp_file(file_content, tmp_dir_path)
 
         data_source = GenericDataSource(
             source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
@@ -24,8 +31,7 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
 
         result = cls.transformer_schema(data_source)
 
-        tmp_files = [data_file]
-        return result, tmp_files
+        return result
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)

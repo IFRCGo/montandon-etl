@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -8,13 +9,20 @@ import pandas as pd
 import requests
 from django.core.files import File
 
+from apps.etl.models import ExtractionData
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
 
-def write_into_temp_file(content):
-    temp_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
+def remove_tmp_directory(extraction_obj: ExtractionData):
+    parent_file_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+    if os.path.isdir(parent_file_path):
+        shutil.rmtree(parent_file_path)
+
+
+def write_into_temp_file(content, dir: Path):
+    temp_file = tempfile.NamedTemporaryFile(dir=dir, suffix=".json", delete=False)
     temp_file.write(content)
     temp_file.close()
     return temp_file
