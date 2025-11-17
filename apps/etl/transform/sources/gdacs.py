@@ -1,4 +1,5 @@
 import logging
+import os
 
 from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
@@ -11,6 +12,7 @@ from pystac_monty.sources.gdacs import (
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
+from main.logging import log_extra
 
 logger = logging.getLogger(__name__)
 
@@ -23,42 +25,55 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
 
     @classmethod
     def get_schema_data(cls, extraction_object):
-        with extraction_object.resp_data.open("rb") as f:
-            file_content = f.read()
-        data_file = write_into_temp_file(file_content)
+        data_file = None
+        episode_data_temp_file = None
+        geometry_detail_temp_file = None
+        try:
+            with extraction_object.resp_data.open("rb") as f:
+                file_content = f.read()
+            data_file = write_into_temp_file(file_content)
 
-        episodes = []
-        event_objects = extraction_object.child_extractions.all()
-        for episode_obj in event_objects:
-            if episode_obj.resp_data:
-                with episode_obj.resp_data.open("rb") as f:
-                    file_content = f.read()
-                episode_data_temp_file = write_into_temp_file(file_content)
-
-                event_episode_data = GdacsEpisodes(
-                    type=GDACSDataSourceType.EVENT,
-                    data=GenericDataSource(
-                        source_url=episode_obj.url,
-                        input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
-                    ),
-                )
-                geometry_object = episode_obj.child_extractions.all().first()
-
-                if geometry_object.resp_data:
-                    with geometry_object.resp_data.open("rb") as f:
+            episodes = []
+            event_objects = extraction_object.child_extractions.all()
+            for episode_obj in event_objects:
+                if episode_obj.resp_data:
+                    with episode_obj.resp_data.open("rb") as f:
                         file_content = f.read()
-                    geometry_detail_temp_file = write_into_temp_file(file_content)
-                    geometry_episode_data = GdacsEpisodes(
-                        type=GDACSDataSourceType.GEOMETRY,
+                    episode_data_temp_file = write_into_temp_file(file_content)
+
+                    event_episode_data = GdacsEpisodes(
+                        type=GDACSDataSourceType.EVENT,
                         data=GenericDataSource(
-                            source_url=geometry_object.url,
-                            input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
+                            source_url=episode_obj.url,
+                            input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
                         ),
                     )
+                    geometry_object = episode_obj.child_extractions.all().first()
 
-                    episode_data_tuple = (event_episode_data, geometry_episode_data)
-                    episodes.append(episode_data_tuple)
+                    if geometry_object and geometry_object.resp_data:
+                        with geometry_object.resp_data.open("rb") as f:
+                            file_content = f.read()
+                        geometry_detail_temp_file = write_into_temp_file(file_content)
+                        geometry_episode_data = GdacsEpisodes(
+                            type=GDACSDataSourceType.GEOMETRY,
+                            data=GenericDataSource(
+                                source_url=geometry_object.url,
+                                input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
+                            ),
+                        )
 
+                        episode_data_tuple = (event_episode_data, geometry_episode_data)
+                        episodes.append(episode_data_tuple)
+        except Exception as e:
+            logger.error(
+                "Error occured. Deleting the temporary files",
+                exc_info=True,
+                extra=log_extra({"extraction_id": extraction_object.id}),
+            )
+            for tmp_file in [data_file, episode_data_temp_file, geometry_detail_temp_file]:
+                if tmp_file and os.path.exists(tmp_file.name):
+                    os.remove(tmp_file.name)
+            raise e
         result = cls.transformer_schema(
             data=GdacsDataSourceType(
                 source_url=extraction_object.url,
