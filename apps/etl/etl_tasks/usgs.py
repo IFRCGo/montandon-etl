@@ -44,7 +44,7 @@ def ext_and_transform_usgs_latest_data():
             url=url,
             type=USGSExtractionMetadataType.QUERY,
         ),
-        queue_name=CeleryQueue.EXTRACTION,
+        queue_name=CeleryQueue.USGS_EXTRACTION,
     )
 
 
