@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 
 from django.conf import settings
 from pystac_monty.sources.common import DataType, File, GenericDataSource
@@ -17,9 +19,13 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
 
     @classmethod
     def get_schema_data(cls, extraction_obj):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
-        data_file = write_into_temp_file(data)
+        data_file = write_into_temp_file(data, tmp_dir_path)
 
         data_source = GenericDataSource(
             source_url=extraction_obj.url,
@@ -28,8 +34,7 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
 
         result = cls.transformer_schema(data=data_source)
 
-        tmp_files = [data_file]
-        return result, tmp_files
+        return result
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
