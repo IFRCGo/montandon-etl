@@ -1,4 +1,6 @@
 import json
+import os
+from pathlib import Path
 
 from django.conf import settings
 from pystac_monty.sources.common import DataType, File
@@ -16,6 +18,10 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
 
     @classmethod
     def get_schema_data(cls, extraction_obj):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
 
         losses_data = []
@@ -27,14 +33,14 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             losses_data.append(data)
 
         # Write losses_data (which is JSON) to a temp file in text mode
-        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8"))
+        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8"), tmp_dir_path)
 
         # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
         # Write raw bytes to a temp file
-        data_path = write_into_temp_file(data)
+        data_path = write_into_temp_file(data, tmp_dir_path)
 
         result = cls.transformer_schema(
             USGSDataSourceType(
@@ -44,8 +50,7 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
             )
         )
 
-        tmp_files = [data_path, losses_data_path]
-        return result, tmp_files
+        return result
 
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
