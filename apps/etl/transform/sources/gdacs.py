@@ -10,6 +10,7 @@ from pystac_monty.sources.gdacs import (
     GDACSTransformer,
 )
 
+from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
@@ -24,8 +25,8 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
     transformer_schema = GDACSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_object):
-        tmp_dir_path = Path("/tmp") / extraction_object.get_source_display() / str(extraction_object.id)
+    def get_schema_data(cls, extraction_object, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_object.get_source_display() / dir_uuid
         if not os.path.isdir(tmp_dir_path):
             os.makedirs(tmp_dir_path, exist_ok=True)
 
@@ -34,7 +35,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         data_file = write_into_temp_file(file_content, tmp_dir_path)
 
         episodes = []
-        event_objects = extraction_object.child_extractions.all()
+        event_objects = extraction_object.child_extractions.filter(status=ExtractionData.Status.SUCCESS)
         for episode_obj in event_objects:
             if episode_obj and episode_obj.resp_data:
                 with episode_obj.resp_data.open("rb") as f:
@@ -48,7 +49,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                         input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
                     ),
                 )
-                geometry_object = episode_obj.child_extractions.all().first()
+                geometry_object = episode_obj.child_extractions.filter(status=ExtractionData.Status.SUCCESS).first()
 
                 if geometry_object and geometry_object.resp_data:
                     with geometry_object.resp_data.open("rb") as f:
