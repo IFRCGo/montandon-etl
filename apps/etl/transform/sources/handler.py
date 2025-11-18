@@ -104,10 +104,12 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         )
 
         transform_obj.mark_as_started()
+        dir_uuid = str(uuid.uuid4())
+
         try:
             geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
-            schema = cls.get_schema_data(extraction_obj)
+            schema = cls.get_schema_data(extraction_obj, dir_uuid)
             transformer = cls.transformer_class(schema, geocoder)
 
             transformed_items = transformer.get_stac_items()
@@ -129,7 +131,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
             logger.info("Transformation ended")
 
             # Clean up tmp files
-            remove_tmp_directory(extraction_obj)
+            remove_tmp_directory(extraction_obj, dir_uuid)
 
         except Exception as e:
             logger.error(
@@ -138,7 +140,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
                 extra=log_extra({"extraction_id": extraction_obj.id}),
             )
             # Delete the directory incase of failures
-            remove_tmp_directory(extraction_obj)
+            remove_tmp_directory(extraction_obj, dir_uuid)
 
             transform_obj.mark_as_ended(Transform.Status.FAILED)
             raise e

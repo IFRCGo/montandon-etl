@@ -15,8 +15,8 @@ class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource])
     transformer_schema = IDUDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
-        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+    def get_schema_data(cls, extraction_obj, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
         if not os.path.isdir(tmp_dir_path):
             os.makedirs(tmp_dir_path, exist_ok=True)
 
