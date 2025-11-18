@@ -15,8 +15,8 @@ from main.configs import etl_config
 logger = logging.getLogger(__name__)
 
 
-def remove_tmp_directory(extraction_obj: ExtractionData):
-    parent_file_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+def remove_tmp_directory(extraction_obj: ExtractionData, dir_uuid: str):
+    parent_file_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
     if parent_file_path.exists() and os.path.isdir(parent_file_path):
         try:
             shutil.rmtree(parent_file_path)
@@ -24,10 +24,10 @@ def remove_tmp_directory(extraction_obj: ExtractionData):
             pass
 
 
-def write_into_temp_file(content, dir: Path):
-    if not dir.exists() or not os.path.isdir(dir):
-        os.makedirs(dir, exist_ok=True)
-    temp_file = tempfile.NamedTemporaryFile(dir=dir, suffix=".json", delete=False)
+def write_into_temp_file(content, dir_path: Path):
+    if not dir_path.exists() or not os.path.isdir(dir_path):
+        os.makedirs(dir_path, exist_ok=True)
+    temp_file = tempfile.NamedTemporaryFile(dir=dir_path, suffix=".json", delete=False)
     temp_file.write(content)
     temp_file.close()
     return temp_file

@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import uuid
 from pathlib import Path
 
 from django.conf import settings
@@ -26,8 +27,8 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
     transformer_schema = DesinventarDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str):  # type: ignore[reportIncompatibleMethodOverride]
-        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
+    def get_schema_data(cls, extraction_obj: ExtractionData, country_code: str, iso3: str, dir_uuid: str):  # type: ignore[reportIncompatibleMethodOverride]
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
         if not os.path.isdir(tmp_dir_path):
             os.makedirs(tmp_dir_path, exist_ok=True)
 
@@ -67,9 +68,10 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
 
         transform_obj.mark_as_started()
         geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
+        dir_uuid = str(uuid.uuid4())
 
         try:
-            schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3)
+            schema = cls.get_schema_data(extraction_obj, metadata.params.country_code, metadata.params.iso3, dir_uuid)
             transformer = cls.transformer_class(schema, geocoder)
             transformed_items = transformer.get_stac_items()
 
@@ -82,12 +84,12 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             }
             transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
             logger.info("Transformation ended")
-            remove_tmp_directory(extraction_obj)
+            remove_tmp_directory(extraction_obj, dir_uuid)
 
         except Exception as e:
             logger.error("Transformation failed", exc_info=True, extra=log_extra({"extraction_id": extraction_obj.id}))
             transform_obj.mark_as_ended(Transform.Status.FAILED)
-            remove_tmp_directory(extraction_obj)
+            remove_tmp_directory(extraction_obj, dir_uuid)
             raise e
 
     @staticmethod
