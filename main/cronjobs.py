@@ -152,16 +152,16 @@ SCHEDULES: dict[str, CronJob] = {
             max_runtime=3 * 60,
         ),
     ),
-    "trigger_pending_extraction": CronJob(
-        task="apps.etl.tasks.trigger_pending_extraction",
-        schedule=crontab(hour="6,11,16,23", minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=5 * 60,
-        ),
-    ),
+    # "trigger_pending_extraction": CronJob(
+    #     task="apps.etl.tasks.trigger_pending_extraction",
+    #     schedule=crontab(hour="6,11,16,23", minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=10,
+    #         max_runtime=5 * 60,
+    #     ),
+    # ),
     "load_data_to_stac": CronJob(
         task="apps.etl.tasks.load_data",
         schedule=crontab(hour="*", minute=30),  # Every hour
