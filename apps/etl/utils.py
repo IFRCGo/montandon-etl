@@ -17,11 +17,16 @@ logger = logging.getLogger(__name__)
 
 def remove_tmp_directory(extraction_obj: ExtractionData):
     parent_file_path = Path("/tmp") / extraction_obj.get_source_display() / str(extraction_obj.id)
-    if os.path.isdir(parent_file_path):
-        shutil.rmtree(parent_file_path)
+    if parent_file_path.exists() and os.path.isdir(parent_file_path):
+        try:
+            shutil.rmtree(parent_file_path)
+        except FileNotFoundError:
+            pass
 
 
 def write_into_temp_file(content, dir: Path):
+    if not dir.exists() or not os.path.isdir(dir):
+        os.makedirs(dir, exist_ok=True)
     temp_file = tempfile.NamedTemporaryFile(dir=dir, suffix=".json", delete=False)
     temp_file.write(content)
     temp_file.close()

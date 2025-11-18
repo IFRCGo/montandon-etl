@@ -36,7 +36,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         episodes = []
         event_objects = extraction_object.child_extractions.all()
         for episode_obj in event_objects:
-            if episode_obj.resp_data:
+            if episode_obj and episode_obj.resp_data:
                 with episode_obj.resp_data.open("rb") as f:
                     file_content = f.read()
                 episode_data_temp_file = write_into_temp_file(file_content, tmp_dir_path)
@@ -50,7 +50,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                 )
                 geometry_object = episode_obj.child_extractions.all().first()
 
-                if geometry_object.resp_data:
+                if geometry_object and geometry_object.resp_data:
                     with geometry_object.resp_data.open("rb") as f:
                         file_content = f.read()
                     geometry_detail_temp_file = write_into_temp_file(file_content, tmp_dir_path)
