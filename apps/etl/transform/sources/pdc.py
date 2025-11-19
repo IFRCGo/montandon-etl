@@ -32,7 +32,9 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
 
         input_metadata = PDCExtractionMetadata(**metadata)
 
-        geo_json_obj = ExtractionData.objects.get(id=input_metadata.exposure_detail.geojson_id)
+        geo_json_obj = ExtractionData.objects.filter(
+            id=input_metadata.exposure_detail.geojson_id, status=ExtractionData.Status.SUCCESS
+        ).first()
 
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
