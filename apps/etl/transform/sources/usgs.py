@@ -22,7 +22,7 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
         if not os.path.isdir(tmp_dir_path):
             os.makedirs(tmp_dir_path, exist_ok=True)
 
-        losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj)
+        losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj, status=ExtractionData.Status.SUCCESS)
 
         losses_data = []
         for losses_data_obj in losses_data_qs.all():
