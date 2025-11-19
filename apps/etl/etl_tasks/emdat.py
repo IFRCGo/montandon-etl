@@ -1,9 +1,16 @@
 from datetime import datetime
 
-from celery import chain, shared_task
+from celery import shared_task
 
-from apps.etl.extraction.sources.emdat.extract import EMDATExtraction, EmdatExtractionInputMetadata
-from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from apps.etl.extraction.sources.emdat.extract import (
+    EmdatExtraction,
+    EmdatExtractionMetadata,
+    EmdatExtractionMetadataType,
+    EmdatExtractionParamsMetadata,
+)
+from apps.etl.models import ExtractionData
+from apps.etl.utils import get_cluster_codes
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 QUERY = """
@@ -13,11 +20,12 @@ query monty(
     $include_hist: Boolean
     $from: Int
     $to: Int
+    $classif: [String!]
 ) {
     api_version
     public_emdat(
         cursor: { offset: $offset, limit: $limit }
-        filters: { include_hist: $include_hist, from: $from, to: $to }
+        filters: { include_hist: $include_hist, from: $from, to: $to , classif: $classif}
     ) {
         total_available
         info {
@@ -78,39 +86,47 @@ query monty(
 """
 
 
-# FIXME: Remove kwargs?
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
-    # FIXME: Why are we getting data from etl_config.EMDAT_START_YEAR to get the latest data?
-    # Also, the filtering only filters using year so we might have lot of duplicate data
-    variables = EmdatExtractionInputMetadata.model_validate(
-        {
-            "limit": -1,
-            "from": etl_config.EMDAT_START_YEAR,
-            "to": datetime.now().year,
-            "include_hist": None,
-        }
-    ).model_dump(by_alias=True)
+    exist_extraction_object = (
+        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT).order_by("-created_at").first()
+    )
 
-    chain(
-        EMDATExtraction.task.s(QUERY, variables),
-        EMDATTransformHandler.task.s(),
-    ).apply_async()
+    from_date_year = datetime.now().year
+    if exist_extraction_object:
+        if not exist_extraction_object.status == ExtractionData.Status.SUCCESS:
+            from_date_year = exist_extraction_object.metadata["params"]["from_"]
+
+    EmdatExtraction.init_extraction(
+        metadata=EmdatExtractionMetadata(
+            params=EmdatExtractionParamsMetadata(
+                limit=-1,
+                from_=from_date_year,
+                to=datetime.now().year,
+                include_hist=None,
+                classif=get_cluster_codes(),
+            ),
+            url=f"{etl_config.EMDAT_URL}/v1",
+            type=EmdatExtractionMetadataType.QUERY,
+        ),
+        queue_name=CeleryQueue.EXTRACTION,
+    )
 
 
-# FIXME: Remove kwargs?
 @shared_task
-def ext_and_transform_emdat_historical_data(**kwargs):
-    variables = EmdatExtractionInputMetadata.model_validate(
-        {
-            "limit": -1,
-            "from": None,
-            "to": None,
-            "include_hist": True,
-        }
-    ).model_dump(by_alias=True)
-
-    chain(
-        EMDATExtraction.task.s(QUERY, variables),
-        EMDATTransformHandler.task.s(),
-    ).apply_async()
+def ext_and_transform_emdat_historical_data(start_date, end_date, **kwargs):
+    for i in range(start_date, end_date + 1):
+        EmdatExtraction.init_extraction(
+            metadata=EmdatExtractionMetadata(
+                params=EmdatExtractionParamsMetadata(
+                    limit=-1,
+                    from_=i,
+                    to=i,
+                    include_hist=True,
+                    classif=get_cluster_codes(),
+                ),
+                url=f"{etl_config.EMDAT_URL}/v1",
+                type=EmdatExtractionMetadataType.QUERY,
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
+        )

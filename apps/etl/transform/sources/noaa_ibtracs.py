@@ -1,9 +1,14 @@
 import logging
+import os
+from pathlib import Path
 
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
@@ -13,16 +18,25 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
     transformer_schema = IBTrACSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
+    def get_schema_data(cls, extraction_obj, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
+        data_file = write_into_temp_file(data, tmp_dir_path)
 
-        return cls.transformer_schema(
+        data_source = GenericDataSource(
             source_url=extraction_obj.url,
-            data=data.decode("utf-8"),
+            input_data=File(path=data_file.name, data_type=DataType.FILE),
         )
 
+        result = cls.transformer_schema(data=data_source)
+
+        return result
+
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        IbtracsTransformHandler().handle_transformation(extraction_id)
+        IbtracsTransformHandler().handle_transformation(extraction_id, settings.IBTRACS_TRANSFORMER_VERSION)

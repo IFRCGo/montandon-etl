@@ -1,12 +1,44 @@
 import datetime
 import logging
+import os
+import shutil
+import tempfile
+from pathlib import Path
 
+import pandas as pd
 import requests
 from django.core.files import File
 
+from apps.etl.models import ExtractionData
 from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
+
+
+def remove_tmp_directory(extraction_obj: ExtractionData, dir_uuid: str):
+    parent_file_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+    if parent_file_path.exists() and os.path.isdir(parent_file_path):
+        try:
+            shutil.rmtree(parent_file_path)
+        except FileNotFoundError:
+            pass
+
+
+def write_into_temp_file(content, dir_path: Path):
+    if not dir_path.exists() or not os.path.isdir(dir_path):
+        os.makedirs(dir_path, exist_ok=True)
+    temp_file = tempfile.NamedTemporaryFile(dir=dir_path, suffix=".json", delete=False)
+    temp_file.write(content)
+    temp_file.close()
+    return temp_file
+
+
+def get_cluster_codes():
+    hazard_profiles_path = Path("./libs/pystac-monty/pystac_monty/HazardProfiles.csv")
+    if os.path.exists(hazard_profiles_path):
+        df = pd.read_csv(hazard_profiles_path)
+        return list(df.emdat_key.dropna().unique())
+    return []
 
 
 def read_file_data(file: File) -> str:
@@ -94,3 +126,29 @@ class AccessTokenManager:
         )
 
         return (response.json(), url)
+
+
+def generate_item_index_fields_values(transformed_item: dict):
+    item_id = transformed_item["id"]
+    item_datetime = transformed_item["properties"]["datetime"]
+    item_primary_country = transformed_item["properties"]["monty:country_codes"]
+
+    logger.info("Item extracted: id=%s, datetime=%s, country=%s", item_id, item_datetime, item_primary_country)
+    return item_id, item_datetime, item_primary_country
+
+
+def remove_ignored_keys(obj, keys_to_ignore):
+    """
+    Recursively remove keys from dicts if the key is in keys_to_ignore.
+    Works on nested dicts and lists.
+    """
+    if isinstance(obj, dict):
+        for key in list(obj.keys()):
+            if key in keys_to_ignore:
+                obj.pop(key)
+            else:
+                remove_ignored_keys(obj[key], keys_to_ignore)
+    elif isinstance(obj, list):
+        for item in obj:
+            remove_ignored_keys(item, keys_to_ignore)
+    return obj

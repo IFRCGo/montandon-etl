@@ -23,7 +23,7 @@ redis:
       postStart:
         exec:
           # NOTE: Set maxmemory for database /0 (celery results backend)
-          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"]
+          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 1024mb"]
     persistence:
       enabled: true
       size: 1Gi
@@ -84,6 +84,8 @@ minio:
       enabled: true
     extraCommands:
       - "mc anonymous set download provisioning/montandon-etl-static"
+      - "mc anonymous set download provisioning/montandon-etl-data"
+
 
 postgresql:
   enabled: false
@@ -107,17 +109,6 @@ geocoding:
       enabled: true
       storageClass: ""
       size: 3Gi
-
-# https://github.com/IFRCGo/geocoding-service/blob/main/helm/values.yaml
-geocodingLite:
-  enabled: true
-  fullnameOverride: geocoder-lite
-  server:
-    persistence:
-      enabled: true
-      storageClass: ""
-      size: 3Gi
-
 
 # NOTE: Shared volume as local cache: Files required by transformers
 localCacheVolume:
@@ -155,25 +146,33 @@ worker:
       limits:
         cpu: "1"
         memory: 1Gi
+
+  queueDefaultResources:
+    requests:
+      cpu: "0.1"
+      memory: 1Gi
+    limits:
+      cpu: "4"
+      memory: 2Gi
   queues:
     # NOTE: Make sure keys are lowercase
     default:
       enabled: true
-      replicaCount: 10
-      celeryArgs:
-        - "-Q"
-        - "celery"
-        - "--concurrency"
-        - "4"
-        - "--max-tasks-per-child"
-        - "10"
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 1Gi
-        limits:
-          cpu: "4"
-          memory: 2Gi
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "10", "-Q", "default", "--prefetch-multiplier", "1"]
+    extraction:
+      enabled: true
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "extraction", "--prefetch-multiplier", "1"]
+    transform:
+      enabled: true
+      replicaCount: 2
+      celeryArgs: ["--concurrency", "4", "--max-tasks-per-child", "5", "-Q", "transform", "--prefetch-multiplier", "1"]
+    # By source
+    usgs-extraction:
+      enabled: true
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "usgs-extraction", "--prefetch-multiplier", "1"]
 
 argoHooks:
   # NOTE: Make sure keys are lowercase

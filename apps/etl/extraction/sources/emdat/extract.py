@@ -1,88 +1,68 @@
 import logging
+import typing
+from enum import Enum
 
 import pydantic
-import requests
+from celery import Task
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
+from apps.etl.transform.sources.emdat import EMDATTransformHandler
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
-from main.logging import log_extra
+from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
 
-class EmdatExtractionInputMetadata(pydantic.BaseModel):
+class EmdatExtractionMetadataType(str, Enum):
+    QUERY = "QUERY"
+
+
+class EmdatExtractionParamsMetadata(pydantic.BaseModel):
     limit: int | None
-    from_: int | None = pydantic.Field(..., alias="from")
+    from_: int | None
     to: int | None
     include_hist: bool | None
+    classif: list
 
 
-class EMDATExtraction(BaseExtraction):
-    """
-    Handles data extraction from the EMDAT API.
-    """
+class EmdatExtractionMetadata(pydantic.BaseModel):
+    url: str
+    params: EmdatExtractionParamsMetadata
+    type: EmdatExtractionMetadataType
 
-    # FIXME: We need to handle GraphQL request in BaseExtraction
-    @classmethod
-    def handle_extraction(cls, query: str, metadata: EmdatExtractionInputMetadata) -> int:  # type: ignore[reportIncompatibleMethodOverride]
-        """
-        Process data extraction.
-        Returns:
-            int: ID of the extraction instance
-        """
-        logger.info("Starting data extraction")
 
-        source = ExtractionData.Source.EMDAT
+class EmdatExtraction(BaseExtractionV2[EmdatExtractionMetadata]):
+    source_enum = ExtractionData.Source.EMDAT
+    extraction_metadata_class = EmdatExtractionMetadata
 
-        url = f"{etl_config.EMDAT_URL}/v1"
+    def handle_type_query(self):
+        from apps.etl.etl_tasks.emdat import QUERY
+
+        url = self.extraction_metadata.url
+        params = self.extraction_metadata.params
         headers = {"Authorization": etl_config.EMDAT_AUTHORIZATION_KEY}
+        payload = {"query": QUERY, "variables": params.model_dump()}
+        payload["variables"]["from"] = payload["variables"].pop("from_")
+        self._extraction_fetch_graphql(url, payload, headers)
 
-        input_metadata = metadata.model_dump(by_alias=True)
+        EMDATTransformHandler.task.delay(self.extraction_object.id)
 
-        instance = cls._create_extraction_instance(
-            url=url,
-            # NOTE: We are not storing the query
-            source=source,
-            metadata={
-                "input": input_metadata,
-            },
-        )
-
-        try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
-
-            paylod = {"query": query, "variables": input_metadata}
-            response = requests.post(url, json=paylod, headers=headers)
-            response.raise_for_status()
-            response_data = cls._save_response_data(instance, response)
-
-            # FIXME: Handle response.status_code == 200 or response.status_code == 204:
-            if not response_data or not response_data["data"]["public_emdat"]:
-                cls._update_instance_status(
-                    instance,
-                    ExtractionData.Status.SUCCESS,
-                    ExtractionData.ValidationStatus.NO_DATA,
-                    update_validation=True,
-                )
-                logger.warning("No hazard data found in response")
-            else:
-                cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
-
-            return instance.id
-
-        except requests.exceptions.RequestException:
-            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
-            logger.error(
-                "Extraction failed",
-                exc_info=True,
-                extra=log_extra({"source": ExtractionData.Source.EMDAT}),
-            )
-            raise
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case EmdatExtractionMetadataType.QUERY:
+                return self.handle_type_query()
+            case _:
+                typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task
-    def task(query: str, metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
-        input_metadata = EmdatExtractionInputMetadata(**metadata)
-        return EMDATExtraction().handle_extraction(query, input_metadata)
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+    )
+    def task(celery_task: Task, extraction_id: int):
+        EmdatExtraction(celery_task, extraction_id).handle()

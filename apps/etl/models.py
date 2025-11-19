@@ -1,5 +1,7 @@
 import typing
 
+from django.contrib.postgres.fields import ArrayField
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -22,6 +24,7 @@ class Status(models.IntegerChoices):
     IN_PROGRESS = 2, _("In progress")
     SUCCESS = 3, _("Success")
     FAILED = 4, _("Failed")
+    ON_RETRY = 5, _("On Retry")
 
 
 class EtlTraceResource(models.Model):
@@ -51,7 +54,7 @@ class EtlResource(Resource, EtlTraceResource):
 
     def mark_as_ended(
         self,
-        status: typing.Literal[Status.FAILED, Status.SUCCESS],
+        status: typing.Literal[Status.FAILED, Status.SUCCESS, Status.ON_RETRY],
         *,
         update_fields: list[str] = [],
     ):
@@ -107,7 +110,12 @@ class HazardType(models.TextChoices):
 
 def extract_data_upload_to(instance: "ExtractionData", filename: str):
     today = timezone.now().strftime("%Y-%m-%d")
-    return f"extract-raw-data/source-{int(instance.source)}/{today}/{filename}"
+    if instance.source in ExtractionData.Source:
+        source_label = ExtractionData.Source(instance.source).name.lower()
+    else:
+        # Fallback
+        source_label = instance.source
+    return f"extract-raw-data/source-{source_label}/{today}/{filename}"
 
 
 # TODO:
@@ -149,7 +157,7 @@ class ExtractionData(EtlResource):
         DESINVENTAR = 14, _("DesInventar")
 
     # METADATA
-    source = models.IntegerField(verbose_name=_("source"), choices=Source.choices)
+    source = models.IntegerField(verbose_name=_("source"), choices=Source.choices, db_index=True)
     # meta_data field contains data required for extraction and transformation
     metadata = models.JSONField(default=dict)
     parent = models.ForeignKey("self", on_delete=models.PROTECT, null=True, blank=True, related_name="child_extractions")
@@ -205,6 +213,7 @@ class Transform(EtlResource):
     Status = Status
 
     # METADATA
+    version = models.CharField(max_length=10, default="1.0.0")
     metadata = models.JSONField(default=dict)
     extraction = models.ForeignKey(ExtractionData, on_delete=models.PROTECT, verbose_name=_("extraction"))
 
@@ -231,11 +240,27 @@ class PyStacLoadData(EtlTraceResource, Resource):
 
     # METADATA
     transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
-    item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices)
-    collection_id = models.CharField(verbose_name=_("collection id"), max_length=250)  # FIXME: Use TextChoices
+    item_type = models.IntegerField(verbose_name=_("item type"), choices=ItemType.choices, db_index=True)
+    collection_id = models.CharField(
+        verbose_name=_("collection id"), max_length=250, db_index=True
+    )  # FIXME: Use TextChoices
 
     # CONTENT
     item = models.JSONField(verbose_name=_("item"), default=dict)
+
+    # Custom indexed fields for Aggregation
+    item_id = models.CharField(
+        verbose_name="item Id",
+        max_length=150,
+        db_index=True,
+        null=True,
+    )
+    item_datetime = models.DateTimeField(
+        verbose_name="item datetime",
+        db_index=True,
+        null=True,
+    )
+    item_primary_country = ArrayField(models.CharField(max_length=150), null=True)
 
     status = models.IntegerField(verbose_name=_("status"), choices=Status.choices, default=Status.PENDING)
 
@@ -244,6 +269,8 @@ class PyStacLoadData(EtlTraceResource, Resource):
             models.Index(
                 fields=["status"], name="loaddata_pi_status_pending", condition=models.Q(status=Status.PENDING.value)
             ),
+            GinIndex(fields=["item_primary_country"]),  # GinIndex for ArrayField
+            models.Index(fields=["item_id", "item_type"]),
         ]
         verbose_name = "Stac Item"
 

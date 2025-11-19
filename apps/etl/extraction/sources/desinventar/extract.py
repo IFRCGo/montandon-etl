@@ -1,14 +1,17 @@
+import json
 import logging
-from typing import Any, Callable
+import typing
+from enum import Enum
 
 import pydantic
-import requests
+from celery import Task
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
-from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
-from main.configs import etl_config
+from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
+from main.celery import CeleryQueue, app
+from main.logging import log_extra
+from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
@@ -18,65 +21,55 @@ class DesInventarExtractionInputMetadata(pydantic.BaseModel):
     iso3: str
 
 
-class DesinventarExtraction(BaseExtraction):
+class DesInventarMetadataType(str, Enum):
+    QUERY = "QUERY"
+
+
+class DesInventarExtractionParamsMetadata(pydantic.BaseModel):
+    country_code: str
+    iso3: str
+
+
+class DesInventarExtractionMetadata(pydantic.BaseModel):
+    url: str
+    type: DesInventarMetadataType
+    params: DesInventarExtractionParamsMetadata
+
+
+class DesInventarExtraction(BaseExtractionV2[DesInventarExtractionMetadata]):
     """
     Handles data extraction from the Desinventar API.
     """
 
-    @classmethod
-    def store_extraction_data(  # type: ignore[reportIncompatibleMethodOverride]
-        cls,
-        validate_source_func: Callable[[Any], None] | None,
-        source: int,
-        response: requests.Response,
-        instance_id: int | None = None,
-    ):
-        """
-        Save extracted data into database.
-        """
-        file_name = f"{source}.zip"
-        resp_data = response
+    source_enum = ExtractionData.Source.DESINVENTAR
+    extraction_metadata_class = DesInventarExtractionMetadata
 
-        # save the additional response data after the data is fetched from api.
-        extraction_instance = ExtractionData.objects.get(id=instance_id)
-        # extraction_instance.resp_data_type = "application/zip"
-        # FIXME: the server does not support zip so using octet-stream for the time being
-        extraction_instance.resp_data_type = "application/octet-stream"
-        extraction_instance.save(update_fields=["resp_data_type"])
-
-        # Validate the non empty response data.
-        if resp_data:
-            # manage duplicate file content.
-            manage_duplicate_file_content(
-                source=extraction_instance.source,
-                # FIXME: We need to calculate has for zip file
-                hash_content=None,
-                instance=extraction_instance,
-                response_data=resp_data.content,
-                file_name=file_name,
-            )
-        return resp_data.content
-
-    @classmethod
-    def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
-        instance = cls.store_extraction_data(
-            response=response,
-            source=ExtractionData.Source.DESINVENTAR,
-            validate_source_func=None,
-            instance_id=instance.id,
+    def handle_type_query(self):
+        extraction_status = self._extraction_fetch_url(
+            url=self.extraction_metadata.url,
+            params=json.dumps(self.extraction_metadata.params.model_dump()),
+            timeout=180,
+            file_extension="zip",
         )
-        return response
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        DesinventarTransformHandler.task.delay(self.extraction_object.id)
+
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case DesInventarMetadataType.QUERY:
+                return self.handle_type_query()
+            case _:
+                typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task
-    def task(metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
-        input_metadata = DesInventarExtractionInputMetadata(**metadata)
-        url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{input_metadata.country_code}.zip"
-        return DesinventarExtraction().handle_extraction(
-            url=url,
-            params=input_metadata.model_dump(),
-            headers=None,
-            source=ExtractionData.Source.DESINVENTAR.value,
-            parent_id=None,
-            timeout=180,
-        )
+    @app.task(bind=True, base=RetryableTask, queue=CeleryQueue.EXTRACTION)
+    def task(celery_task: Task, extraction_id: int):
+        DesInventarExtraction(celery_task, extraction_id).handle()

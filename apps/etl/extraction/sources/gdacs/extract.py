@@ -1,264 +1,231 @@
 import json
 import logging
 import typing
+from enum import Enum
+from typing import Optional
 
-import numpy as np
-import pandas as pd
-from celery import shared_task
-from pydantic import ValidationError
+import pydantic
+from celery import chain, chord
 
-from apps.etl.extraction.sources.base.extract import Extraction
-from apps.etl.extraction.sources.base.utils import store_extraction_data
-from apps.etl.extraction.sources.gdacs.validators.gdacs_eventsdata import (
-    GDacsEventDataValidator,
-)
-from apps.etl.extraction.sources.gdacs.validators.gdacs_geometry import (
-    GdacsEventsGeometryData,
-)
-from apps.etl.extraction.sources.gdacs.validators.gdacs_main_source import (
-    GdacsEventSourceValidator,
-)
-from apps.etl.extraction.sources.gdacs.validators.gdacs_pop_exposure import (
-    GdacsPopulationExposure_FL,
-    GdacsPopulationExposureDR,
-    GdacsPopulationExposureEQTC,
-    GdacsPopulationExposureWF,
-)
-from apps.etl.models import ExtractionData, get_trace_id
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
+from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.gdacs import GDACSTransformHandler
+from main.celery import CeleryQueue, app
 from main.configs import etl_config
+from main.logging import log_extra
+from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
 
-def get_as_int(value: typing.Optional[str]) -> typing.Optional[int]:
-    if value is None:
-        return
-    if value == "-":
-        return
-    return int(value)
+class GdacsExtractionMetadataType(str, Enum):
+    QUERY = "QUERY"
+    DETAIL = "DETAIL"
+    GEOMETRY = "GEOMETRY"
+    EPISODE = "EPISODE"
 
 
-def validate_source_data(resp_data):
-    try:
-        resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
-        GdacsEventSourceValidator(**resp_data_for_validation)
-        validation_error = ""
-    except ValidationError as e:
-        validation_error = e.json()
-    validation_data = {
-        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
-        "validation_error": validation_error if validation_error else "",
-    }
-    return validation_data
+class GdacsExtractionParamsMetadata(pydantic.BaseModel):
+    fromDate: str
+    toDate: str
+    alertlevel: Optional[str] | None
+    eventlist: str
+    country: Optional[str] | None
 
 
-def validate_event_data(resp_data):
-    try:
-        resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
-        GDacsEventDataValidator(**resp_data_for_validation)
-        validation_error = ""
-    except ValidationError as e:
-        validation_error = e.json()
-    validation_data = {
-        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
-        "validation_error": validation_error if validation_error else "",
-    }
-    return validation_data
+class GdacsEventExtractionParamsMetadata(pydantic.BaseModel):
+    eventtype: Optional[str] | None
+    eventid: Optional[int] | None
+    episodeid: Optional[int] | None
 
 
-def validate_population_exposure(html_content, hazard_type=None):
-    tables = pd.read_html(html_content)
-    population_exposure = {}
+class GdacsEventExtractionMetadata(pydantic.BaseModel):
+    url: str
+    params: GdacsEventExtractionParamsMetadata
+    type: GdacsExtractionMetadataType
 
-    displacement_data_raw = tables[0].replace({np.nan: None}).to_dict()
-    displacement_data = dict(
-        zip(
-            displacement_data_raw[0].values(),  # First column are keys
-            displacement_data_raw[1].values(),  # Second column are values
+
+class GdacsExtractionMetadata(pydantic.BaseModel):
+    url: str
+    params: typing.Optional[GdacsExtractionParamsMetadata] = None
+    type: GdacsExtractionMetadataType
+    event_params: typing.Optional[GdacsEventExtractionParamsMetadata] = None
+
+
+class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
+    MIN_RETRY_DELAY = 60 * 2
+    MAX_RETRY_DELAY = 60 * 5
+
+    source_enum = ExtractionData.Source.GDACS
+    extraction_metadata_class = GdacsExtractionMetadata
+
+    def handle_type_query(self):
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url,
+            headers={"Content-Type": "application/json"},
+            params=self.extraction_metadata.params,
         )
+        if not extraction_status:
+            logger.error(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.error(
+                "Response data object is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        response_data = json.loads(self.extraction_object.resp_data.read())
+        # FIXME: We might need to write a simple validator here
+        features_list = response_data["features"]
+
+        for feature_item in features_list:
+            event_id = feature_item["properties"]["eventid"]
+            event_detail_url = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventdata"
+            eventtype = self.extraction_object.metadata.get("params").get("eventlist")
+            metadata = GdacsExtractionMetadata(
+                event_params=GdacsEventExtractionParamsMetadata(eventtype=eventtype, eventid=event_id, episodeid=None),
+                url=event_detail_url,
+                type=GdacsExtractionMetadataType.DETAIL,
+            )
+            self.init_extraction(
+                metadata=metadata,
+                parent_extraction=self.extraction_object,
+                queue_name=CeleryQueue.EXTRACTION,
+            )
+
+    def handle_type_detail(self, retrigger: bool, failed_int: int | None = None):
+        if failed_int is not None:
+            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            if failed_obj.metadata.get("type") == GdacsExtractionMetadataType.DETAIL:
+                ...
+            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.EPISODE:
+                chord(
+                    [chain(GdacsExtraction.task.s(failed_int, retrigger=retrigger), GdacsExtraction.task.s())],
+                    GDACSTransformHandler.task.si(self.extraction_object.id),
+                ).apply_async()
+                return
+
+            elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.GEOMETRY:  # This if for geometry failed
+                chord(
+                    [GdacsExtraction.task.s(failed_int)],
+                    GDACSTransformHandler.task.si(self.extraction_object.id),
+                ).apply_async()
+                return
+
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url, params=self.extraction_metadata.event_params
+        )
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data  object is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+        with self.extraction_object.resp_data.open() as file_data:
+            event_response_data = json.loads(file_data.read())
+
+        episode_tasks = []
+        for episode_data in event_response_data["properties"]["episodes"]:
+            event_episode_url = episode_data["details"]
+            event_episode_extraction_obj = self.init_extraction(
+                metadata=GdacsExtractionMetadata(
+                    url=event_episode_url,
+                    type=GdacsExtractionMetadataType.EPISODE,
+                ),
+                parent_extraction=self.extraction_object,
+                add_to_queue=False,
+            )
+            episode_tasks.append(
+                chain(
+                    GdacsExtraction.task.s(event_episode_extraction_obj.id, retrigger=retrigger),
+                    GdacsExtraction.task.s(retrigger=retrigger),
+                )
+            )
+        chord(episode_tasks, GDACSTransformHandler.task.si(self.extraction_object.id)).apply_async()
+
+    def handle_type_episode(self):
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url,
+            headers={"Content-Type": "application/json"},
+        )
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+
+        event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
+        geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
+
+        geo_obj = self.init_extraction(
+            metadata=GdacsExtractionMetadata(
+                params=None,
+                url=geometry_episode_url,
+                type=GdacsExtractionMetadataType.GEOMETRY,
+            ),
+            parent_extraction=self.extraction_object,
+            add_to_queue=False,
+        )
+        return geo_obj.id
+
+    def handle_type_geometry(self):
+        self._extraction_fetch_url(
+            self.extraction_object.url,
+            headers={"Content-Type": "application/json"},
+        )
+
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case GdacsExtractionMetadataType.QUERY:
+                return self.handle_type_query()
+            case GdacsExtractionMetadataType.DETAIL:
+                return self.handle_type_detail(retrigger=retrigger, failed_int=failed_int)
+            case GdacsExtractionMetadataType.EPISODE:
+                return self.handle_type_episode()
+            case GdacsExtractionMetadataType.GEOMETRY:
+                return self.handle_type_geometry()
+            case _:
+                typing.assert_never(handler_type)
+
+    def retrigger(extraction_object: ExtractionData):
+        metadata_type = extraction_object.metadata.get("type")
+        if metadata_type == GdacsExtractionMetadataType.QUERY:
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == GdacsExtractionMetadataType.DETAIL:
+            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == GdacsExtractionMetadataType.EPISODE:
+            GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == GdacsExtractionMetadataType.GEOMETRY:
+            GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True, failed_int=extraction_object.id)
+
+    @staticmethod
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+        rate_limit="100/m",
     )
-
-    validation_error = ""
-    try:
-        if hazard_type == "EQ":
-            population_exposure["exposed_population"] = displacement_data.get("Exposed Population:")
-            GdacsPopulationExposureEQTC(**population_exposure)
-
-        elif hazard_type == "TC":
-            population_exposure["exposed_population"] = displacement_data.get("Exposed population")
-            GdacsPopulationExposureEQTC(**population_exposure)
-
-        elif hazard_type == "FL":
-            population_exposure["death"] = get_as_int(displacement_data.get("Death:"))
-            population_exposure["displaced"] = get_as_int(displacement_data.get("Displaced:"))
-            GdacsPopulationExposure_FL(**population_exposure)
-
-        elif hazard_type == "DR":
-            population_exposure["impact"] = displacement_data.get("Impact:")
-            GdacsPopulationExposureDR(**population_exposure)
-
-        elif hazard_type == "WF":
-            population_exposure["people_affected"] = displacement_data.get("People affected:")
-            GdacsPopulationExposureWF(**population_exposure)
-
-    except ValidationError as e:
-        validation_error = e.json()
-
-    validation_data = {
-        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
-        "validation_error": validation_error,
-    }
-    return validation_data
-
-
-def validate_gdacs_geometry_data(resp_data):
-    try:
-        resp_data_for_validation = json.loads(resp_data.decode("utf-8"))
-        GdacsEventsGeometryData(**resp_data_for_validation)
-        validation_error = ""
-    except ValidationError as e:
-        validation_error = e.json()
-    validation_data = {
-        "status": ExtractionData.ValidationStatus.FAILED if validation_error else ExtractionData.ValidationStatus.SUCCESS,
-        "validation_error": validation_error if validation_error else "",
-    }
-    return validation_data
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def fetch_event_data(self, parent_id, event_id: int, hazard_type: str, **kwargs):
-    # url = f"https://www.gdacs.org/report.aspx?eventid={event_id}&eventtype={hazard_type}"
-    url = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventdata?eventtype={hazard_type}&eventid={event_id}"
-
-    # instance_id is passed in this func in kwargs during retry from self.retry() method.
-    # It forbids creating new extraction object during retry.
-    instance_id = kwargs.get("instance_id", None)
-    parent = ExtractionData.objects.get(id=parent_id)
-    if not instance_id:
-        gdacs_instance = ExtractionData.objects.create(
-            source=ExtractionData.Source.GDACS,
-            status=ExtractionData.Status.PENDING,
-            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            attempt_no=0,
-            resp_code=0,
-            hazard_type=parent.hazard_type,
-            trace_id=get_trace_id(parent),
-        )
-    else:
-        gdacs_instance = ExtractionData.objects.get(id=instance_id)
-
-    # Extract the data from api.
-    gdacs_extraction = Extraction(url=url)
-    response = None
-    try:
-        response = gdacs_extraction.pull_data(
-            source=ExtractionData.Source.GDACS,
-            ext_object_id=gdacs_instance.id,
-            retry_count=0,
-        )
-    except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
-
-    # Save the extracted data into the existing gdacs object
-    if response:
-        gdacs_instance = store_extraction_data(
-            response=response,
-            source=ExtractionData.Source.GDACS,
-            validate_source_func=validate_event_data,
-            instance_id=gdacs_instance.id,
-            parent_id=parent_id,
-            requires_hazard_type=False,
-            hazard_type=hazard_type,
-        )
-        with gdacs_instance.resp_data.open() as file:
-            data = file.read()
-
-        return {"extraction_id": gdacs_instance.id, "extracted_data": data}
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def scrape_population_exposure_data(self, parent_id, event_id: int, hazard_type: str, parent_transform_id: str, **kwargs):
-    url = f"{etl_config.GDACS_URL}/report.aspx?eventid={event_id}&eventtype={hazard_type}"
-
-    # instance_id is passed in this func in kwargs during retry from self.retry() method.
-    # It forbids creating new extraction object during retry.
-    instance_id = kwargs.get("instance_id", None)
-    parent = ExtractionData.objects.get(id=parent_id)
-    if not instance_id:
-        gdacs_instance = ExtractionData.objects.create(
-            source=ExtractionData.Source.GDACS,
-            status=ExtractionData.Status.PENDING,
-            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            attempt_no=0,
-            resp_code=0,
-            trace_id=get_trace_id(parent),
-            hazard_type=parent.hazard_type,
-        )
-    else:
-        gdacs_instance = ExtractionData.objects.get(id=instance_id)
-
-    # Extract the data from api.
-    gdacs_extraction = Extraction(url=url)
-    response = None
-    try:
-        response = gdacs_extraction.pull_data(
-            source=ExtractionData.Source.GDACS,
-            ext_object_id=gdacs_instance.id,
-            retry_count=0,
-        )
-    except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
-
-    # Save the extracted data into the existing gdacs object
-    if response:
-        gdacs_instance = store_extraction_data(
-            source=ExtractionData.Source.GDACS,
-            response=response,
-            validate_source_func=validate_population_exposure,
-            instance_id=gdacs_instance.id,
-            parent_id=parent_id,
-            requires_hazard_type=True,
-            hazard_type=hazard_type,
-        )
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def fetch_gdacs_geometry_data(self, parent_id, footprint_url, **kwargs):
-    # instance_id is passed in this func in kwargs during retry from self.retry() method.
-    # It forbids creating new extraction object during retry.
-    instance_id = kwargs.get("instance_id", None)
-    parent = ExtractionData.objects.get(id=parent_id)
-    if not instance_id:
-        gdacs_instance = ExtractionData.objects.create(
-            source=ExtractionData.Source.GDACS,
-            status=ExtractionData.Status.PENDING,
-            source_validation_status=ExtractionData.ValidationStatus.NO_VALIDATION,
-            attempt_no=0,
-            resp_code=0,
-            trace_id=get_trace_id(parent),
-            hazard_type=parent.hazard_type,
-        )
-    else:
-        gdacs_instance = ExtractionData.objects.get(id=instance_id)
-
-    gdacs_extraction = Extraction(url=footprint_url)
-    response = None
-    try:
-        response = gdacs_extraction.pull_data(
-            source=ExtractionData.Source.GDACS,
-            ext_object_id=gdacs_instance.id,
-            retry_count=0,
-        )
-    except Exception as exc:
-        self.retry(exc=exc, kwargs={"instance_id": gdacs_instance.id, "retry_count": self.request.retries})
-
-    if response:
-        gdacs_instance = store_extraction_data(
-            source=ExtractionData.Source.GDACS.value,
-            response=response,
-            validate_source_func=validate_gdacs_geometry_data,
-            instance_id=gdacs_instance.id,
-            parent_id=parent_id,
-        )
-
-        return gdacs_instance.id
+    def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None) -> int:
+        return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)

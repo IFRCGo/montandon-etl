@@ -7,6 +7,8 @@ services:
       CI: "true"
     volumes:
       - ./coverage/:/code/coverage/
-
+  geocoding-service:
+    image: ghcr.io/ifrcgo/geocoding-service:main.c26a216
+    command: /bin/sh -c "uvicorn service:app --host 0.0.0.0 --port 8001 --reload --workers 1"
   celery-beat: !reset null
   worker:  !reset null

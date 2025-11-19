@@ -1,7 +1,13 @@
+import os
+from pathlib import Path
+
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.gidd import GIDDDataSource, GIDDTransformer
 
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 
 class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSource]):
@@ -9,13 +15,25 @@ class GIDDTransformHandler(BaseTransformerHandler[GIDDTransformer, GIDDDataSourc
     transformer_schema = GIDDDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
-        with extraction_obj.resp_data.open() as file_data:
-            data = file_data.read()
+    def get_schema_data(cls, extraction_obj, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data)
+        with extraction_obj.resp_data.open() as file_data:
+            file_content = file_data.read()
+
+        data_file = write_into_temp_file(file_content, tmp_dir_path)
+
+        data_source = GenericDataSource(
+            source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
+        )
+
+        result = cls.transformer_schema(data_source)
+
+        return result
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        GIDDTransformHandler().handle_transformation(extraction_id)
+        GIDDTransformHandler().handle_transformation(extraction_id, settings.GIDD_TRANSFORMER_VERSION)

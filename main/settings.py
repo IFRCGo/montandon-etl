@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import socket
 import typing
 from pathlib import Path
 
@@ -19,7 +20,7 @@ from azure.identity import DefaultAzureCredential
 
 from main import sentry
 
-from .logging import log_render_extra_context
+from .logging import log_render_custom_field
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,10 +31,12 @@ env = environ.Env(
     APP_LOG_LEVEL=(str, "INFO"),
     DJANGO_SECRET_KEY=str,
     DJANGO_DEBUG=(bool, False),
+    DJANGO_CORS_ORIGIN_REGEX_WHITELIST=(list, []),
     DJANGO_ALLOWED_HOSTS=(list, ["*"]),
     DJANGO_APP_ENVIRONMENT=(str, "development"),
     DJANGO_APP_TYPE=str,  # web/worker
     DJANGO_TIME_ZONE=(str, "UTC"),
+    ENABLE_DEBUG_TOOLBAR=(bool, False),
     # Database
     DB_NAME=str,
     DB_USER=str,
@@ -46,6 +49,9 @@ env = environ.Env(
     # Celery
     CELERY_BROKER_URL=str,
     CELERY_RESULT_BACKEND=str,
+    # Cache
+    CACHE_REDIS_URL=str,
+    TEST_CACHE_REDIS_URL=(str, None),
     # Storage
     # -- Static, Media configs
     DJANGO_STATIC_URL=(str, "/static/"),
@@ -80,11 +86,13 @@ env = environ.Env(
     GEOCODER_URL=str,
     EOAPI_DOMAIN=(str, None),
     EOAPI_SYNC_LIMIT=(int, 10000),
+    REQUESTS_PROXY_TO_USE=(str, None),  # NOTE: For more detail look at ./README.md
     # Sources
     # FIXME: Check if all start dates are used
     DESINVENTAR_DATA_URL=(str, "https://www.desinventar.net"),
     EMDAT_AUTHORIZATION_KEY=(str, None),
-    EMDAT_START_YEAR=(str, "2024"),
+    EMDAT_START_YEAR=(str, 1900),
+    EMDAT_END_YEAR=(str, 2024),
     EMDAT_URL=(str, "https://api.emdat.be"),
     GDACS_START_DATE=(str, "2025-01-01"),
     GDACS_URL=(str, "https://www.gdacs.org"),
@@ -102,16 +110,35 @@ env = environ.Env(
     PDC_ARCGIS_USERNAME=(str, None),
     PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
     PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org"),
+    PDC_START_DATE=(str, "2025-11-15"),
+    PDC_EXTRACTION_INTERVAL_YEARS=(int, 2),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
+    USGS_START_DATE=(str, "2025-01-01"),
+    TRANSFORM_SUCCESS_RATE=(int, 80),
+    #  transformer version
+    GDACS_TRANSFORMER_VERSION=(str, "1.0.0"),
+    GLIDE_TRANSFORMER_VERSION=(str, "1.0.0"),
+    EMDAT_TRANSFORMER_VERSION=(str, "1.0.0"),
+    IFRC_TRANSFORMER_VERSION=(str, "1.0.0"),
+    DESINVENTAR_TRANSFROMER_VERSION=(str, "1.0.0"),
+    GFD_TRANSFORMER_VERSION=(str, "1.0.0"),
+    USGS_TRANSFORMER_VERSION=(str, "1.0.0"),
+    PDC_TRANSFORMER_VERSION=(str, "1.0.0"),
+    IDU_TRANSFORMER_VERSION=(str, "1.0.0"),
+    GIDD_TRANSFORMER_VERSION=(str, "1.0.0"),
+    IBTRACS_TRANSFORMER_VERSION=(str, "1.0.0"),
 )
+
 
 EOAPI_DOMAIN = env("EOAPI_DOMAIN")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
 GEOCODER_URL = env("GEOCODER_URL")
+REQUESTS_PROXY_TO_USE = env("REQUESTS_PROXY_TO_USE")
 
 DESINVENTAR_DATA_URL = env("DESINVENTAR_DATA_URL")
 EMDAT_AUTHORIZATION_KEY = env("EMDAT_AUTHORIZATION_KEY")
 EMDAT_START_YEAR = env("EMDAT_START_YEAR")
+EMDAT_END_YEAR = env("EMDAT_END_YEAR")
 EMDAT_URL = env("EMDAT_URL")
 GDACS_START_DATE = env("GDACS_START_DATE")
 GDACS_URL = env("GDACS_URL")
@@ -128,9 +155,13 @@ PDC_ARCGIS_PASSWORD = env("PDC_ARCGIS_PASSWORD")
 PDC_ARCGIS_USERNAME = env("PDC_ARCGIS_USERNAME")
 PDC_SENTRY_AUTHORIZATION_KEY = env("PDC_SENTRY_AUTHORIZATION_KEY")
 PDC_SENTRY_BASE_URL = env("PDC_SENTRY_BASE_URL")
+PDC_START_DATE = env("PDC_START_DATE")
 USGS_DATA_URL = env("USGS_DATA_URL")
+USGS_START_DATE = env("USGS_START_DATE")
+
 
 IBTRACS_DATA_URL = env("IBTRACS_DATA_URL")
+TRANSFORM_SUCCESS_RATE = env("TRANSFORM_SUCCESS_RATE")
 
 TIME_ZONE = env("DJANGO_TIME_ZONE")
 SECRET_KEY = env("DJANGO_SECRET_KEY")
@@ -152,6 +183,40 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+# Redis lock
+DEFAULT_REDIS_LOCK_EXPIRE = 30 * 60  # Lock expires in 30 mins
+
+CACHE_REDIS_URL = env("CACHE_REDIS_URL")
+TEST_CACHE_REDIS_URL = env("TEST_CACHE_REDIS_URL")
+
+# transformer version
+GDACS_TRANSFORMER_VERSION = env("GDACS_TRANSFORMER_VERSION")
+GLIDE_TRANSFORMER_VERSION = env("GLIDE_TRANSFORMER_VERSION")
+EMDAT_TRANSFORMER_VERSION = env("EMDAT_TRANSFORMER_VERSION")
+IFRC_TRANSFORMER_VERSION = env("IFRC_TRANSFORMER_VERSION")
+DESINVENTAR_TRANSFROMER_VERSION = env("DESINVENTAR_TRANSFROMER_VERSION")
+GFD_TRANSFORMER_VERSION = env("GFD_TRANSFORMER_VERSION")
+USGS_TRANSFORMER_VERSION = env("USGS_TRANSFORMER_VERSION")
+PDC_TRANSFORMER_VERSION = env("PDC_TRANSFORMER_VERSION")
+IDU_TRANSFORMER_VERSION = env("IDU_TRANSFORMER_VERSION")
+GIDD_TRANSFORMER_VERSION = env("GIDD_TRANSFORMER_VERSION")
+IBTRACS_TRANSFORMER_VERSION = env("IBTRACS_TRANSFORMER_VERSION")
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": CACHE_REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "djc-",
+    },
+    "local-memory": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -165,6 +230,7 @@ INSTALLED_APPS = [
     # External
     "django_celery_beat",
     "djangoql",
+    "corsheaders",
     # - Health-check
     "health_check",  # required
     "health_check.db",
@@ -176,11 +242,13 @@ INSTALLED_APPS = [
     # Internal
     "apps.common",
     "apps.etl",
+    "apps.user",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -189,6 +257,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "main.urls"
+
+# Strawberry
+# -- Pagination
+STRAWBERRY_ENUM_TO_STRAWBERRY_ENUM_MAP = "main.graphql.enums.ENUM_TO_STRAWBERRY_ENUM_MAP"
+STRAWBERRY_DEFAULT_PAGINATION_LIMIT = 50
+STRAWBERRY_MAX_PAGINATION_LIMIT = 100
 
 TEMPLATES = [
     {
@@ -241,14 +315,12 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
-
+AUTH_USER_MODEL = "user.User"
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -332,6 +404,39 @@ else:
     STATIC_ROOT = env("DJANGO_STATIC_ROOT")
     MEDIA_ROOT = env("DJANGO_MEDIA_ROOT")
 
+# CORS
+if not env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST"):
+    CORS_ORIGIN_ALLOW_ALL = True
+else:
+    # Example ^https://[\w-]+\.mapswipe\.org$
+    CORS_ORIGIN_REGEX_WHITELIST = env("DJANGO_CORS_ORIGIN_REGEX_WHITELIST")
+
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"(^/media/.*$)|(^/graphql/$)"
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    # Required by sentry
+    "sentry-trace",
+    "baggage",
+)
 
 # Sentry Config
 SENTRY_DSN = env("SENTRY_DSN")
@@ -376,12 +481,12 @@ LOGGING = {
     "filters": {
         "render_extra_context": {
             "()": "django.utils.log.CallbackFilter",
-            "callback": log_render_extra_context,
+            "callback": log_render_custom_field,
         }
     },
     "formatters": {
         "simple": {
-            "format": ("%(asctime)s: - %(threadName)s/%(levelname)s - %(name)s - %(message)s %(context)s"),
+            "format": ("%(asctime)s: - %(short_name)s - %(message)s %(context)s"),
             "datefmt": "%Y-%m-%dT%H:%M:%S",
         },
     },
@@ -415,10 +520,8 @@ if DEBUG:
             **LOGGING["formatters"],
             "colored_verbose": {
                 "()": "colorlog.ColoredFormatter",
-                "format": (
-                    "%(log_color)s%(asctime)s: %(threadName)s - %(levelname)-s%(red)s %(module)-s%(reset)s "
-                    "%(blue)s%(message)s %(context)s"
-                ),
+                "format": ("%(log_color)s%(asctime)s: %(red)s %(short_name)-s%(reset)s %(blue)s%(message)s %(context)s"),
+                "datefmt": "%m/%d %H:%M:%S",
             },
         },
         "handlers": {
@@ -443,6 +546,15 @@ if DEBUG:
             "handlers": ["colored_console"],
         },
     }
+
+ENABLE_DEBUG_TOOLBAR = env("ENABLE_DEBUG_TOOLBAR")
+if DEBUG and ENABLE_DEBUG_TOOLBAR:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = [
+        "127.0.0.1",
+        ".".join(socket.gethostbyname(socket.gethostname()).rsplit(".")[:-1]) + ".1",
+    ]
 
 # Manual checks
 import main.checks  # noqa: F401 E402
