@@ -31,9 +31,9 @@ def trigger_pending_extraction() -> None:
     """Trigger pending extractions"""
     logger.info("Trigger pending extraction in process")
 
-    two_days_ago = datetime.today() - timedelta(days=2)
+    two_weeks_ago = datetime.today() - timedelta(days=14)
     pending_extraction_objects = ExtractionData.objects.filter(
-        status=ExtractionData.Status.PENDING, created_at__date__lte=two_days_ago
+        status=ExtractionData.Status.PENDING, created_at__date__lte=two_weeks_ago
     )[:500]
 
     for obj in pending_extraction_objects:
