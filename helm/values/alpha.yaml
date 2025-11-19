@@ -1,0 +1,81 @@
+app:
+  ingress:
+    enabled: true
+
+  minio:
+    enabled: true
+
+  redis:
+    enabled: true
+    architecture: standalone
+    fullnameOverride: montandon-etl-redis
+    auth:
+      enabled: false
+    master:
+      lifecycleHooks:
+        postStart:
+          exec:
+            # NOTE: Set maxmemory for database /0 (celery results backend)
+            command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 1024mb"]
+      persistence:
+        enabled: true
+        size: 1Gi
+        storageClass:
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1Gi
+        limits:
+          cpu: "4"
+          memory: 1Gi
+
+
+  api:
+    resources:
+      requests:
+        memory: 3Gi
+      limits:
+        memory: 4Gi
+
+  worker:
+    beat:
+      resources:
+        requests:
+          memory: 0.5Gi
+    queues:
+      # NOTE: Make sure keys are lowercase
+      default:
+        replicaCount: 5
+        resources:
+          limits:
+            memory: 1.5Gi
+      extraction:
+        resources:
+          requests:
+            memory: 1.5Gi
+      transform:
+        resources:
+          requests:
+            memory: 1.5Gi
+      usgs-extraction:
+        enabled: true
+
+  env:
+    # Sentry
+    SENTRY_TRACES_SAMPLE_RATE: "0.2"
+    SENTRY_PROFILE_SAMPLE_RATE: "0.2"
+    SENTRY_MONITOR_CELERY_BEAT_TASKS: "true"
+    TRANSFORM_SUCCESS_RATE: "80"
+    AWS_S3_BUCKET_ENABLE: "true"
+    AWS_S3_MEDIA_BUCKET_NAME: "montandon-etl-data"
+    AWS_S3_STATIC_BUCKET_NAME: "montandon-etl-static"
+
+  secrets:
+    AWS_S3_ENDPOINT_URL: "https://{{ .Values.minio.apiIngress.hostname }}/"
+    AWS_S3_ACCESS_KEY_ID: "{{ required \".Values.minio.auth.rootUser\" .Values.minio.auth.rootUser }}"
+    AWS_S3_SECRET_ACCESS_KEY: "{{ required \".Values.minio.auth.rootPassword\" .Values.minio.auth.rootPassword }}"
+    AWS_S3_REGION: "us-east-1"
+
+    CELERY_BROKER_URL: "{{ printf \"amqp://%s:%s@%s:5672/celery\" (required \".Values.rabbitmq.auth.username\" .Values.rabbitmq.auth.username) (required \".Values.rabbitmq.auth.password\" .Values.rabbitmq.auth.password) (include \"common.names.fullname\" .Subcharts.rabbitmq) }}"
+    CELERY_RESULT_BACKEND: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/0"
+    CACHE_REDIS_URL: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/2"

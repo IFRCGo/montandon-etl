@@ -1,28 +1,16 @@
 apiVersion: v2
 name: montandon-etl-helm
-description: "Helm Chart to deploy the IFRC GO Risk Module Infrastructure"
+description: "Helm Chart to deploy the IFRC GO Montandon ETL Infrastructure"
 type: application
-version: 0.0.1-SET-BY-CICD
+version: 0.1.1-SET-BY-CICD  # managed by release.sh
 sources:
   - https://github.com/IFRCGo/montandon-etl/
 
 dependencies:
-  - name: redis
-    version: 20.6.3
-    repository: https://charts.bitnami.com/bitnami
-    condition: redis.enabled
-  - name: rabbitmq
-    version: 15.4.0
-    repository: https://charts.bitnami.com/bitnami
-    condition: rabbitmq.enabled
-  - name: postgresql
-    version: 16.4.5
-    condition: postgresql.enabled
-    repository: https://charts.bitnami.com/bitnami
-  - name: minio
-    version: 14.10.5
-    condition: minio.enabled
-    repository: https://charts.bitnami.com/bitnami
+  - name: toggle-django-helm
+    alias: app
+    version: 0.2.4
+    repository: oci://ghcr.io/toggle-corp
   - name: geocoding-helm
     alias: geocoding
     version: 0.0.1-feature-geocoding-lite.b9897dd
