@@ -18,13 +18,11 @@ x-server: &base_server_setup
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
-      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
+      CELERY_RABBITMQ_CONNECTION_STRING: ${CELERY_RABBITMQ_CONNECTION_STRING:-amqp://monty:monty@rabbitmq:5672/}
+      CELERY_RABBITMQ_VHOST: ${CELERY_RABBITMQ_VHOST:-celery}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
       CACHE_REDIS_URL: ${CACHE_REDIS_URL:-redis://redis:6379/2}
       TEST_CACHE_REDIS_URL: ${TEST_CACHE_REDIS_URL:-redis://redis:6379/11}
-      # Health-checks
-      HEALTHCHECK_REDIS_URL: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
-      HEALTHCHECK_RABBITMQ_URL: ${CELERY_BROKER_URL:-amqp://monty:monty@rabbitmq:5672/celery}
       # Geocoder
       # FIXME: Add geocoder to docker compose and use that service here
       GEOCODER_URL: ${GEOCODER_URL?error}
@@ -66,13 +64,13 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
-    container_name: rabbitmq
+    hostname: "rabbit"  # https://github.com/docker-library/rabbitmq/issues/392
     environment:
       RABBITMQ_DEFAULT_VHOST: celery
       RABBITMQ_DEFAULT_USER: monty
       RABBITMQ_DEFAULT_PASS: monty
     ports:
-      - 127.0.0.1:15672:15672  # Managements console
+      - 127.0.0.1:${RABBITMQ_CONSOLE_PORT:-15672}:15672  # Managements console
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
