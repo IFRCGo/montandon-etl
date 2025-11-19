@@ -1,3 +1,5 @@
+from enum import Enum
+
 import strawberry
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Status
@@ -22,3 +24,9 @@ enum_map = {
         (PyStacLoadData.item_type, PyStacLoadDataItemTypeEnum),
     )
 }
+
+
+class TableNameEnum(Enum):
+    Transform = "etl_transform"
+    Extraction = "etl_extractiondata"
+    Load = "etl_pystacloaddata"
