@@ -1,0 +1,7 @@
+tests:
+  alpha-1.yaml:
+    - values/alpha.yaml
+  staging.yaml:
+    - values/operators.yaml
+    - values/go-deploy.yaml
+    - values/staging.yaml

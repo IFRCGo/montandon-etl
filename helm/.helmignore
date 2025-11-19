@@ -1,3 +1,3 @@
 .helm-charts/
+tests/
 values-local.yaml
-values/alpha-1.yaml
