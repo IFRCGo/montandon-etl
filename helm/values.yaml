@@ -1,260 +1,234 @@
-environment: prod
-
-image:
-  name: SET-BY-CICD-IMAGE
-  tag: SET-BY-CICD-TAG
-
-ingress:
-  enabled: false
-  host:
-  className:
-  tls:
-    enabled: false
-    secretName:
-
-redis:
-  enabled: true
-  architecture: standalone
-  fullnameOverride: montandon-etl-redis
-  auth:
-    enabled: false
-  master:
-    lifecycleHooks:
-      postStart:
-        exec:
-          # NOTE: Set maxmemory for database /0 (celery results backend)
-          command: ["/bin/sh", "-c", "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 1024mb"]
-    persistence:
-      enabled: true
-      size: 1Gi
-      storageClass:
-
-rabbitmq:
-  enabled: true
-  fullnameOverride: montandon-etl-rabbitmq
-  auth:
-    username: monty
-    password:
-    erlangCookie: # Generate using `dd if=/dev/urandom bs=30 count=1 | base64`
-  # XXX: Don't change this (`celery` vhost is used in templates/config/secret.yaml
-  extraConfiguration: |-
-    default_vhost = celery
-    default_permissions.configure = .*
-    default_permissions.read = .*
-    default_permissions.write = .*
-  resources:
-    requests:
-      cpu: "0.1"
-      memory: 1024Mi
-    limits:
-      cpu: "4"
-      memory: 2048Mi
-  persistence:
-    enabled: true
-    size: 2Gi
-    storageClass:
-
-# https://artifacthub.io/packages/helm/bitnami/minio
-# extraEnvVars: https://github.com/bitnami/containers/blob/main/bitnami/minio/README.md#environment-variables
-minio:
-  enabled: false
-  disableWebUI: true
-  mode: standalone
-  fullnameOverride: montandon-etl-minio
-  global:
-    defaultStorageClass:
-  apiIngress:
-    enabled: true
-    ingressClassName:  # NOTE: Define me when used
-    hostname:  # NOTE: Define me when used
-    annotations:
-      nginx.ingress.kubernetes.io/proxy-body-size: "500m"
-  auth:
-    forceNewKeys: True
-    rootUser: montandon-etl
-    rootPassword:  # NOTE: Define me when used
-  persistence:
-    enabled: true
-    size: 1Gi
-  defaultBuckets: montandon-etl-data,montandon-etl-static  # XXX: Don't change this
-  provisioning:
-    enabled: true
-    resourcesPreset: "nano"
-    cleanupAfterFinished:
-      enabled: true
-    extraCommands:
-      - "mc anonymous set download provisioning/montandon-etl-static"
-      - "mc anonymous set download provisioning/montandon-etl-data"
-
-
-postgresql:
-  enabled: false
-  fullnameOverride: ""
-  architecture: standalone
-  auth:
-    postgresPassword: ""  # user is "postgres"
-    database: ""
-  primary:
-    persistence:
-      enabled: true
-      storageClass: ""
-      size: 8Gi
-
 # https://github.com/IFRCGo/geocoding-service/blob/main/helm/values.yaml
 geocoding:
   enabled: true
   fullnameOverride: geocoder
+  image:
+    # TODO: Why?
+    tag: main.c26a216
   server:
+    serviceName: monty-geocoder  # NOTE: This is used in app using extraEnvVars
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 1.5Gi
+      limits:
+        cpu: "4"
+        memory: 3Gi
     persistence:
       enabled: true
-      storageClass: ""
       size: 3Gi
 
-# NOTE: Shared volume as local cache: Files required by transformers
-localCacheVolume:
-  storageClass:
-  size: 2Gi
+app:
+  environment: PROD
+  nameOverride: ifrcgo-monty-etl-helm
 
-api:
-  enabled: true
-  replicaCount: 1
-  containerPort: 80
-  resources:
-    requests:
-      cpu: "0.1"
-      memory: 1Gi
-    limits:
-      cpu: "4"
-      memory: 2Gi
+  appTypeEnvName: "DJANGO_APP_TYPE"
 
-worker:
-  enabled: true
-  beat:
-    resources:
-      requests:
-        cpu: "0.1"
-        memory: 0.5Gi
-      limits:
-        cpu: "2"
-        memory: 1Gi
-  flower:
+  # Global Image
+  image:
+    name: SET-BY-CICD-IMAGE
+    tag: SET-BY-CICD-TAG
+    imagePullPolicy: IfNotPresent
+
+  ingress:
+    enabled: true
+    className:
+    host:
+
+
+  minio:
     enabled: false
+    disableWebUI: true
+    mode: standalone
+    fullnameOverride: montandon-etl-minio
+    global:
+      defaultStorageClass:
+    apiIngress:
+      enabled: true
+      ingressClassName:  # NOTE: Define me when used
+      hostname:  # NOTE: Define me when used
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: "500m"
+    auth:
+      forceNewKeys: True
+      rootUser: monty-etl
+      rootPassword:  # NOTE: Define me when used
     resources:
       requests:
         cpu: "0.1"
-        memory: 0.5Gi
+        memory: 128Mi
       limits:
-        cpu: "1"
+        cpu: "4"
+        memory: 256Mi
+    persistence:
+      enabled: true
+      size: 1Gi
+    defaultBuckets: montandon-etl-data,montandon-etl-static  # XXX: Don't change this
+    provisioning:
+      enabled: true
+      resourcesPreset: "nano"
+      cleanupAfterFinished:
+        enabled: true
+      extraCommands:
+        - "mc anonymous set download provisioning/montandon-etl-static"
+        - "mc anonymous set download provisioning/montandon-etl-data"
+
+  redis:
+    fullnameOverride: montandon-etl-redis
+  rabbitmq:
+    fullnameOverride: montandon-etl-rabbitmq
+
+  # NOTE: Shared volume as local cache: Files required by transformers
+  # XXX: Is this used?
+  podVolumes:
+    - name: local-cache-volume
+      persistentVolumeClaim:
+        claimName: monty-local-cache
+
+  podVolumeMounts:
+    - mountPath: "/local-cache-data"
+      name: local-cache-volume
+
+  api:
+    enabled: true
+    replicaCount: 1
+    containerPort: 80
+    command: ["/code/scripts/run_web.sh"]
+    resources:
+      requests:
+        cpu: "0.1"
         memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 2Gi
 
-  queueDefaultResources:
-    requests:
-      cpu: "0.1"
-      memory: 1Gi
-    limits:
-      cpu: "4"
-      memory: 2Gi
-  queues:
-    # NOTE: Make sure keys are lowercase
-    default:
-      enabled: true
-      replicaCount: 1
-      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "10", "-Q", "default", "--prefetch-multiplier", "1"]
-    extraction:
-      enabled: true
-      replicaCount: 1
-      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "extraction", "--prefetch-multiplier", "1"]
-    transform:
-      enabled: true
-      replicaCount: 2
-      celeryArgs: ["--concurrency", "4", "--max-tasks-per-child", "5", "-Q", "transform", "--prefetch-multiplier", "1"]
-    # By source
-    usgs-extraction:
-      enabled: true
-      replicaCount: 1
-      celeryArgs: ["--concurrency", "5", "--max-tasks-per-child", "5", "-Q", "usgs-extraction", "--prefetch-multiplier", "1"]
-
-argoHooks:
-  # NOTE: Make sure keys are lowercase
-  db-migrate:
+  worker:
     enabled: true
-    hook: PostSync
-    preserveHistory: true
-    command: ["./manage.py", "migrate"]
-    requestsCpu: 0.1
-    requestsMemory: 1G
-    limitsCpu: 4
-    limitsMemory: 2G
-  collect-static:
+    beat:
+      command: ["celery", "-A", "main", "beat", "-l", "INFO"]
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 0.2Gi
+        limits:
+          cpu: "1"
+          memory: 0.5Gi
+    flower:
+      enabled: true
+      command: ["celery", "-A", "main", "flower", "--port=8000"]
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 0.5Gi
+        limits:
+          cpu: "1"
+          memory: 0.5Gi
+    queueDefaultResources:
+      requests:
+        cpu: "0.1"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 2Gi
+    queueCommandPrefix:
+      - "celery"
+      - "-A"
+      - "main"
+      - "worker"
+      - "-l"
+      - "INFO"
+      - "--prefetch-multiplier"
+      - "1"
+    queues:
+      # NOTE: Make sure keys are lowercase
+      default:
+        enabled: true
+        replicaCount: 1
+        celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "10"]
+      extraction:
+        enabled: true
+        replicaCount: 1
+        celeryArgs: ["-Q", "extraction", "--concurrency", "5", "--max-tasks-per-child", "5"]
+      transform:
+        enabled: true
+        replicaCount: 2
+        celeryArgs: ["-Q", "transform", "--concurrency", "4", "--max-tasks-per-child", "5"]
+      # By source
+      # TODO: Is this used?
+      usgs-extraction:
+        enabled: true
+        replicaCount: 1
+        celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "5", "--max-tasks-per-child", "5"]
+
+  argoHook:
     enabled: true
-    hook: PostSync
-    command: ["./manage.py", "collectstatic", "--noinput"]
-  local-cache-pull:
-    enabled: true
-    hook: PostSync
-    command: ["./manage.py", "local_cache_pull"]
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 2Gi
+    hooks:
+      # NOTE: Make sure keys are lowercase
+      db-migrate:
+        enabled: true
+        hook: PostSync
+        preserveHistory: true
+        command: ["./manage.py", "migrate"]
+      collect-static:
+        enabled: true
+        hook: PostSync
+        command: ["./manage.py", "collectstatic", "--noinput"]
+      local-cache-pull:
+        enabled: true
+        hook: PostSync
+        command: ["./manage.py", "local_cache_pull"]
 
-env:
-  # DJANGO_APP_ENVIRONMENT: using .environment
-  DJANGO_DEBUG: false
-  DJANGO_TIME_ZONE: UTC
-  # App Domain
-  DJANGO_ALLOWED_HOSTS: "*"
-  # Azure configs
-  AZURE_STORAGE_ENABLE: false
-  AZURE_STORAGE_ACCOUNT_NAME:
-  AZURE_STORAGE_MEDIA_CONTAINER:
-  AZURE_STORAGE_STATIC_CONTAINER:
-  # ETL app config
-  EOAPI_DOMAIN:
-  GEOCODER_URL:
-# NOTE: Used to pass additional configs to api/worker containers
-# NOTE: Not used by azure vault
-envAdditional:
-  # USE_S3_BUCKET: "true"
+  env:
+    APP_RELEASE: "{{ $.Values.image.tag }}"
+    DJANGO_APP_ENVIRONMENT: "{{ $.Values.environment }}"
+    DJANGO_DEBUG: "false"
+    DJANGO_TIME_ZONE: UTC
+    # App Domain
+    DJANGO_ALLOWED_HOSTS: "*"
+    # Azure configs
+    AZURE_STORAGE_ENABLE: "false"
+    # ETL app config
+    EOAPI_DOMAIN: "{{ required \".app.secrets.EOAPI_DOMAIN\" nil }}"
 
-secretsName: ""
-secrets:
-  DJANGO_SECRET_KEY:
-  # Database
-  DB_NAME:
-  DB_USER:
-  DB_PASSWORD:
-  DB_HOST:
-  DB_PORT:
-  # Sentry
-  SENTRY_DSN:
-  # Redis (Provide: if not redis.enabled)
-  # - Celery
-  CELERY_REDIS_URL:
-  # ETL sources config
-  EMDAT_AUTHORIZATION_KEY:
-  IDMC_CLIENT_ID:
-  GFD_CREDENTIAL:
-  GFD_SERVICE_ACCOUNT:
-  PDC_SENTRY_AUTHORIZATION_KEY:
-  PDC_ARCGIS_USERNAME:
-  PDC_ARCGIS_PASSWORD:
-# NOTE: Used to pass additional secrets to api/worker containers
-# NOTE: Not used by azure vault
-secretsAdditional:
-  # AWS_S3_ACCESS_KEY_ID: "VERY-SENSITIVE-KEY-ID"
+  secrets:
+    DJANGO_SECRET_KEY: "{{ required \".app.secrets.DJANGO_SECRET_KEY\" nil }}"
+    # Sentry
+    SENTRY_DSN: "{{ required \".app.secrets.SENTRY_DSN\" nil }}"
+    # ETL sources config
+    EMDAT_AUTHORIZATION_KEY: "{{ required \".app.secrets.EMDAT_AUTHORIZATION_KEY\" nil }}"
+    GFD_CREDENTIAL: "{{ required \".app.secrets.GFD_CREDENTIAL\" nil }}"
+    GFD_SERVICE_ACCOUNT: "{{ required \".app.secrets.GFD_SERVICE_ACCOUNT\" nil }}"
+    IDMC_CLIENT_ID: "{{ required \".app.secrets.IDMC_CLIENT_ID\" nil }}"
+    PDC_ARCGIS_USERNAME: "{{ required \".app.secrets.PDC_ARCGIS_USERNAME\" nil }}"
+    PDC_ARCGIS_PASSWORD: "{{ required \".app.secrets.PDC_ARCGIS_PASSWORD\" nil }}"
+    PDC_SENTRY_AUTHORIZATION_KEY: "{{ required \".app.secrets.PDC_SENTRY_AUTHORIZATION_KEY\" nil }}"
 
-# Azure configurations
-azure:
-  aksSecretsProviderAvailable: false
-  keyvault:
-    name: ""
-    clientId: ""
-    tenantId: ""
+  extraEnvVars:
+    # -- Geocoder
+    - name: GEOCODER_URL
+      value: http://monty-geocoder:80
 
-serviceAccount:
-  # Specifies whether a service account should be created
-  # Required when using workload identity to access Azure Key Vault Secrets
-  create: false
-  automount: true
-  annotations:
-    azure.workload.identity/client-id : "<workload_identity_client_id>"
-  labels:
-    azure.workload.identity/use: "true"
-  name: ""
+  extraManifests:
+    local-cache-pvc: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: monty-local-cache
+        labels:
+          app: {{ include "django-app.fullname" . }}
+          environment: {{ .Values.environment }}
+          release: {{ .Release.Name }}
+      spec:
+        storageClassName:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 2Gi

@@ -1,0 +1,87 @@
+app:
+  extraEnvVars:
+    # Checkout the resources defined by extraManifests
+    # -- Rabbitmq
+    - name: CELERY_RABBITMQ_CONNECTION_STRING
+      valueFrom:
+        secretKeyRef:
+          name: monty-rabbitmq-default-user
+          key: connection_string
+    - name: CELERY_RABBITMQ_VHOST
+      value: celery
+    # -- Dragonfly
+    - name: CELERY_RESULT_BACKEND
+      value: redis://monty-dragonfly:6379/0
+    - name: CACHE_REDIS_URL
+      value: redis://monty-dragonfly:6379/1
+    # -- Geocoder
+    - name: GEOCODER_URL
+      value: http://monty-geocoder:80
+
+  extraManifests:
+    dragonflydb-cluster:
+      apiVersion: dragonflydb.io/v1alpha1
+      kind: Dragonfly
+      metadata:
+        labels:
+          app.kubernetes.io/name: dragonfly
+        name: monty-dragonfly  # NOTE: this will be the service name
+      spec:
+        replicas: 1
+        args: ["--dbfilename=mainSnapshot"]  # NOTE: Only maintains 1 last snapshot
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: 1024Mi
+          limits:
+            cpu: "1"
+            memory: 750Mi
+        snapshot:
+          cron: "*/5 * * * *"
+          persistentVolumeClaimSpec:
+            # storageClassName:
+            accessModes:
+            - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+
+    # RabbitMQ https://www.rabbitmq.com/kubernetes/operator/using-operator
+    rabbitmq-cluster:
+      apiVersion: rabbitmq.com/v1beta1
+      kind: RabbitmqCluster
+      metadata:
+        name: monty-rabbitmq  # NOTE: This is used secret name
+      spec:
+        replicas: 1  # Scaling down is not supported
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "2Gi"
+          limits:
+            cpu: "4"
+            memory: "2Gi"
+        rabbitmq:
+          additionalConfig: |
+            default_vhost = celery
+        persistence:
+         # storageClassName:
+         storage: "2Gi"
+
+    # Local cache volume
+    local-cache-pvc: |
+      apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: monty-local-cache
+        labels:
+          app: {{ include "django-app.fullname" . }}
+          environment: {{ .Values.environment }}
+          release: {{ .Release.Name }}
+      spec:
+        storageClassName:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 2Gi
