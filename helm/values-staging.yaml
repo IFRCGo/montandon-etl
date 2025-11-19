@@ -1,0 +1,146 @@
+redis:
+  image:
+    repository: bitnamilegacy/redis
+  master:
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 1Gi
+      limits:
+        cpu: "4"
+        memory: 1Gi
+    nodeSelector:
+      node.kubernetes.io/disk-raid: "true"
+    persistence: # TODO Change storage class
+      storageClass: "local-path"
+      size: 1Gi  # NOTE: This doesn't do anything for local-path
+
+rabbitmq:
+  image:
+    repository: bitnamilegacy/rabbitmq
+  auth:
+    password: monty
+    erlangCookie: zy7gKewi1Mx6BVTyv2yG1td6b40jq7tR
+  nodeSelector:
+    node.kubernetes.io/disk-raid: "true"
+  persistence: # TODO Change storage class
+    enabled: true
+    storageClass: "local-path"
+
+api:
+  resources:
+    requests:
+      cpu: "2"
+      memory: 3Gi
+    limits:
+      cpu: "4"
+      memory: 4Gi
+
+worker:
+  enabled: true
+  beat:
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 0.5Gi
+  flower:
+    enabled: true
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 0.5Gi
+  queues:
+    # NOTE: Make sure keys are lowercase
+    default:
+      # FIXME: Remove this after fixing remote helm values
+      celeryArgs:
+        - "-Q"
+        - "default"
+        - "--concurrency"
+        - "5"
+        - "--max-tasks-per-child"
+        - "5"
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1Gi
+        limits:
+          cpu: "4"
+          memory: 1.5Gi
+    extraction:
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1.5Gi
+        limits:
+          cpu: "4"
+          memory: 2Gi
+    transform:
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1.5Gi
+        limits:
+          cpu: "4"
+          memory: 2Gi
+
+    usgs-extraction:
+      enabled: true
+    usgs-extraction-01:
+      enabled: false
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "2", "--max-tasks-per-child", "10", "-Q", "usgs-extraction-01"]
+      envAdditional:
+        REQUESTS_PROXY_TO_USE: EXTRACTION_PROXY_1
+    usgs-extraction-02:
+      enabled: false
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "2", "--max-tasks-per-child", "10", "-Q", "usgs-extraction-02"]
+      envAdditional:
+        REQUESTS_PROXY_TO_USE: EXTRACTION_PROXY_2
+    usgs-extraction-03:
+      enabled: false
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "2", "--max-tasks-per-child", "10", "-Q", "usgs-extraction-03"]
+      envAdditional:
+        REQUESTS_PROXY_TO_USE: EXTRACTION_PROXY_3
+    usgs-extraction-04:
+      enabled: false
+      replicaCount: 1
+      celeryArgs: ["--concurrency", "2", "--max-tasks-per-child", "10", "-Q", "usgs-extraction-04"]
+      envAdditional:
+        REQUESTS_PROXY_TO_USE: EXTRACTION_PROXY_4
+
+geocoding:
+  image:
+    tag: main.c26a216
+  server:
+    persistence: # TODO Change storage class
+      storageClassName: "longhorn"
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: 1.5Gi
+      limits:
+        cpu: "4"
+        memory: 3Gi
+
+env:
+  DJANGO_DEBUG: false
+  DJANGO_TIME_ZONE: UTC
+
+  # Sentry
+  SENTRY_MONITOR_CELERY_BEAT_TASKS: true
+  TRANSFORM_SUCCESS_RATE: 80
+
+  # Sentry
+  SEND_TO_SENTRY: true
+  SENTRY_TRACES_SAMPLE_RATE: 0.8
+  SENTRY_PROFILE_SAMPLE_RATE: 0.8
+  # SSO
+  OIDC_ADMIN_PANEL_ENABLED: true
+  OIDC_IFRCGO_ENABLED: true
+
+envAdditional:
+  EMAIL_USE_TLS: false
+  OIDC_ADMIN_PANEL_ENABLED: false
