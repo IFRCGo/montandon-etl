@@ -266,24 +266,6 @@ data:
   DJANGO_TIME_ZONE: "UTC"
   EOAPI_DOMAIN: "montandon-eoapi-stage.monty.org"
 ---
-# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
-# Manifest: local-cache-pvc
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: monty-local-cache
-  labels:
-    app: monty-etl
-    environment: PROD
-    release: release-name
-spec:
-  storageClassName:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 2Gi
----
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -444,9 +426,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: api
@@ -491,8 +470,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/deployment.yaml
 apiVersion: apps/v1
@@ -529,9 +506,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker
@@ -576,8 +550,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker-beat/deployment.yaml
 apiVersion: apps/v1
@@ -614,9 +586,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker-beat
@@ -662,8 +631,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: default
@@ -704,9 +671,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker
@@ -760,8 +724,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: extraction
@@ -802,9 +764,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker
@@ -858,8 +817,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: transform
@@ -900,9 +857,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker
@@ -956,8 +910,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction
@@ -998,9 +950,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: worker
@@ -1054,8 +1003,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/deployment.yaml
 apiVersion: apps/v1
@@ -1313,9 +1260,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: collect-static
@@ -1357,8 +1301,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
 # Hook: db-migrate
@@ -1387,9 +1329,6 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       serviceAccountName: service-token-reader
       containers:
         - name: db-migrate
@@ -1430,81 +1369,6 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
----
-# Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
-# Hook: local-cache-pull
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: monty-etl-local-cache-pull
-  annotations:
-    argocd.argoproj.io/hook: PostSync
-spec:
-  template:
-    metadata:
-      annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: 2f42cb4d0c9682b18113c636cc41ccb16ad6653251e2effcdb7e09e20155f932
-      labels:
-        app: monty-etl
-        component: argo-hooks
-        azure.workload.identity/use: "true"
-    spec:
-      restartPolicy: "Never"
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
-      serviceAccountName: service-token-reader
-      containers:
-        - name: local-cache-pull
-          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
-          imagePullPolicy: IfNotPresent
-          command: 
-            - ./manage.py
-            - local_cache_pull
-          resources:
-            limits:
-              cpu: "4"
-              memory: 2Gi
-            requests:
-              cpu: "0.1"
-              memory: 1Gi
-          envFrom:
-            - secretRef:
-                name: monty-etl-secret
-            - configMapRef:
-                name: monty-etl-env-name
-          env:
-            - name: DJANGO_APP_TYPE
-              value: "hook"
-            - name: CELERY_RABBITMQ_CONNECTION_STRING
-              valueFrom:
-                secretKeyRef:
-                  key: connection_string
-                  name: monty-rabbitmq-default-user
-            - name: CELERY_RABBITMQ_VHOST
-              value: celery
-            - name: CELERY_RESULT_BACKEND
-              value: redis://monty-dragonfly:6379/0
-            - name: CACHE_REDIS_URL
-              value: redis://monty-dragonfly:6379/1
-            - name: GEOCODER_URL
-              value: http://monty-geocoder:80
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/ingress.yaml
 apiVersion: networking.k8s.io/v1

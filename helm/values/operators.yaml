@@ -67,21 +67,3 @@ app:
         persistence:
          # storageClassName:
          storage: "2Gi"
-
-    # Local cache volume
-    local-cache-pvc: |
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: monty-local-cache
-        labels:
-          app: {{ include "django-app.fullname" . }}
-          environment: {{ .Values.environment }}
-          release: {{ .Release.Name }}
-      spec:
-        storageClassName:
-        accessModes:
-          - ReadWriteMany
-        resources:
-          requests:
-            storage: 2Gi

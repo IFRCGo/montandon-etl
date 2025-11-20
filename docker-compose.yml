@@ -31,7 +31,6 @@ x-server: &base_server_setup
   volumes:
     - .:/code
     - ipython_data_local:/root/.ipython/profile_default   # persist ipython data, including ipython history
-    - local_cache_pull:/local-cache-data
   depends_on:
     - db
     - redis

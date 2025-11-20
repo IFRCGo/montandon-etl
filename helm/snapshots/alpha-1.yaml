@@ -535,24 +535,6 @@ spec:
       storage: "2Gi"
   storageClassName: local-path
 ---
-# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
-# Manifest: local-cache-pvc
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: monty-local-cache
-  labels:
-    app: monty-etl-1
-    environment: ALPHA-1
-    release: release-name
-spec:
-  storageClassName:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 2Gi
----
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/pvc.yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -993,10 +975,6 @@ spec:
         app: monty-etl-1
         component: api
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: api
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -1025,9 +1003,6 @@ spec:
               value: "web"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/deployment.yaml
 apiVersion: apps/v1
@@ -1056,10 +1031,6 @@ spec:
         app: monty-etl-1
         component: worker-flower
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -1088,9 +1059,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker-beat/deployment.yaml
 apiVersion: apps/v1
@@ -1119,10 +1087,6 @@ spec:
         app: monty-etl-1
         component: worker-beat
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker-beat
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -1152,9 +1116,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: default
@@ -1187,10 +1148,6 @@ spec:
         component: worker
         queue: default
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1228,9 +1185,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: extraction
@@ -1263,10 +1217,6 @@ spec:
         component: worker
         queue: extraction
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1304,9 +1254,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: transform
@@ -1339,10 +1286,6 @@ spec:
         component: worker
         queue: transform
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1380,9 +1323,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction
@@ -1415,10 +1355,6 @@ spec:
         component: worker
         queue: usgs-extraction
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1456,9 +1392,6 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction-01
@@ -1491,10 +1424,6 @@ spec:
         component: worker
         queue: usgs-extraction-01
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1534,9 +1463,6 @@ spec:
               value: http://monty-geocoder:80
             - name: REQUESTS_PROXY_TO_USE
               value: "EXTRACTION_PROXY_1"
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction-02
@@ -1569,10 +1495,6 @@ spec:
         component: worker
         queue: usgs-extraction-02
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1612,9 +1534,6 @@ spec:
               value: http://monty-geocoder:80
             - name: REQUESTS_PROXY_TO_USE
               value: "EXTRACTION_PROXY_2"
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction-03
@@ -1647,10 +1566,6 @@ spec:
         component: worker
         queue: usgs-extraction-03
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1690,9 +1605,6 @@ spec:
               value: http://monty-geocoder:80
             - name: REQUESTS_PROXY_TO_USE
               value: "EXTRACTION_PROXY_3"
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: usgs-extraction-04
@@ -1725,10 +1637,6 @@ spec:
         component: worker
         queue: usgs-extraction-04
     spec:
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: worker
           command:
@@ -1768,9 +1676,6 @@ spec:
               value: http://monty-geocoder:80
             - name: REQUESTS_PROXY_TO_USE
               value: "EXTRACTION_PROXY_4"
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/deployment.yaml
 apiVersion: apps/v1
@@ -2294,10 +2199,6 @@ spec:
         component: argo-hooks
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: alpha-instance-users
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -2351,9 +2252,6 @@ spec:
               value: "hook"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
 # Hook: collect-static
@@ -2374,10 +2272,6 @@ spec:
         component: argo-hooks
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: collect-static
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -2403,9 +2297,6 @@ spec:
               value: "hook"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
 # Hook: db-migrate
@@ -2426,10 +2317,6 @@ spec:
         component: argo-hooks
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
       containers:
         - name: db-migrate
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
@@ -2454,60 +2341,6 @@ spec:
               value: "hook"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
----
-# Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
-# Hook: local-cache-pull
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: monty-etl-1-local-cache-pull
-  annotations:
-    argocd.argoproj.io/hook: PostSync
-spec:
-  template:
-    metadata:
-      annotations:
-        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
-      labels:
-        app: monty-etl-1
-        component: argo-hooks
-    spec:
-      restartPolicy: "Never"
-      volumes:
-        - name: local-cache-volume
-          persistentVolumeClaim:
-            claimName: monty-local-cache
-      containers:
-        - name: local-cache-pull
-          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
-          imagePullPolicy: IfNotPresent
-          command: 
-            - ./manage.py
-            - local_cache_pull
-          resources:
-            limits:
-              cpu: "4"
-              memory: 2Gi
-            requests:
-              cpu: "0.1"
-              memory: 1Gi
-          envFrom:
-            - secretRef:
-                name: monty-etl-1-secret
-            - configMapRef:
-                name: monty-etl-1-env-name
-          env:
-            - name: DJANGO_APP_TYPE
-              value: "hook"
-            - name: GEOCODER_URL
-              value: http://monty-geocoder:80
-          volumeMounts:
-            - mountPath: /local-cache-data
-              name: local-cache-volume
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/api-ingress.yaml
 apiVersion: networking.k8s.io/v1
