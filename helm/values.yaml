@@ -16,6 +16,7 @@ geocoding:
         memory: 3Gi
     persistence:
       enabled: true
+      storageClassName: default
       size: 3Gi
 
 app:
@@ -73,8 +74,10 @@ app:
         - "mc anonymous set download provisioning/montandon-etl-data"
 
   redis:
+    enabled: false
     fullnameOverride: montandon-etl-redis
   rabbitmq:
+    enabled: false
     fullnameOverride: montandon-etl-rabbitmq
 
   api:

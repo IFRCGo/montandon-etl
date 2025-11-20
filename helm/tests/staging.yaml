@@ -8,18 +8,21 @@ app:
   env:
     # Azure configs
     AZURE_STORAGE_ENABLE: "true"
-    AZURE_STORAGE_ACCOUNT_NAME: montystagingXYZ
+    AZURE_CLIENT_ID: XXXXCLIENT-IDXXXX
+    AZURE_TENANT_ID: XXXXTENANT-IDXXXX
     AZURE_STORAGE_MEDIA_CONTAINER: montandon-etl-staging-media-container
     AZURE_STORAGE_STATIC_CONTAINER: montandon-etl-staging-static-container
+    AZURE_STORAGE_ACCOUNT_NAME: montystagingXYZ
+    AZURE_STORAGE_MANAGED_IDENTITY: "true"
     # ETL Load config
     EOAPI_DOMAIN: "montandon-eoapi-stage.monty.org"
 
   serviceAccount:
     annotations:
-      azure.workload.identity/client-id : "XXXXXXXX"
+      azure.workload.identity/client-id : "XXXXCLIENT-IDXXXX"
 
   secretsStoreCsiDriver:
     parameters:
-      clientID: "XXXXXXXX"
+      clientID: "XXXXCLIENT-IDXXXX"
       keyvaultName: "montandon-etl-staging-kv"
-      tenantId: "YYYYYYYY"
+      tenantId: "XXXXTENANT-IDXXXX"

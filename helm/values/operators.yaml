@@ -14,7 +14,7 @@ app:
       value: redis://monty-dragonfly:6379/0
     - name: CACHE_REDIS_URL
       value: redis://monty-dragonfly:6379/1
-    # -- Geocoder
+    # -- Geocoder (NOTE: Same as values.yaml)
     - name: GEOCODER_URL
       value: http://monty-geocoder:80
 
@@ -35,7 +35,7 @@ app:
             memory: 1024Mi
           limits:
             cpu: "1"
-            memory: 750Mi
+            memory: 1024Mi
         snapshot:
           cron: "*/5 * * * *"
           persistentVolumeClaimSpec:
