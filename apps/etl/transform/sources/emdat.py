@@ -1,11 +1,15 @@
-import json
 import logging
+import os
+from pathlib import Path
 
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 from pystac_monty.sources.emdat import EMDATDataSource, EMDATTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
@@ -15,16 +19,25 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
     transformer_schema = EMDATDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
-        with extraction_obj.resp_data.open() as file_data:
-            data = json.loads(file_data.read())
+    def get_schema_data(cls, extraction_obj: ExtractionData, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
 
-        return cls.transformer_schema(
-            source_url=extraction_obj.url,
-            data=data,
+        with extraction_obj.resp_data.open("rb") as f:
+            data = f.read()
+        data_file = write_into_temp_file(data, tmp_dir_path)
+
+        result = cls.transformer_schema(
+            data=GenericDataSource(
+                source_url=extraction_obj.url,
+                input_data=File(path=data_file.name, data_type=DataType.FILE),
+            )
         )
 
+        return result
+
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        EMDATTransformHandler().handle_transformation(extraction_id)
+        EMDATTransformHandler().handle_transformation(extraction_id, settings.EMDAT_TRANSFORMER_VERSION)

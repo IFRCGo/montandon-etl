@@ -1,68 +1,64 @@
 import logging
-from typing import Any, Callable
+import typing
+from enum import Enum
 
-import requests
+import pydantic
+from celery import Task
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
-from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
+from apps.etl.transform.sources.noaa_ibtracs import IbtracsTransformHandler
+from main.celery import CeleryQueue, app
+from main.logging import log_extra
+from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
 
-class IBTrACSExtraction(BaseExtraction):
+class IBTrACSExtractionMetadataType(str, Enum):
+    QUERY = "QUERY"
+
+
+class IBTrACSExtractionMetadata(pydantic.BaseModel):
+    url: str
+    type: IBTrACSExtractionMetadataType
+
+
+class IBTrACSExtraction(BaseExtractionV2[IBTrACSExtractionMetadata]):
     """
-    Handles data extraction of IBTrACS
+    Handle IBTrACS data extraction
     """
 
-    @classmethod
-    def store_extraction_data(  # type: ignore[reportIncompatibleMethodOverride]
-        cls,
-        validate_source_func: Callable[[Any], None] | None,
-        source: int,
-        response: requests.Response,
-        instance_id: int | None = None,
-    ):
-        """
-        Save extracted data into database. Checks for duplicate content using hashing.
-        """
-        file_name = f"{source}.zip"
-        resp_data = response
+    source_enum = ExtractionData.Source.IBTRACS
+    extraction_metadata_class = IBTrACSExtractionMetadata
 
-        # save the additional response data after the data is fetched from api.
-        extraction_instance = ExtractionData.objects.get(id=instance_id)
-        extraction_instance.resp_data_type = "application/csv"
-        extraction_instance.save(update_fields=["resp_data_type"])
-
-        # Validate the non empty response data.
-        if resp_data:
-            # manage duplicate file content.
-            manage_duplicate_file_content(
-                source=extraction_instance.source,
-                hash_content=None,
-                instance=extraction_instance,
-                response_data=resp_data.content,
-                file_name=file_name,
-            )
-        return resp_data.content
-
-    @classmethod
-    def _save_response_data(cls, instance: ExtractionData, response: requests.Response) -> dict:
-        instance = cls.store_extraction_data(
-            response=response,
-            source=ExtractionData.Source.DESINVENTAR,
-            validate_source_func=None,
-            instance_id=instance.id,
+    def handle_type_query(self):
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url,
+            headers={"Content-Type": "application/json"},
         )
-        return response
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+        IbtracsTransformHandler.task.delay(self.extraction_object.id)
+
+    def handle_extract(self, retrigger: bool = False, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case IBTrACSExtractionMetadataType.QUERY:
+                return self.handle_type_query()
+            case _:
+                typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task
-    def task(url: str):  # type: ignore[reportIncompatibleMethodOverride]
-        return IBTrACSExtraction().handle_extraction(
-            url=url,
-            headers=None,
-            params=None,
-            source=ExtractionData.Source.IBTRACS,
-        )
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+    )
+    def task(celery_task: Task, extraction_id: int):  # type: ignore[reportIncompatibleMethodOverride]
+        IBTrACSExtraction(celery_task, extraction_id).handle()

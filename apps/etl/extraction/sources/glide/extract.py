@@ -1,12 +1,25 @@
+import logging
+import typing
+from enum import Enum
+
 import pydantic
+from celery import Task
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
-from main.configs import etl_config
+from apps.etl.transform.sources.glide import GlideTransformHandler
+from main.celery import CeleryQueue, app
+from main.logging import log_extra
+from utils.celery import RetryableTask
+
+logger = logging.getLogger(__name__)
 
 
-class GlideExtractionInputMetadata(pydantic.BaseModel):
+class GlideExtractionMetadataType(str, Enum):
+    QUERY = "QUERY"
+
+
+class GlideExtractionParamsMetadata(pydantic.BaseModel):
     fromyear: int | None
     frommonth: int | None
     fromday: int | None
@@ -16,18 +29,44 @@ class GlideExtractionInputMetadata(pydantic.BaseModel):
     events: str | None
 
 
-class GlideExtraction(BaseExtraction):
-    """
-    Handles data extraction from the GLIDE API.
-    """
+class GlideExtractionMetadata(pydantic.BaseModel):
+    url: str
+    type: GlideExtractionMetadataType
+    params: GlideExtractionParamsMetadata
+
+
+class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
+    source_enum = ExtractionData.Source.GLIDE
+    extraction_metadata_class = GlideExtractionMetadata
+
+    def handle_type_query(self):
+        url = self.extraction_metadata.url
+        params = self.extraction_metadata.params
+        headers = {"Content-Type": "application/json"}
+        extraction_status = self._extraction_fetch_url(url, params, headers)
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
+            )
+            return
+        GlideTransformHandler.task.delay(self.extraction_object.id)
+
+    def handle_extract(self, retrigger: bool = False, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case GlideExtractionMetadataType.QUERY:
+                return self.handle_type_query()
+            case _:
+                typing.assert_never(handler_type)
 
     @staticmethod
-    @app.task
-    def task(metadata: dict):  # type: ignore[reportIncompatibleMethodOverride]
-        input_metadata = GlideExtractionInputMetadata(**metadata)
-        return GlideExtraction().handle_extraction(
-            url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-            params=input_metadata.model_dump(),
-            headers={"accept": "application/json"},
-            source=ExtractionData.Source.GLIDE.value,
-        )
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+    )
+    def task(celery_task: Task, extraction_id: int):
+        # NOTE : The below `extraction_id` could be both failed extraction id or normal extraction id.
+        GlideExtraction(celery_task, extraction_id).handle()

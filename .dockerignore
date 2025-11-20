@@ -50,6 +50,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+assets/
 
 # Translations
 *.mo
@@ -129,3 +130,6 @@ dmypy.json
 
 # editors
 .idea/
+
+# FIXME: This is temporary
+assets/

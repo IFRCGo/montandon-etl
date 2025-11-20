@@ -23,7 +23,7 @@ env:
   COMPOSE_FILE: docker-compose.yml:gh-docker-compose.yml
   DJANGO_SECRET_KEY: "ci-test-insecure-django-secret-key"
   # ETL app configs
-  GEOCODER_URL: https://geocoder.dummy.com
+  GEOCODER_URL: http://geocoding-service:8001 
 
 jobs:
   pre_commit_checks:
@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@main
         with:
-          submodules: true
+          submodules: recursive
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -118,7 +118,10 @@ jobs:
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          touch .env && docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
+          touch .env
+          docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
+          # Another wait for geocoding-service (Move this to wait-for-it using custom python script)
+          sleep 60
 
       - name: 🕮 Validate if there are no pending django migrations.
         env:
@@ -129,10 +132,16 @@ jobs:
             exit 1;
           }
 
-      # - name: 🤞 Run Test 🧪 & Publish coverage to code climate
-      #   env:
-      #     DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
-      #   run: docker compose run --rm web /code/scripts/run_tests.sh
+      - name: 🤞 Run Test 🧪 & Publish coverage to code climate
+        env:
+          DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
+        run: |
+          docker compose up -d web geocoding-service 
+          # Wait for 60 seconds to ensure services are initialized
+          echo "Waiting for 60 seconds for services to initialize..."
+          sleep 60
+          # Run the tests
+          docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
 
       - name: 🐳 Docker push
         if: ${{ inputs.push_docker_image }}
@@ -160,3 +169,6 @@ jobs:
 
       - name: 🐳 Helm template
         run: helm template ./helm --values ./helm/linter_values.yaml
+
+      - name: 🐳 Helm template (snapshot)
+        run: ./helm/update-snapshots.sh --check-diff-only

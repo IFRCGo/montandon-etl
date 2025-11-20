@@ -1,10 +1,15 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
-from celery import chain, shared_task
+from celery import shared_task
 
-from apps.etl.extraction.sources.glide.extract import GlideExtraction, GlideExtractionInputMetadata
+from apps.etl.extraction.sources.glide.extract import (
+    GlideExtraction,
+    GlideExtractionMetadata,
+    GlideExtractionMetadataType,
+    GlideExtractionParamsMetadata,
+)
 from apps.etl.models import ExtractionData, HazardType
-from apps.etl.transform.sources.glide import GlideTransformHandler
+from main.celery import CeleryQueue
 from main.configs import etl_config
 
 GLIDE_HAZARDS = [
@@ -36,12 +41,40 @@ GLIDE_HAZARDS = [
 ]
 
 
+def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date: date, end_date: date):
+    start_date = start_date
+    to_date = end_date
+
+    while start_date < to_date:
+        end_date = start_date.replace(year=start_date.year + 1) - timedelta(days=1)
+        if end_date > to_date:
+            end_date = to_date
+
+        GlideExtraction.init_extraction(
+            metadata=GlideExtractionMetadata(
+                url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
+                params=GlideExtractionParamsMetadata(
+                    fromyear=start_date.year,
+                    frommonth=start_date.month,
+                    fromday=start_date.day,
+                    toyear=end_date.year,
+                    tomonth=end_date.month,
+                    today=end_date.day,
+                    events=hazard_type.value,
+                ),
+                type=GlideExtractionMetadataType.QUERY,
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
+        )
+
+        start_date = end_date + timedelta(days=1)
+
+
 @shared_task
-def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
+def ext_and_transform_glide_latest_data():
     ext_object = (
         ExtractionData.objects.filter(
             source=ExtractionData.Source.GLIDE,
-            hazard_type=hazard_type,
             status=ExtractionData.Status.SUCCESS,
             resp_data__isnull=False,
         )
@@ -56,51 +89,26 @@ def _ext_and_transform_glide_latest_data(hazard_type: HazardType):
 
     to_date = datetime.today().date()
 
-    # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
-        fromyear=from_date.year,
-        frommonth=from_date.month,
-        fromday=from_date.day,
-        toyear=to_date.year,
-        tomonth=to_date.month,
-        today=to_date.day,
-        events=hazard_type.value,
-    ).model_dump()
-
-    chain(
-        GlideExtraction.task.s(variables),
-        GlideTransformHandler.task.s(),
-    ).apply_async()
-
-
-@shared_task
-def _ext_and_transform_glide_historical_data(hazard_type: HazardType):
-    to_date = datetime.today().date()
-
-    # FIXME: Check if the date filters are inclusive
-    variables = GlideExtractionInputMetadata(
-        fromyear=None,
-        frommonth=None,
-        fromday=None,
-        toyear=to_date.year,
-        tomonth=to_date.month,
-        today=to_date.day,
-        events=hazard_type.value,
-    ).model_dump()
-
-    chain(
-        GlideExtraction.task.s(variables),
-        GlideTransformHandler.task.s(),
-    ).apply_async()
-
-
-@shared_task
-def ext_and_transform_glide_latest_data():
     for hazard_type in GLIDE_HAZARDS:
-        _ext_and_transform_glide_latest_data(hazard_type)
+        GlideExtraction.init_extraction(
+            metadata=GlideExtractionMetadata(
+                url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
+                params=GlideExtractionParamsMetadata(
+                    fromyear=from_date.year,
+                    frommonth=from_date.month,
+                    fromday=from_date.day,
+                    toyear=to_date.year,
+                    tomonth=to_date.month,
+                    today=to_date.day,
+                    events=hazard_type.value,
+                ),
+                type=GlideExtractionMetadataType.QUERY,
+            ),
+            queue_name=CeleryQueue.EXTRACTION,
+        )
 
 
 @shared_task
-def ext_and_transform_glide_historical_data():
+def ext_and_transform_glide_historical_data(start_date: date, end_date: date):
     for hazard_type in GLIDE_HAZARDS:
-        _ext_and_transform_glide_historical_data(hazard_type)
+        _ext_and_transform_glide_historical_data(hazard_type, start_date, end_date)

@@ -15,13 +15,14 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^helm/snapshots/
       - id: end-of-file-fixer
       - id: check-json
       - id: check-toml
       - id: check-xml
       - id: check-yaml
         args: [--unsafe]
-        exclude: ^helm/templates/
+        exclude: ^helm/snapshots/
       - id: debug-statements
       - id: check-builtin-literals
       - id: check-case-conflict

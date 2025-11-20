@@ -3,15 +3,17 @@ import logging
 import typing
 import uuid
 
-from pystac import Item as PyStacItem
+from django.conf import settings
 from pystac_monty.geocoding import TheirGeocoder
 from pystac_monty.sources.common import MontyDataTransformer
 
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
+from apps.etl.utils import generate_item_index_fields_values, remove_tmp_directory
 from main.celery import app
 from main.configs import etl_config
 from main.logging import log_extra
 from main.managers import BulkCreateManager
+from main.sentry import SentryTag
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +30,7 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "ifrcevent-impacts": PyStacLoadData.ItemType.IMPACT,
     "desinventar-events": PyStacLoadData.ItemType.EVENT,
     "desinventar-impacts": PyStacLoadData.ItemType.IMPACT,
-    "desinventar-hazards": PyStacLoadData.ItemType.HAZARD,
+    # "desinventar-hazards": PyStacLoadData.ItemType.HAZARD, # NOTE : There are no hazard item
     "pdc-events": PyStacLoadData.ItemType.EVENT,
     "pdc-hazards": PyStacLoadData.ItemType.HAZARD,
     "pdc-impacts": PyStacLoadData.ItemType.IMPACT,
@@ -42,6 +44,9 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "usgs-events": PyStacLoadData.ItemType.EVENT,
     "usgs-hazards": PyStacLoadData.ItemType.HAZARD,
     "usgs-impacts": PyStacLoadData.ItemType.IMPACT,
+    "gdacs-events": PyStacLoadData.ItemType.EVENT,
+    "gdacs-impacts": PyStacLoadData.ItemType.IMPACT,
+    "gdacs-hazards": PyStacLoadData.ItemType.HAZARD,
 }
 
 
@@ -66,70 +71,110 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         raise NotImplementedError()
 
     @classmethod
-    def handle_transformation(cls, extraction_id: int):
+    def get_success_percentage(cls, failed_rows, total_rows):
+        if not total_rows:
+            return 0
+        return 100 * (1 - (failed_rows / total_rows))
+
+    @classmethod
+    def handle_transformation(cls, extraction_id: int, version: str):
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
 
         if not extraction_obj.resp_data:
             logger.info("Transformation ended because there is no data")
             return
-
-        transform_obj = Transform.objects.create(
+        trace_id = get_trace_id(extraction_obj)
+        transform_obj = Transform.objects.filter(
             extraction=extraction_obj,
-            trace_id=get_trace_id(extraction_obj),
+            trace_id=trace_id,
+        ).first()
+        if not transform_obj:
+            transform_obj = Transform.objects.create(
+                extraction=extraction_obj,
+                trace_id=trace_id,
+                version=version,
+            )
+
+        SentryTag.set_tags(
+            {
+                SentryTag.Tag.SOURCE: ExtractionData.Source(extraction_obj.source).label,
+                SentryTag.Tag.TRACE_ID: extraction_obj.trace_id,
+            }
         )
 
         transform_obj.mark_as_started()
+        dir_uuid = str(uuid.uuid4())
+
         try:
             geocoder = TheirGeocoder(etl_config.GEOCODER_URL)
 
-            schema = cls.get_schema_data(extraction_obj)
+            schema = cls.get_schema_data(extraction_obj, dir_uuid)
             transformer = cls.transformer_class(schema, geocoder)
 
-            transformed_items = transformer.make_items()
+            transformed_items = transformer.get_stac_items()
 
             cls.load_stac_item_to_queue(transform_obj, transformed_items)
-
             summary = transformer.transform_summary
             transform_obj.metadata["summary"] = {
                 "failed_rows": summary.failed_rows,
                 "total_rows": summary.total_rows,
             }
-            transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+
+            success_percentage = cls.get_success_percentage(summary.failed_rows, summary.total_rows)
+
+            if success_percentage >= settings.TRANSFORM_SUCCESS_RATE:
+                transform_obj.mark_as_ended(Transform.Status.SUCCESS, update_fields=["metadata"])
+            else:
+                transform_obj.mark_as_ended(Transform.Status.FAILED, update_fields=["metadata"])
+                PyStacLoadData.objects.filter(transform_id=transform_obj).delete()
             logger.info("Transformation ended")
+
+            # Clean up tmp files
+            remove_tmp_directory(extraction_obj, dir_uuid)
+
         except Exception as e:
             logger.error(
                 "Transformation failed",
                 exc_info=True,
                 extra=log_extra({"extraction_id": extraction_obj.id}),
             )
+            # Delete the directory incase of failures
+            remove_tmp_directory(extraction_obj, dir_uuid)
+
             transform_obj.mark_as_ended(Transform.Status.FAILED)
-            # FIXME: Check if this creates duplicate entry in Sentry. if yes, remove this.
             raise e
 
     @classmethod
-    def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items: list[PyStacItem]):
+    def load_stac_item_to_queue(cls, transform_obj: Transform, transform_items):
         logger.info("Loading data into queue")
-
-        bulk_mgr = BulkCreateManager(chunk_size=1000)
+        bulk_mgr = BulkCreateManager(chunk_size=50)
         for item in transform_items:
             # FIXME: We need to check if we have collection_id
             item_type = ITEM_TYPE_COLLECTION_ID_MAP[item.collection_id]
             transformed_item_dict = item.to_dict()
             transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
+            try:
+                item_id, item_datetime, item_primary_country = generate_item_index_fields_values(transformed_item_dict)
+            except KeyError:
+                logging.error("Missing key information", exc_info=True)
+                continue
             bulk_mgr.add(
                 PyStacLoadData(
                     transform_id=transform_obj,
-                    item=transformed_item_dict,
                     collection_id=item.collection_id,
-                    item_type=item_type,
                     trace_id=get_trace_id(transform_obj),
+                    item=transformed_item_dict,
+                    item_type=item_type,
+                    item_id=item_id,
+                    item_datetime=item_datetime,
+                    item_primary_country=item_primary_country,
                 )
             )
 
         bulk_mgr.done()
 
-        logger.info("Loading data into queue successfull")
+        logger.info("Loading data into queue successfully.")
 
     @staticmethod
     @app.task

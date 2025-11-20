@@ -16,15 +16,29 @@ app = Celery("main")
 
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
+
 # Default autodiscover (Looks at apps/*/tasks.py)
 app.autodiscover_tasks()
+
+
+class CeleryQueue:
+    DEFAULT = "default"
+
+    # Generic
+    EXTRACTION = "extraction"
+    TRANSFORM = "transform"
+
+    # Specific
+    USGS_EXTRACTION = "usgs-extraction"
+
+
+app.conf.task_default_queue = CeleryQueue.DEFAULT
 
 # ETL tasks autodiscover
 # NOTE: Hinting celery to look at additional files for tasks
 app.autodiscover_tasks(get_all_modules("apps/etl/etl_tasks"))
 
 app.conf.beat_schedule = BEAT_SCHEDULES
-
 
 logger = logging.getLogger(__name__)
 

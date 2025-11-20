@@ -1,11 +1,14 @@
-import json
 import logging
-import tempfile
+import os
+from pathlib import Path
 
-from pystac_monty.sources.pdc import PDCDataSource, PDCTransformer
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
 from apps.etl.models import ExtractionData
-from main.celery import app
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 from .handler import BaseTransformerHandler
 
@@ -17,47 +20,45 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
     transformer_schema = PDCDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj: ExtractionData):
+    def get_schema_data(cls, extraction_obj: ExtractionData, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
         metadata: dict | None = extraction_obj.metadata
         if not metadata:
             raise Exception("Metadata is not defined")
-        input_metadata = metadata.get("input", {})
+        from apps.etl.extraction.sources.pdc.extract import PDCExtractionMetadata
 
-        from apps.etl.extraction.sources.pdc.extract import PdcExposureInputMetadata
+        input_metadata = PDCExtractionMetadata(**metadata)
 
-        input_metadata = PdcExposureInputMetadata(**input_metadata)
-
-        geo_json_obj = ExtractionData.objects.get(id=input_metadata.geojson_id)
-
-        with geo_json_obj.resp_data.open("rb") as f:
-            file_content = f.read()
-        # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_geojson_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_geojson_file.write(file_content)
+        geo_json_obj = ExtractionData.objects.filter(
+            id=input_metadata.exposure_detail.geojson_id, status=ExtractionData.Status.SUCCESS
+        ).first()
 
         with extraction_obj.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_hazard_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_hazard_file.write(file_content)
+        tmp_hazard_file = write_into_temp_file(file_content, tmp_dir_path)
 
         with extraction_obj.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
-        tmp_exposure_detail_file = tempfile.NamedTemporaryFile(suffix=".json", delete=False)
-        tmp_exposure_detail_file.write(file_content)
+        tmp_exposure_detail_file = write_into_temp_file(file_content, tmp_dir_path)
 
-        data = {
-            "hazards_file_path": tmp_hazard_file.name,
-            "exposure_timestamp": input_metadata.exposure_id,
-            "uuid": input_metadata.hazard_uuid,
-            "exposure_detail_file_path": tmp_exposure_detail_file.name,
-            "geojson_file_path": tmp_geojson_file.name,
-        }
+        result = cls.transformer_schema(
+            data=PDCDataSourceType(
+                source_url=extraction_obj.parent.url,
+                uuid=input_metadata.exposure_detail.hazard_uuid,
+                hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
+                exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
+                geojson_path=geo_json_obj.resp_data.url,
+            )
+        )
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=json.dumps(data))
+        return result
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        return PDCTransformHandler().handle_transformation(extraction_id)
+        return PDCTransformHandler().handle_transformation(extraction_id, settings.PDC_TRANSFORMER_VERSION)

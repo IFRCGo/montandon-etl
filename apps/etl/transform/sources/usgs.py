@@ -1,10 +1,15 @@
 import json
+import os
+from pathlib import Path
 
-from pystac_monty.sources.usgs import USGSDataSource, USGSTransformer
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File
+from pystac_monty.sources.usgs import USGSDataSource, USGSDataSourceType, USGSTransformer
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
-from main.celery import app
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 
 class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSource]):
@@ -12,28 +17,42 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
     transformer_schema = USGSDataSource
 
     @classmethod
-    def get_schema_data(cls, extraction_obj):
-        all_children = ExtractionData.objects.filter(parent=extraction_obj)
+    def get_schema_data(cls, extraction_obj, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
+
+        losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj, status=ExtractionData.Status.SUCCESS)
 
         losses_data = []
-        for child_item in all_children:
-            obj = ExtractionData.objects.filter(id=child_item.id).first()
-            if obj and obj.resp_data:
-                with obj.resp_data.open() as file_data:
-                    data = json.loads(file_data.read())
-                losses_data.append(data)
+        for losses_data_obj in losses_data_qs.all():
+            if losses_data_obj.resp_data is None:
+                continue
+            with losses_data_obj.resp_data.open() as file_data:
+                data = json.loads(file_data.read())
+            losses_data.append(data)
 
+        # Write losses_data (which is JSON) to a temp file in text mode
+        losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8"), tmp_dir_path)
+
+        # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
             data = file_data.read()
 
-        losses_data = json.dumps(losses_data)
-        # FIXME: Why are we setting lossed_data to None?
-        if not losses_data:
-            losses_data = None
+        # Write raw bytes to a temp file
+        data_path = write_into_temp_file(data, tmp_dir_path)
 
-        return cls.transformer_schema(source_url=extraction_obj.url, data=data, losses_data=losses_data)
+        result = cls.transformer_schema(
+            USGSDataSourceType(
+                source_url=extraction_obj.url,
+                event_data=File(path=data_path.name, data_type=DataType.FILE),
+                loss_data=File(path=losses_data_path.name, data_type=DataType.FILE),
+            )
+        )
+
+        return result
 
     @staticmethod
-    @app.task
+    @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        USGSTransformHandler().handle_transformation(extraction_id)
+        USGSTransformHandler().handle_transformation(extraction_id, settings.USGS_TRANSFORMER_VERSION)

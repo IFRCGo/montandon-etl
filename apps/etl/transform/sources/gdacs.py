@@ -1,197 +1,82 @@
 import logging
-import time
-import uuid
+import os
+from pathlib import Path
 
-from celery import shared_task
-from celery.result import AsyncResult
+from django.conf import settings
+from pystac_monty.sources.common import DataType, File, GdacsDataSourceType, GdacsEpisodes, GenericDataSource
 from pystac_monty.sources.gdacs import (
     GDACSDataSource,
     GDACSDataSourceType,
     GDACSTransformer,
 )
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Transform, get_trace_id
-from apps.etl.utils import read_file_data
-from main.logging import log_extra
-from main.managers import BulkCreateManager
+from apps.etl.models import ExtractionData
+from apps.etl.transform.sources.handler import BaseTransformerHandler
+from apps.etl.utils import write_into_temp_file
+from main.celery import CeleryQueue, app
 
 logger = logging.getLogger(__name__)
 
 # FIXME: start_end_handler base zzz
 
 
-@shared_task
-def transform_event_data(event_extraction_data):
-    logger.info("Transformation started for event data")
+class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSource]):
+    transformer_class = GDACSTransformer
+    transformer_schema = GDACSDataSource
 
-    gdacs_instance = ExtractionData.objects.get(id=event_extraction_data["extraction_id"])
+    @classmethod
+    def get_schema_data(cls, extraction_object, dir_uuid: str):
+        tmp_dir_path = Path("/tmp") / extraction_object.get_source_display() / dir_uuid
+        if not os.path.isdir(tmp_dir_path):
+            os.makedirs(tmp_dir_path, exist_ok=True)
 
-    if not gdacs_instance.resp_data:
-        logger.info("Transformation ended due to no data")
-        return
+        with extraction_object.resp_data.open("rb") as f:
+            file_content = f.read()
+        data_file = write_into_temp_file(file_content, tmp_dir_path)
 
-    data = read_file_data(gdacs_instance.resp_data)
+        episodes = []
+        event_objects = extraction_object.child_extractions.filter(status=ExtractionData.Status.SUCCESS)
+        for episode_obj in event_objects:
+            if episode_obj and episode_obj.resp_data:
+                with episode_obj.resp_data.open("rb") as f:
+                    file_content = f.read()
+                episode_data_temp_file = write_into_temp_file(file_content, tmp_dir_path)
 
-    transform_obj = Transform.objects.create(
-        extraction=gdacs_instance,
-        status=Transform.Status.PENDING,
-        trace_id=get_trace_id(gdacs_instance),
-    )
+                event_episode_data = GdacsEpisodes(
+                    type=GDACSDataSourceType.EVENT,
+                    data=GenericDataSource(
+                        source_url=episode_obj.url,
+                        input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
+                    ),
+                )
+                geometry_object = episode_obj.child_extractions.filter(status=ExtractionData.Status.SUCCESS).first()
 
-    try:
-        transformer = GDACSTransformer(
-            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)],
-            # FIXME: Pass geo-coder as in other sources
-            None,
-        )
-        transformed_event_item = transformer.make_source_event_item()
-        transformed_item_dict = transformed_event_item.to_dict()
+                if geometry_object and geometry_object.resp_data:
+                    with geometry_object.resp_data.open("rb") as f:
+                        file_content = f.read()
+                    geometry_detail_temp_file = write_into_temp_file(file_content, tmp_dir_path)
+                    geometry_episode_data = GdacsEpisodes(
+                        type=GDACSDataSourceType.GEOMETRY,
+                        data=GenericDataSource(
+                            source_url=geometry_object.url,
+                            input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
+                        ),
+                    )
 
-        transform_obj.status = Transform.Status.SUCCESS
-        transform_obj.save(update_fields=["status"])
-    except Exception as e:
-        logger.error(
-            "Gdacs transformation failed",
-            exc_info=True,
-            extra=log_extra({"extraction_id": gdacs_instance.id}),
-        )
+                    episode_data_tuple = (event_episode_data, geometry_episode_data)
+                    episodes.append(episode_data_tuple)
 
-        transform_obj.status = Transform.Status.FAILED
-        transform_obj.save(update_fields=["status"])
-        raise e
-
-    transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-    PyStacLoadData.objects.create(
-        transform_id=transform_obj,
-        item_type=PyStacLoadData.ItemType.EVENT,
-        collection_id=transformed_event_item.collection_id,
-        item=transformed_item_dict,
-    )
-
-    # transform_obj.is_loaded = True
-    # transform_obj.save(update_fields=["is_loaded"])
-
-    logger.info("Trandformation ended for event data")
-
-
-@shared_task
-def transform_geo_data(geo_data_extraction_id, event_extraction_id):
-    logger.info("Transformation started for hazard data")
-
-    timeout = 60  # 1 minute
-    start_time = time.time()
-    while True:
-        result = AsyncResult(event_extraction_id)
-        if result.state == "SUCCESS":
-            # Fetch the output of event task
-            event_data = result.result
-            break
-        elif result.state == "FAILURE":
-            raise Exception(f"Fetching event data failed with error: {result.result}")
-        elif time.time() - start_time > timeout:
-            raise TimeoutError("Fetching event data timed out.")
-        time.sleep(1)
-
-    gdacs_instance = ExtractionData.objects.get(id=geo_data_extraction_id)
-
-    data = read_file_data(gdacs_instance.resp_data)
-    transform_obj = Transform.objects.create(
-        extraction=gdacs_instance,
-        status=Transform.Status.PENDING,
-        trace_id=get_trace_id(gdacs_instance),
-    )
-
-    try:
-        transformer = GDACSTransformer(
-            [
-                GDACSDataSource(
-                    type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=event_data["extracted_data"]
-                ),
-                GDACSDataSource(type=GDACSDataSourceType.GEOMETRY, source_url=gdacs_instance.url, data=data),
-            ],
-            # FIXME: Pass geo-coder as in other sources
-            None,
-        )
-        transformed_hazard_item = transformer.make_hazard_event_item()
-        transformed_item_dict = transformed_hazard_item.to_dict()
-
-        transform_obj.status = Transform.Status.SUCCESS
-        transform_obj.save(update_fields=["status"])
-
-    except Exception as e:
-        logger.error(
-            "Gdacs transformation failed",
-            exc_info=True,
-            extra=log_extra({"extraction_id": gdacs_instance.id}),
-        )
-
-        transform_obj.status = Transform.Status.FAILED
-        transform_obj.save(update_fields=["status"])
-        raise e
-
-    transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-    PyStacLoadData.objects.create(
-        transform_id=transform_obj,
-        item_type=PyStacLoadData.ItemType.HAZARD,
-        collection_id=transformed_hazard_item.collection_id,
-        item=transformed_item_dict,
-    )
-    # transform_obj.is_loaded = True
-    # transform_obj.save(update_fields=["is_loaded"])
-
-    logger.info("Transformation ended for hazard data")
-
-
-@shared_task
-def transform_impact_data(event_data):
-    logger.info("Transformation started for impact data")
-
-    gdacs_instance = ExtractionData.objects.get(id=event_data["extraction_id"])
-    data = read_file_data(gdacs_instance.resp_data)
-
-    transform_obj = Transform.objects.create(
-        extraction=gdacs_instance,
-        status=Transform.Status.PENDING,
-        trace_id=get_trace_id(gdacs_instance),
-    )
-
-    bulk_mgr = BulkCreateManager(chunk_size=1000)
-    try:
-        transformer = GDACSTransformer(
-            [GDACSDataSource(type=GDACSDataSourceType.EVENT, source_url=gdacs_instance.url, data=data)],
-            # FIXME: Pass geo-coder as in other sources
-            None,
-        )
-        transformed_impact_item = transformer.make_impact_items()
-
-        transform_obj.status = Transform.Status.SUCCESS
-        transform_obj.save(update_fields=["status"])
-    except Exception as e:
-        logger.error(
-            "Gdacs transformation failed",
-            exc_info=True,
-            extra=log_extra({"extraction_id": gdacs_instance.id}),
-        )
-
-        transform_obj.status = Transform.Status.FAILED
-        transform_obj.save(update_fields=["status"])
-        raise e
-
-    for item in transformed_impact_item:
-        transformed_item_dict = item.to_dict()
-        transformed_item_dict["properties"]["monty:etl_id"] = str(uuid.uuid4())
-        bulk_mgr.add(
-            PyStacLoadData(
-                transform_id=transform_obj,
-                item_type=PyStacLoadData.ItemType.IMPACT,
-                collection_id=item.collection_id,
-                item=transformed_item_dict,
+        result = cls.transformer_schema(
+            data=GdacsDataSourceType(
+                source_url=extraction_object.url,
+                event_data=File(path=data_file.name, data_type=DataType.FILE),
+                episodes=episodes,
             )
         )
 
-    bulk_mgr.done()
+        return result
 
-    # transform_obj.is_loaded = True
-    # transform_obj.save(update_fields=["is_loaded"])
-
-    logger.info("Transformation ended for impact data")
+    @staticmethod
+    @app.task(rate_limit="50/m", queue=CeleryQueue.TRANSFORM)
+    def task(extraction_id):
+        GDACSTransformHandler().handle_transformation(extraction_id, settings.GDACS_TRANSFORMER_VERSION)

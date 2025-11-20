@@ -1,92 +1,261 @@
 import json
 import logging
+import typing
+from datetime import datetime, timedelta
+from enum import Enum
 
+import pydantic
 import requests
+from celery import Task, chord
 
-from apps.etl.extraction.sources.base.handler import BaseExtraction
+from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData
-from main.celery import app
+from apps.etl.transform.sources.usgs import USGSTransformHandler
+from main.celery import CeleryQueue, app
 from main.logging import log_extra
+from utils.celery import RetryableTask
+from utils.requests import RateLimitError
 
 logger = logging.getLogger(__name__)
 
 
-class USGSExtraction(BaseExtraction):
+class USGSExtractionMetadataType(str, Enum):
+    QUERY = "QUERY"
+    DETAIL = "DETAIL"
+    LOSSE = "LOSSE"
+    RESPONSE_EXCEEDED = "RESPONSE_EXCEEDED"
+
+
+class USGSExtractionMetadata(pydantic.BaseModel):
+    url: str
+    type: USGSExtractionMetadataType
+
+
+class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
     """
     Handles data extraction from the USGS API
     """
 
-    @classmethod
-    def handle_extraction(  # type: ignore[reportIncompatibleMethodOverride]
-        cls, url: str, params: dict | None, headers: dict | None, source: int, parent_id: int | None = None
-    ) -> int:
-        """
-        Process data extraction.
-        Returns:
-            int: ID of the extraction instance
-        """
-        logger.info("Starting data extraction")
+    MIN_RETRY_DELAY = 60 * 5
+    MAX_RETRY_DELAY = 60 * 10
+    DEFAULT_CELERY_QUEUE = CeleryQueue.USGS_EXTRACTION
 
-        instance = cls._create_extraction_instance(url=url, source=source, parent_id=parent_id)
+    source_enum = ExtractionData.Source.USGS
+    extraction_metadata_class = USGSExtractionMetadata
 
-        try:
-            cls._update_instance_status(instance, ExtractionData.Status.IN_PROGRESS)
+    def _extraction_fetch_url(
+        self,
+        url: str,
+        params: dict[str, typing.Any] | None = None,
+        headers: dict[str, typing.Any] | None = None,
+        data: dict | None = None,
+        method: typing.Literal["get", "post"] = "get",
+        timeout: int = 30,
+        file_extension: str = "json",
+    ) -> bool:
+        logger.info(f"Using proxy: {self.proxies}")
+        if method == "get":
+            response = requests.get(url, params=params, headers=headers, timeout=timeout, proxies=self.proxies)
+        elif method == "post":
+            response = requests.post(url, headers=headers, data=data, timeout=timeout, proxies=self.proxies)
+        else:
+            typing.assert_never(method)
 
-            response = requests.get(url, params=params, headers=headers, timeout=30)
-            response.raise_for_status()
-            instance.resp_code = response.status_code
+        # NOTE: Handle Ratelimit manually
+        if response.status_code in self.RETRY_STATUS_CODE:
+            retry_after = response.headers.get("Retry-After", None)
+            retry_after = retry_after and int(retry_after)
+            raise RateLimitError(retry_after=retry_after)
 
-            if response.status_code == 200 or response.status_code == 204:
-                response_data = cls.store_extraction_data(
-                    instance_id=instance.id,
-                    source=ExtractionData.Source.USGS,
-                    response=response,
-                    validate_source_func=None,
-                )
-                # Check if response contains data
-                if response_data:
-                    cls._update_instance_status(instance, ExtractionData.Status.SUCCESS)
-                    logger.info("Data extracted successfully")
-                else:
-                    cls._update_instance_status(
-                        instance,
-                        ExtractionData.Status.SUCCESS,
-                        ExtractionData.ValidationStatus.NO_DATA,
-                        update_validation=True,
-                    )
-                    logger.warning("No data found in response")
-                    # FIXME: Should we return None?
-                    return None
-            return instance.id
-        except requests.exceptions.RequestException:
-            cls._update_instance_status(instance, ExtractionData.Status.FAILED)
-            logger.error(
-                "Extraction failed",
-                exc_info=True,
-                extra=log_extra({"source": instance.source}),
+        self.extraction_object.resp_code = response.status_code
+
+        if response.status_code in [200, 204]:
+            response_data = self._extraction_store_data(
+                extraction_object=self.extraction_object,
+                response=response,
+                file_extension=file_extension,
             )
-            raise
+            # Check if response contains data
+            if response_data:
+                logger.info("Data extracted successfully")
+                return True
+            logger.warning("No data found in response")
+        return False
 
-    @staticmethod
-    @app.task
-    def task(url: str, parent_id: int | None):  # type: ignore[reportIncompatibleMethodOverride]
-        """USGS Task"""
-        details_id = USGSExtraction.handle_extraction(
-            url=url, params=None, headers=None, parent_id=parent_id, source=ExtractionData.Source.USGS
+    def handle_type_query(self, retrigger: bool, failed_int: int | None):
+        extraction_status = self._extraction_fetch_url(
+            self.extraction_metadata.url,
+            headers={"Content-Type": "application/json"},
+        )
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
+
+        if self.extraction_object.resp_code == 400:
+            return self.handle_response_exceeded()
+
+        if self.extraction_object.resp_data:
+            response_data = json.loads(self.extraction_object.resp_data.read())
+            # FIXME: We might need to write a simple validator here
+            features_list = response_data["features"]
+
+            for feature_item in features_list:
+                if "detail" not in feature_item["properties"]:
+                    continue
+                detail_url = feature_item["properties"]["detail"]
+
+                metadata = USGSExtractionMetadata(
+                    url=detail_url,
+                    type=USGSExtractionMetadataType.DETAIL,
+                )
+
+                self.init_extraction(
+                    metadata=metadata,
+                    parent_extraction=self.extraction_object,
+                    queue_name=self.celery_queue,
+                )
+        else:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
+
+    def handle_type_detail(self, retrigger: bool, failed_int: int | None):
+        if failed_int:
+            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            if failed_obj.metadata.get("type") == USGSExtractionMetadataType.DETAIL:
+                ...
+            elif failed_obj.metadata.get("type") == USGSExtractionMetadataType.LOSSE:
+                chord(
+                    [
+                        USGSExtraction.task.s(extraction_id=failed_int, failed_int=failed_int, retrigger=retrigger).set(
+                            queue=self.celery_queue
+                        )
+                    ],
+                    USGSTransformHandler.task.si(self.extraction_object.pk),
+                ).apply_async()
+                return
+
+        extraction_status = self._extraction_fetch_url(self.extraction_metadata.url)
+        if not extraction_status:
+            logger.warning(
+                "Failed to extract data",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
+
+        if not self.extraction_object.resp_data:
+            logger.warning(
+                "Response data object is not available",
+                extra=log_extra({"url": self.extraction_metadata.url, "source": self.source_enum}),
+            )
+            return
+
+        with self.extraction_object.resp_data.open() as file_data:
+            detail_data = json.loads(file_data.read())
+
+        losses_tasks = []
+        if "losspager" in detail_data["properties"]["products"]:
+            for item in detail_data["properties"]["products"]["losspager"]:
+                if "json/losses.json" in item["contents"]:
+                    url = item["contents"]["json/losses.json"]["url"]
+
+                    losses_extraction_obj = self.init_extraction(
+                        metadata=USGSExtractionMetadata(
+                            url=url,
+                            type=USGSExtractionMetadataType.LOSSE,
+                        ),
+                        parent_extraction=self.extraction_object,
+                        add_to_queue=False,
+                    )
+                    losses_tasks.append(USGSExtraction.task.s(losses_extraction_obj.pk).set(queue=self.celery_queue))
+
+        if losses_tasks:
+            chord(
+                losses_tasks,
+                # NOTE: After all losses_tasks are done, then USGSTransformHandler is called by celery
+                USGSTransformHandler.task.si(self.extraction_object.pk),
+            ).apply_async()
+        else:
+            # TODO: Or raise NoDataException()?
+            USGSTransformHandler.task.delay(self.extraction_object.pk)
+
+    def handle_type_losse(self):
+        self._extraction_fetch_url(self.extraction_metadata.url)
+
+    def handle_response_exceeded(self):
+        self.extraction_object.metadata["type"] = USGSExtractionMetadataType.RESPONSE_EXCEEDED
+        self.extraction_object.save()
+        url = self.extraction_metadata.url
+        try:
+            start_date_str = url.split("starttime=")[1].split("&")[0]
+            end_date_str = url.split("endtime=")[1].split("&")[0]
+        except IndexError as error:
+            logger.error(f"Error: {error}", exc_info=True, extra={"source": "USGS"})
+            return False
+
+        start_date_obj = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d")
+        mid_date_obj = start_date_obj + (end_date_obj - start_date_obj) / 2
+        mid_date_str = mid_date_obj.strftime("%Y-%m-%d")
+        second_half_start_str = (mid_date_obj + timedelta()).strftime("%Y-%m-%d")
+
+        first_half_url = url.replace(f"endtime={end_date_str}", f"endtime={mid_date_str}")
+
+        self.init_extraction(
+            metadata=USGSExtractionMetadata(
+                url=first_half_url,
+                type=USGSExtractionMetadataType.QUERY,
+            ),
+            queue_name=self.celery_queue,
         )
 
-        if details_id:
-            usgs_instance = ExtractionData.objects.get(id=details_id)
-            with usgs_instance.resp_data.open() as file_data:
-                detail_data = json.loads(file_data.read())
-            if "losspager" in detail_data["properties"]["products"]:
-                for item in detail_data["properties"]["products"]["losspager"]:
-                    url = item["contents"]["json/losses.json"]["url"]
-                    USGSExtraction.handle_extraction(
-                        url=url,
-                        params=None,
-                        headers=None,
-                        parent_id=details_id,
-                        source=ExtractionData.Source.USGS.value,
-                    )
-        return details_id
+        second_half_url = url.replace(f"starttime={start_date_str}", f"starttime={second_half_start_str}")
+
+        self.init_extraction(
+            metadata=USGSExtractionMetadata(
+                url=second_half_url,
+                type=USGSExtractionMetadataType.QUERY,
+            ),
+            queue_name=self.celery_queue,
+        )
+
+    def handle_extract(self, retrigger: bool, failed_int: int | None = None):
+        handler_type = self.extraction_metadata.type
+        logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
+        match handler_type:
+            case USGSExtractionMetadataType.QUERY:
+                return self.handle_type_query(retrigger=retrigger, failed_int=failed_int)
+            case USGSExtractionMetadataType.DETAIL:
+                return self.handle_type_detail(retrigger=retrigger, failed_int=failed_int)
+            case USGSExtractionMetadataType.LOSSE:
+                return self.handle_type_losse()
+            case USGSExtractionMetadataType.RESPONSE_EXCEEDED:
+                return self.handle_response_exceeded()
+            case _:
+                typing.assert_never(handler_type)
+
+    def retrigger(extraction_object):
+        metadata_type = extraction_object.metadata.get("type")
+        if metadata_type == USGSExtractionMetadataType.QUERY:
+            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == USGSExtractionMetadataType.DETAIL:
+            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == USGSExtractionMetadataType.LOSSE:
+            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+        if metadata_type == USGSExtractionMetadataType.RESPONSE_EXCEEDED:
+            USGSExtraction.task.delay(extraction_object.id)
+
+    @staticmethod
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.USGS_EXTRACTION,
+        rate_limit="100/m",  # limit is 500 requests per 5 minute window
+    )
+    def task(celery_task: Task, extraction_id: int, retrigger: bool = False, failed_int: int | None = None):
+        return USGSExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
