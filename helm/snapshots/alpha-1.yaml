@@ -228,7 +228,7 @@ metadata:
 type: Opaque
 data:
   root-user: "bW9udHktZXRs"
-  root-password: "WlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlpaWlo="
+  root-password: "WFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg="
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/config-secret.yaml
 apiVersion: v1
@@ -261,7 +261,7 @@ metadata:
     helm.sh/chart: rabbitmq-15.4.2
 type: Opaque
 data:
-  rabbitmq-password: "WVlZWVk="
+  rabbitmq-password: "WFhYWFg="
   rabbitmq-erlang-cookie: "WFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg="
 ---
 # Source: montandon-etl-helm/charts/app/templates/config/secret.yaml
@@ -277,30 +277,31 @@ type: Opaque
 stringData:
   # secrets
   AWS_S3_ACCESS_KEY_ID: "monty-etl"
-  AWS_S3_ENDPOINT_URL: "https://monty-etl-1-minio.ifrc-go.dev.alpha.com/"
+  AWS_S3_ENDPOINT_URL: "https://monty-etl-1-minio.ifrc-go.dev.monty.com/"
   AWS_S3_REGION: "us-east-1"
-  AWS_S3_SECRET_ACCESS_KEY: "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+  AWS_S3_SECRET_ACCESS_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
   CACHE_REDIS_URL: "redis://montandon-etl-redis-master:6379/2"
-  CELERY_BROKER_URL: "amqp://monty:YYYYY@montandon-etl-rabbitmq:5672/celery"
+  CELERY_BROKER_URL: "amqp://monty:XXXXX@montandon-etl-rabbitmq:5672"
+  CELERY_RABBITMQ_VHOST: "celery"
   CELERY_RESULT_BACKEND: "redis://montandon-etl-redis-master:6379/0"
   DB_HOST: "192.168.XX.YY"
   DB_NAME: "monty-etl"
-  DB_PASSWORD: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  DB_PASSWORD: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX3\""
   DB_PORT: "8432"
   DB_USER: "k8s_monty"
-  DJANGO_SECRET_KEY: "XXXYYYZZZ"
-  EMDAT_AUTHORIZATION_KEY: "XXLLLL"
-  EXTRACTION_PROXY_1: "socks5h://192.168.XY.ZZ:1081"
-  EXTRACTION_PROXY_2: "socks5h://192.168.XY.ZZ:1082"
-  EXTRACTION_PROXY_3: "socks5h://192.168.XY.ZZ:1083"
-  EXTRACTION_PROXY_4: "socks5h://192.168.XY.:1084"
-  GFD_CREDENTIAL: "YYIIII"
-  GFD_SERVICE_ACCOUNT: "zyz@123.iam.gserviceaccount.com"
-  IDMC_CLIENT_ID: "IDMCUUUUUUUUUU"
-  PDC_ARCGIS_PASSWORD: "HHHHHHHHHHHH"
-  PDC_ARCGIS_USERNAME: "ifrc"
-  PDC_SENTRY_AUTHORIZATION_KEY: "HHYYY"
-  SENTRY_DSN: "https://xzy@sentry.local.alpha.com/36"
+  DJANGO_SECRET_KEY: "XYZ"
+  EMDAT_AUTHORIZATION_KEY: "XYZ"
+  EXTRACTION_PROXY_1: "socks5h://192.168.XX.YY:1081"
+  EXTRACTION_PROXY_2: "socks5h://192.168.XX.YY:1082"
+  EXTRACTION_PROXY_3: "socks5h://192.168.XX.YY:1083"
+  EXTRACTION_PROXY_4: "socks5h://192.168.XX.YY:1084"
+  GFD_CREDENTIAL: "XYZ"
+  GFD_SERVICE_ACCOUNT: "XYZ"
+  IDMC_CLIENT_ID: "IDMCWSHSOLO009"
+  PDC_ARCGIS_PASSWORD: "XXXXXXXXXXXX"
+  PDC_ARCGIS_USERNAME: "monty-xyz"
+  PDC_SENTRY_AUTHORIZATION_KEY: "XYZ"
+  SENTRY_DSN: "https://XYZ@sentry.local.monty.com/36"
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/provisioning-configmap.yaml
 apiVersion: v1
@@ -491,7 +492,7 @@ data:
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: monty-etl-1-api-configmap
+  name: monty-etl-1-env-name
   labels:
     app: monty-etl-1
     environment: ALPHA-1
@@ -507,7 +508,7 @@ data:
   DJANGO_APP_ENVIRONMENT: "ALPHA-1"
   DJANGO_DEBUG: "false"
   DJANGO_TIME_ZONE: "UTC"
-  EOAPI_DOMAIN: "https://montandon-eoapi-stage.ifrc.org"
+  EOAPI_DOMAIN: "https://montandon-eoapi-stage.monty.org"
   EOAPI_SYNC_LIMIT: "5000"
   SENTRY_MONITOR_CELERY_BEAT_TASKS: "true"
   SENTRY_PROFILE_SAMPLE_RATE: "0.2"
@@ -531,7 +532,7 @@ spec:
     - "ReadWriteOnce"
   resources:
     requests:
-      storage: "1Gi"
+      storage: "2Gi"
   storageClassName: local-path
 ---
 # Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
@@ -545,7 +546,7 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  storageClassName: longhorn
+  storageClassName:
   accessModes:
     - ReadWriteMany
   resources:
@@ -841,7 +842,7 @@ spec:
         app.kubernetes.io/version: 2024.12.18
         helm.sh/chart: minio-14.10.5
       annotations:
-        checksum/credentials-secret: f29dfeff36b30af014c53b27b7e43f9101a5ce2c5e58c0c62834d1404f4c42bf
+        checksum/credentials-secret: 024fbc2dee7831b78712a2898f913541a0dece68bb19e49ce905062adf9e25ec
     spec:
       
       serviceAccountName: montandon-etl-minio
@@ -986,8 +987,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: api
@@ -1018,7 +1019,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "web"
@@ -1049,8 +1050,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker-flower
@@ -1081,7 +1082,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1112,8 +1113,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker-beat
@@ -1145,7 +1146,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1179,8 +1180,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1221,7 +1222,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1255,8 +1256,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1297,7 +1298,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1331,8 +1332,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1373,7 +1374,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1407,8 +1408,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1449,7 +1450,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1483,8 +1484,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1525,7 +1526,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1561,8 +1562,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1603,7 +1604,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1639,8 +1640,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1681,7 +1682,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1717,8 +1718,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: worker
@@ -1759,7 +1760,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -1856,7 +1857,7 @@ spec:
         helm.sh/chart: rabbitmq-15.4.2
       annotations:
         checksum/config: 4c3f22c491b9b36af978f035d35bba88e143acf017b97e1c75f097e3b2f81411
-        checksum/secret: e81392c09c982a8126d6318eddde7bb19dc4a52a21a29b15d41dd2b8dfafd461
+        checksum/secret: e7bfed6588bac1a378c4f3669d24ccec625e816a1f3c8c2624f046dfdd0db6bd
     spec:
       
       serviceAccountName: montandon-etl-rabbitmq
@@ -2286,8 +2287,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2314,7 +2315,7 @@ spec:
               user_data = [
                   # Add user information in this format here
                   # ("first_name last_name", "email", "password_hash", "is_superuser", "is_staff")
-                  ("Toggle Admin", "admin@alpha.com", "hash-values", True, True),
+                  ("Toggle Admin", "admin@monty.com", "good-hash", True, True),
               ];
             
               @transaction.atomic
@@ -2344,7 +2345,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -2366,8 +2367,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2396,7 +2397,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -2418,8 +2419,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2447,7 +2448,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -2469,8 +2470,8 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 0b6b965fb5ce5fb2fa54db15e0378064f853c24f9cd2eeb8e115682d7ab2fd1b
-        checksum/configmap: d2d6a4d028461a64963423ba7e439126893b863418791b6a5b9180538a3f0ac4
+        checksum/secret: e1e4cc9db26e064a775e760c289197356e51c994a9e588bd236fd5b68ae41332
+        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2498,7 +2499,7 @@ spec:
             - secretRef:
                 name: monty-etl-1-secret
             - configMapRef:
-                name: monty-etl-1-api-configmap
+                name: monty-etl-1-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -2525,7 +2526,7 @@ metadata:
 spec:
   ingressClassName: "nginx"
   rules:
-    - host: monty-etl-1-minio.ifrc-go.dev.alpha.com
+    - host: monty-etl-1-minio.ifrc-go.dev.monty.com
       http:
         paths:
           - path: /
@@ -2549,7 +2550,7 @@ metadata:
 spec:
   ingressClassName: "nginx"
   rules:
-    - host: "monty-etl-1.ifrc-go.dev.alpha.com"
+    - host: "monty-etl-1.ifrc-go.dev.monty.com"
       http:
         paths:
           - path: /

@@ -5,6 +5,11 @@ app:
   minio:
     enabled: true
 
+  rabbitmq:
+    enabled: true
+    auth:
+      username: monty
+
   redis:
     enabled: true
     architecture: standalone
@@ -76,6 +81,7 @@ app:
     AWS_S3_SECRET_ACCESS_KEY: "{{ required \".Values.minio.auth.rootPassword\" .Values.minio.auth.rootPassword }}"
     AWS_S3_REGION: "us-east-1"
 
-    CELERY_BROKER_URL: "{{ printf \"amqp://%s:%s@%s:5672/celery\" (required \".Values.rabbitmq.auth.username\" .Values.rabbitmq.auth.username) (required \".Values.rabbitmq.auth.password\" .Values.rabbitmq.auth.password) (include \"common.names.fullname\" .Subcharts.rabbitmq) }}"
+    CELERY_BROKER_URL: "{{ printf \"amqp://%s:%s@%s:5672\" (required \".Values.rabbitmq.auth.username\" .Values.rabbitmq.auth.username) (required \".Values.rabbitmq.auth.password\" .Values.rabbitmq.auth.password) (include \"common.names.fullname\" .Subcharts.rabbitmq) }}"
+    CELERY_RABBITMQ_VHOST: "celery"
     CELERY_RESULT_BACKEND: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/0"
     CACHE_REDIS_URL: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/2"

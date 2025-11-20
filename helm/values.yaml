@@ -35,7 +35,6 @@ app:
     className:
     host:
 
-
   minio:
     enabled: false
     disableWebUI: true

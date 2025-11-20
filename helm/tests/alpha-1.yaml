@@ -7,28 +7,47 @@ app:
   environment: ALPHA-1
   fullnameOverride: monty-etl-1
 
-  extraEnvVars:
-    # -- Geocoder
-    - name: GEOCODER_URL
-      value: http://monty-geocoder:80
-
   ingress:
+    host: monty-etl-1.ifrc-go.dev.monty.com
+    enabled: true
     className: nginx
-    host: monty-etl-1.ifrc-go.dev.alpha.com
+
+  postgresql:
+    enabled: false
+    auth:
+      postgresPassword: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      database: monty-etl
+    primary:
+      nodeSelector:
+        node.kubernetes.io/disk-raid: "true"
+      persistence:
+        storageClass: "local-path"
+        size: 2Gi  # NOTE: This doesn't do anything for local-path
+      # TODO: Move this to the values/alpha.yaml
+      resources:
+        requests:
+          cpu: "0.2"
+          memory: 1Gi
+        limits:
+          cpu: "4"
 
   minio:
-    auth:
-      rootPassword: ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+    enabled: true
+    persistence:
+      enabled: true
+      size: 2Gi
     nodeSelector:
       node.kubernetes.io/disk-raid: "true"
     global:
       defaultStorageClass: "local-path"
     apiIngress:
       ingressClassName: nginx
-      hostname: monty-etl-1-minio.ifrc-go.dev.alpha.com
+      hostname: monty-etl-1-minio.ifrc-go.dev.monty.com
+    auth:
+      rootUser: monty-etl
+      rootPassword: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
   redis:
-    enabled: true
     master:
       nodeSelector:
         node.kubernetes.io/disk-raid: "true"
@@ -37,10 +56,8 @@ app:
         size: 1Gi  # NOTE: This doesn't do anything for local-path
 
   rabbitmq:
-    enabled: true
     auth:
-      username: monty
-      password: YYYYY
+      password: XXXXX
       erlangCookie: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     nodeSelector:
       node.kubernetes.io/disk-raid: "true"
@@ -48,13 +65,11 @@ app:
       enabled: true
       storageClass: "local-path"
 
-  localCacheVolume:
-    storageClass: longhorn
-
   worker:
     enabled: true
     queues:
-      # NOTE: Make sure keys are lowercase
+      default:
+        replicaCount: 5
       usgs-extraction-01:
         enabled: false
         replicaCount: 1
@@ -80,64 +95,42 @@ app:
         env:
           REQUESTS_PROXY_TO_USE: EXTRACTION_PROXY_4
 
-  envConfigMapName: "monty-etl-1-api-configmap"
   env:
+    EOAPI_SYNC_LIMIT: "5000"
     # App Domain
     DJANGO_ALLOWED_HOSTS: "*"
-    # Sentry
-    EOAPI_DOMAIN: https://montandon-eoapi-stage.ifrc.org
-    EOAPI_SYNC_LIMIT: "5000"  # TODO: Remove me after the stac issue is fixed
-
+    EOAPI_DOMAIN: https://montandon-eoapi-stage.monty.org
 
   secrets:
-    DJANGO_SECRET_KEY: "XXXYYYZZZ"
+    DJANGO_SECRET_KEY: "XYZ"
     # Sentry
-    SENTRY_DSN: https://xzy@sentry.local.alpha.com/36
+    SENTRY_DSN: https://XYZ@sentry.local.monty.com/36
     # Source
-    EMDAT_AUTHORIZATION_KEY: XXLLLL
-    GFD_CREDENTIAL: YYIIII
-    GFD_SERVICE_ACCOUNT: zyz@123.iam.gserviceaccount.com
-    IDMC_CLIENT_ID: IDMCUUUUUUUUUU
-    PDC_ARCGIS_PASSWORD: HHHHHHHHHHHH
-    PDC_ARCGIS_USERNAME: ifrc
-    PDC_SENTRY_AUTHORIZATION_KEY: HHYYY
+    EMDAT_AUTHORIZATION_KEY: XYZ
+    GFD_CREDENTIAL: XYZ
+    GFD_SERVICE_ACCOUNT: XYZ
+    IDMC_CLIENT_ID: IDMCWSHSOLO009
+    PDC_ARCGIS_PASSWORD: XXXXXXXXXXXX
+    PDC_ARCGIS_USERNAME: monty-xyz
+    PDC_SENTRY_AUTHORIZATION_KEY: XYZ
     # Database
     DB_HOST: "192.168.XX.YY"
     DB_USER: "k8s_monty"
-    DB_PASSWORD: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    DB_PASSWORD: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX3"
     DB_NAME: "monty-etl"
     DB_PORT: "8432"
-    # Proxy
-    EXTRACTION_PROXY_1: socks5h://192.168.XY.ZZ:1081
-    EXTRACTION_PROXY_2: socks5h://192.168.XY.ZZ:1082
-    EXTRACTION_PROXY_3: socks5h://192.168.XY.ZZ:1083
-    EXTRACTION_PROXY_4: socks5h://192.168.XY.:1084
-
-  extraManifests:
-    local-cache-pvc: |
-      apiVersion: v1
-      kind: PersistentVolumeClaim
-      metadata:
-        name: monty-local-cache
-        labels:
-          app: {{ include "django-app.fullname" . }}
-          environment: {{ .Values.environment }}
-          release: {{ .Release.Name }}
-      spec:
-        storageClassName: longhorn
-        accessModes:
-          - ReadWriteMany
-        resources:
-          requests:
-            storage: 2Gi
+    # Proxy configs
+    EXTRACTION_PROXY_1: socks5h://192.168.XX.YY:1081
+    EXTRACTION_PROXY_2: socks5h://192.168.XX.YY:1082
+    EXTRACTION_PROXY_3: socks5h://192.168.XX.YY:1083
+    EXTRACTION_PROXY_4: socks5h://192.168.XX.YY:1084
 
   argoHook:
     hooks:
-      # NOTE: Make sure keys are lowercase
+      # NOTE: Static Alpha users are only created for the alpha instances
       alpha-instance-users:
         enabled: true
         hook: PostSync
-        # https://notes.tools.alpha.com/atIeJf9CRTCq8merGZ3A5Q#Steps-to-create-and-update-initial-creadential
         command:
           - ./manage.py
           - shell
@@ -151,7 +144,7 @@ app:
             user_data = [
                 # Add user information in this format here
                 # ("first_name last_name", "email", "password_hash", "is_superuser", "is_staff")
-                ("Toggle Admin", "admin@alpha.com", "hash-values", True, True),
+                ("Toggle Admin", "admin@monty.com", "good-hash", True, True),
             ];
 
             @transaction.atomic
