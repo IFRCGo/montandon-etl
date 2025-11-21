@@ -8,7 +8,7 @@ import pydantic
 from celery import chain, chord
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
-from apps.etl.models import ExtractionData
+from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
@@ -23,6 +23,7 @@ class GdacsExtractionMetadataType(str, Enum):
     DETAIL = "DETAIL"
     GEOMETRY = "GEOMETRY"
     EPISODE = "EPISODE"
+    IMPACT = "IMPACT"
 
 
 class GdacsExtractionParamsMetadata(pydantic.BaseModel):
@@ -50,6 +51,7 @@ class GdacsExtractionMetadata(pydantic.BaseModel):
     params: typing.Optional[GdacsExtractionParamsMetadata] = None
     type: GdacsExtractionMetadataType
     event_params: typing.Optional[GdacsEventExtractionParamsMetadata] = None
+    impact_source: typing.Optional[str] = None
 
 
 class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
@@ -176,6 +178,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
         geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
+        impact_list = event_episode_response_data["properties"].get("impacts")
 
         geo_obj = self.init_extraction(
             metadata=GdacsExtractionMetadata(
@@ -186,9 +189,37 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             parent_extraction=self.extraction_object,
             add_to_queue=False,
         )
+
+        # Extract Impact data
+        if impact_list:
+            for impact in impact_list:
+                impact_source = impact.get("source")
+                resource = impact.get("resource", {})
+                hazard_type = event_episode_response_data["properties"]["eventtype"]
+                impact_url = resource.get("buffer39") if hazard_type == HazardType.CYCLONE else resource.get("impact")
+                if not impact_url:
+                    continue
+                impact_obj = self.init_extraction(
+                    metadata=GdacsExtractionMetadata(
+                        params=None,
+                        url=impact_url,
+                        type=GdacsExtractionMetadataType.IMPACT,
+                        impact_source=impact_source,
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
+                GdacsExtraction.task(impact_obj.id)
+
         return geo_obj.id
 
     def handle_type_geometry(self):
+        self._extraction_fetch_url(
+            self.extraction_object.url,
+            headers={"Content-Type": "application/json"},
+        )
+
+    def handle_type_impact(self):
         self._extraction_fetch_url(
             self.extraction_object.url,
             headers={"Content-Type": "application/json"},
@@ -206,6 +237,8 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 return self.handle_type_episode()
             case GdacsExtractionMetadataType.GEOMETRY:
                 return self.handle_type_geometry()
+            case GdacsExtractionMetadataType.IMPACT:
+                return self.handle_type_impact()
             case _:
                 typing.assert_never(handler_type)
 
@@ -217,7 +250,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == GdacsExtractionMetadataType.EPISODE:
             GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
-        if metadata_type == GdacsExtractionMetadataType.GEOMETRY:
+        if metadata_type in [GdacsExtractionMetadataType.GEOMETRY, GdacsExtractionMetadataType.IMPACT]:
             GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True, failed_int=extraction_object.id)
 
     @staticmethod
