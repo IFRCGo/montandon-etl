@@ -116,6 +116,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         default_headers = {
             "Authorization": f"Bearer {etl_config.PDC_SENTRY_AUTHORIZATION_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 IFRC GO",  # noqa
         }
         if headers:
             return {**default_headers, **headers}
