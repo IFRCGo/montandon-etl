@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 import socket
 import typing
+from datetime import date
 from pathlib import Path
 
 import environ
@@ -92,26 +93,26 @@ env = environ.Env(
     EMDAT_START_YEAR=(str, 1900),
     EMDAT_END_YEAR=(str, 2024),
     EMDAT_URL=(str, "https://api.emdat.be"),
-    GDACS_START_DATE=(str, "2025-01-01"),
+    GDACS_START_DATE=(str, date.today().replace(day=1).isoformat()),
     GDACS_URL=(str, "https://www.gdacs.org"),
     GFD_CREDENTIAL=(str, None),
     GFD_SERVICE_ACCOUNT=(str, None),
-    GLIDE_START_DATE=(str, "2025-01-01"),
+    GLIDE_START_DATE=(str, date.today().replace(day=1).isoformat()),
     GLIDE_URL=(str, "https://www.glidenumber.net"),
     IBTRACS_DATA_URL=(str, "https://www.ncei.noaa.gov"),
     IDMC_CLIENT_ID=(str, None),
     IDMC_DATA_URL=(str, "https://helix-tools-api.idmcdb.org"),
     IFRC_DATA_URL=(str, "https://goadmin.ifrc.org"),
-    IFRC_EVENT_START_DATE=(str, "2025-01-01"),
+    IFRC_EVENT_START_DATE=(str, date.today().replace(day=1).isoformat()),
     PDC_ARCGIS_DOMAIN=(str, "https://partners.pdc.org"),
     PDC_ARCGIS_PASSWORD=(str, None),
     PDC_ARCGIS_USERNAME=(str, None),
     PDC_SENTRY_AUTHORIZATION_KEY=(str, None),
     PDC_SENTRY_BASE_URL=(str, "https://sentry.pdc.org"),
-    PDC_START_DATE=(str, "2025-11-15"),
+    PDC_START_DATE=(str, date.today().replace(day=1).isoformat()),
     PDC_EXTRACTION_INTERVAL_YEARS=(int, 2),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
-    USGS_START_DATE=(str, "2025-01-01"),
+    USGS_START_DATE=(str, date.today().replace(day=1).isoformat()),
     TRANSFORM_SUCCESS_RATE=(int, 80),
     #  transformer version
     GDACS_TRANSFORMER_VERSION=(str, "1.0.0"),
