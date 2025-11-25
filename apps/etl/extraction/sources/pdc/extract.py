@@ -275,9 +275,11 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             ).apply_async()
 
     def handle_polygon(self):
-        self._extraction_fetch_url(
-            self.extraction_metadata.url,
-        )
+        headers = dict(self._get_request_headers())
+        for key in ("Content-Type", "Authorization"):
+            headers.pop(key, None)
+
+        self._extraction_fetch_url(self.extraction_metadata.url, headers=headers)
 
     def handle_exposure_detail(self):
         self._extraction_fetch_url(
