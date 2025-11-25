@@ -54,6 +54,32 @@ class GdacsExtractionMetadata(pydantic.BaseModel):
     impact_source: typing.Optional[str] = None
 
 
+class GdacsImpactData(pydantic.BaseModel):
+    impact_data_list: list
+    hazard_type: str
+
+    def _handle_tc(self, impact_data: dict):
+        """Handle Tropical Cyclone impact data"""
+        impact_source_agency = impact_data.get("source")
+        resource = impact_data.get("resource", {})
+        impact_url = resource.get("timeline", None)
+        if not impact_url:
+            return {}
+        return {"impact_url": impact_url, "source_agency": impact_source_agency}
+
+    def handler(self):
+        """Common handler for impact data"""
+        transformed_impact_data = []
+        for impact_data in self.impact_data_list:
+            # TODO: Add a check for hazard_type while transforming
+            match self.hazard_type:
+                case HazardType.CYCLONE:
+                    impact_data_op = self._handle_tc(impact_data)
+                    if impact_data_op:
+                        transformed_impact_data.append(impact_data_op)
+        return transformed_impact_data
+
+
 class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
     MIN_RETRY_DELAY = 60 * 2
     MAX_RETRY_DELAY = 60 * 5
@@ -192,19 +218,16 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         # Extract Impact data
         if impact_list:
-            for impact in impact_list:
-                impact_source = impact.get("source")
-                resource = impact.get("resource", {})
-                hazard_type = event_episode_response_data["properties"]["eventtype"]
-                impact_url = resource.get("buffer39") if hazard_type == HazardType.CYCLONE else resource.get("impact")
-                if not impact_url:
-                    continue
+            hazard_type = event_episode_response_data["properties"]["eventtype"]
+            impact_data = GdacsImpactData(impact_data_list=impact_list, hazard_type=hazard_type)
+            processed_impact_data = impact_data.handler()
+            for impact_item in processed_impact_data:
                 impact_obj = self.init_extraction(
                     metadata=GdacsExtractionMetadata(
                         params=None,
-                        url=impact_url,
+                        url=impact_item["impact_url"],
                         type=GdacsExtractionMetadataType.IMPACT,
-                        impact_source=impact_source,
+                        impact_source=impact_item["source_agency"],
                     ),
                     parent_extraction=self.extraction_object,
                     add_to_queue=False,
