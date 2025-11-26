@@ -50,6 +50,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                         source_url=episode_obj.url,
                         input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
                     ),
+                    hazard_type=episode_obj.metadata["event_params"]["eventtype"],
                 )
 
                 geometry_object = episode_obj.child_extractions.filter(
@@ -65,6 +66,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                             source_url=geometry_object.url,
                             input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
                         ),
+                        hazard_type=geometry_object.metadata["event_params"]["eventtype"],
                     )
 
                 impact_object = episode_obj.child_extractions.filter(
@@ -80,6 +82,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                                 source_url=impact_object.url,
                                 input_data=File(path=impact_detail_temp_file.name, data_type=DataType.FILE),
                             ),
+                            hazard_type=impact_object.metadata["event_params"]["eventtype"],
                         )
             if event_episode_data and geometry_episode_data:
                 # Each item is a tuple of event, geometry and impact objects

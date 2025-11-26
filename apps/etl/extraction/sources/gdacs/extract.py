@@ -157,10 +157,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             event_response_data = json.loads(file_data.read())
 
         episode_tasks = []
-        for episode_data in event_response_data["properties"]["episodes"]:
+        for idx, episode_data in enumerate(event_response_data["properties"]["episodes"]):
             event_episode_url = episode_data["details"]
             event_episode_extraction_obj = self.init_extraction(
                 metadata=GdacsExtractionMetadata(
+                    event_params=GdacsEventExtractionParamsMetadata(
+                        eventtype=event_response_data["properties"]["eventtype"],
+                        episodeid=idx + 1,
+                        eventid=event_response_data["properties"]["eventid"],
+                    ),
                     url=event_episode_url,
                     type=GdacsExtractionMetadataType.EPISODE,
                 ),
@@ -200,6 +205,11 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         geo_obj = self.init_extraction(
             metadata=GdacsExtractionMetadata(
+                event_params=GdacsEventExtractionParamsMetadata(
+                    eventtype=event_episode_response_data["properties"]["eventtype"],
+                    episodeid=event_episode_response_data["properties"]["episodeid"],
+                    eventid=event_episode_response_data["properties"]["eventid"],
+                ),
                 params=None,
                 url=geometry_episode_url,
                 type=GdacsExtractionMetadataType.GEOMETRY,
@@ -216,6 +226,11 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             for impact_item in processed_impact_data:
                 impact_obj = self.init_extraction(
                     metadata=GdacsExtractionMetadata(
+                        event_params=GdacsEventExtractionParamsMetadata(
+                            eventtype=event_episode_response_data["properties"]["eventtype"],
+                            episodeid=event_episode_response_data["properties"]["episodeid"],
+                            eventid=event_episode_response_data["properties"]["eventid"],
+                        ),
                         params=None,
                         url=impact_item["impact_url"],
                         type=GdacsExtractionMetadataType.IMPACT,
