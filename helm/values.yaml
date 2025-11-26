@@ -182,7 +182,7 @@ app:
     # Azure configs
     AZURE_STORAGE_ENABLE: "false"
     # ETL app config
-    EOAPI_DOMAIN: "{{ required \".app.secrets.EOAPI_DOMAIN\" nil }}"
+    EOAPI_STAC_API: "{{ required \".app.secrets.EOAPI_STAC_API\" nil }}"
 
   secrets:
     DJANGO_SECRET_KEY: "{{ required \".app.secrets.DJANGO_SECRET_KEY\" nil }}"

@@ -83,7 +83,10 @@ env = environ.Env(
     SENTRY_MONITOR_CELERY_BEAT_TASKS=(bool, True),
     # External services
     GEOCODER_URL=str,
-    EOAPI_DOMAIN=(str, None),
+    # NOTE:
+    # /stac is not required for internal service. eg: http://montandon-eoapi-stac.montandon-eoapi.svc.cluster.local:8080
+    # /stac is required for external domain. eg:  https://montandon-eoapi-stage.monty.org/stac
+    EOAPI_STAC_API=(str, None),
     EOAPI_SYNC_LIMIT=(int, 10000),
     REQUESTS_PROXY_TO_USE=(str, None),  # NOTE: For more detail look at ./README.md
     # Sources
@@ -129,7 +132,7 @@ env = environ.Env(
 )
 
 
-EOAPI_DOMAIN = env("EOAPI_DOMAIN")
+EOAPI_STAC_API = env("EOAPI_STAC_API")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
 GEOCODER_URL = env("GEOCODER_URL")
 REQUESTS_PROXY_TO_USE = env("REQUESTS_PROXY_TO_USE")
