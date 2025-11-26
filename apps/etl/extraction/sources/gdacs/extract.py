@@ -1,13 +1,13 @@
 import json
 import logging
 import typing
-from enum import Enum
 from typing import Optional
 
 import pydantic
 from celery import chain, chord
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
+from apps.etl.extraction.sources.gdacs.base import GdacsExtractionMetadataType
 from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
 from main.celery import CeleryQueue, app
@@ -16,14 +16,6 @@ from main.logging import log_extra
 from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
-
-
-class GdacsExtractionMetadataType(str, Enum):
-    QUERY = "QUERY"
-    DETAIL = "DETAIL"
-    GEOMETRY = "GEOMETRY"
-    EPISODE = "EPISODE"
-    IMPACT = "IMPACT"
 
 
 class GdacsExtractionParamsMetadata(pydantic.BaseModel):

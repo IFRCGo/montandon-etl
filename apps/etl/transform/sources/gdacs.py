@@ -10,6 +10,7 @@ from pystac_monty.sources.gdacs import (
     GDACSTransformer,
 )
 
+from apps.etl.extraction.sources.gdacs.base import GdacsExtractionMetadataType
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
@@ -37,11 +38,12 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         episodes = []
         event_objects = extraction_object.child_extractions.filter(status=ExtractionData.Status.SUCCESS)
         for episode_obj in event_objects:
+            event_episode_data = geometry_episode_data = impact_episode_data = None
+
             if episode_obj and episode_obj.resp_data:
                 with episode_obj.resp_data.open("rb") as f:
                     file_content = f.read()
                 episode_data_temp_file = write_into_temp_file(file_content, tmp_dir_path)
-
                 event_episode_data = GdacsEpisodes(
                     type=GDACSDataSourceType.EVENT,
                     data=GenericDataSource(
@@ -49,8 +51,10 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                         input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
                     ),
                 )
-                geometry_object = episode_obj.child_extractions.filter(status=ExtractionData.Status.SUCCESS).first()
 
+                geometry_object = episode_obj.child_extractions.filter(
+                    status=ExtractionData.Status.SUCCESS, metadata__type=GdacsExtractionMetadataType.GEOMETRY
+                ).first()
                 if geometry_object and geometry_object.resp_data:
                     with geometry_object.resp_data.open("rb") as f:
                         file_content = f.read()
@@ -63,8 +67,23 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                         ),
                     )
 
-                    episode_data_tuple = (event_episode_data, geometry_episode_data)
-                    episodes.append(episode_data_tuple)
+                impact_object = episode_obj.child_extractions.filter(
+                    status=ExtractionData.Status.SUCCESS, metadata__type=GdacsExtractionMetadataType.IMPACT
+                ).first()
+                if impact_object and impact_object.resp_data:
+                    with impact_object.resp_data.open("rb") as f:
+                        file_content = f.read()
+                        impact_detail_temp_file = write_into_temp_file(file_content, tmp_dir_path)
+                        impact_episode_data = GdacsEpisodes(
+                            type=GDACSDataSourceType.IMPACT,
+                            data=GenericDataSource(
+                                source_url=impact_object.url,
+                                input_data=File(path=impact_detail_temp_file.name, data_type=DataType.FILE),
+                            ),
+                        )
+            if event_episode_data and geometry_episode_data:
+                # Each item is a tuple of event, geometry and impact objects
+                episodes.append((event_episode_data, geometry_episode_data, impact_episode_data))
 
         result = cls.transformer_schema(
             data=GdacsDataSourceType(

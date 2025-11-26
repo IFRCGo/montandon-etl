@@ -3,10 +3,10 @@ import math
 
 from termcolor import colored
 
+from apps.etl.extraction.sources.gdacs.base import GdacsExtractionMetadataType
 from apps.etl.extraction.sources.gdacs.extract import (
     GdacsExtraction,
     GdacsExtractionMetadata,
-    GdacsExtractionMetadataType,
     GdacsExtractionParamsMetadata,
 )
 from main.celery import CeleryQueue
