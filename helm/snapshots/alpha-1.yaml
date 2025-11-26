@@ -508,7 +508,7 @@ data:
   DJANGO_APP_ENVIRONMENT: "ALPHA-1"
   DJANGO_DEBUG: "false"
   DJANGO_TIME_ZONE: "UTC"
-  EOAPI_DOMAIN: "https://montandon-eoapi-stage.monty.org"
+  EOAPI_STAC_API: "https://montandon-eoapi-stage.monty.org/stac"
   EOAPI_SYNC_LIMIT: "5000"
   SENTRY_MONITOR_CELERY_BEAT_TASKS: "true"
   SENTRY_PROFILE_SAMPLE_RATE: "0.2"
@@ -970,7 +970,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: api
@@ -1026,7 +1026,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker-flower
@@ -1082,7 +1082,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker-beat
@@ -1142,7 +1142,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1211,7 +1211,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1280,7 +1280,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1349,7 +1349,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1418,7 +1418,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1489,7 +1489,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1560,7 +1560,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -1631,7 +1631,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: worker
@@ -2193,7 +2193,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2266,7 +2266,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2311,7 +2311,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: 60ef052e64fd9c6b13db30affba7a3a988df7f4c66f554e28b78fed0a1beff24
+        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
       labels:
         app: monty-etl-1
         component: argo-hooks
