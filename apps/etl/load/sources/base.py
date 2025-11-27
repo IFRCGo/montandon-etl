@@ -1,5 +1,3 @@
-import urllib.parse
-
 import requests
 from celery.utils.log import get_task_logger
 
@@ -15,13 +13,15 @@ logger = get_task_logger(__name__)
 HEADERS = {"Content-Type": "application/json"}
 
 
-def load_collections(*, eoapi_domain: str, skip_collection_create: bool, timeout: int = 30) -> list[str]:
+def load_collections(*, skip_collection_create: bool, timeout: int = 30) -> list[str]:
     """
     Create missing collections in eoAPI
     """
     logger.info("Sync collections")
 
-    url = f"{eoapi_domain}/stac/collections"
+    assert etl_config.EOAPI_STAC_API is not None
+
+    url = f"{etl_config.EOAPI_STAC_API}/collections"
     # response = requests.get(f"{url}?limit={len(ITEM_TYPE_COLLECTION_ID_MAP.keys())}", headers=HEADERS)
     # NOTE : We have assigned the limit to be 50 but in actual, we need to
     # get the length from the ITEM_TYPE_COLLEcTION_ID_MAP.keys() but the issue is
@@ -71,22 +71,19 @@ def load_collections(*, eoapi_domain: str, skip_collection_create: bool, timeout
 
 
 def send_post_request_to_stac_api(
-    *,
-    bulk_mgr: BulkUpdateManager,
-    eoapi_domain: str,
-    py_stac_obj: PyStacLoadData,
-    to_update: bool = False,
+    *, bulk_mgr: BulkUpdateManager, py_stac_obj: PyStacLoadData, to_update: bool = False, timeout: int = 30
 ):
-    url = urllib.parse.urljoin(
-        eoapi_domain,
-        f"/stac/collections/{py_stac_obj.collection_id}/items",
-    )
+    assert etl_config.EOAPI_STAC_API is not None
+
+    url = f"{etl_config.EOAPI_STAC_API}/collections/{py_stac_obj.collection_id}/items"
 
     if to_update:
-        update_url = f"{url}/{py_stac_obj.item['id']}/"
-        response = requests.put(update_url, headers=HEADERS, json=py_stac_obj.item)
+        # Note: not to use slash(/) at the end to avoid redirection
+        # due to some internal mechanism within eoapi server
+        update_url = f"{url}/{py_stac_obj.item['id']}"
+        response = requests.put(update_url, headers=HEADERS, json=py_stac_obj.item, timeout=timeout)
     else:
-        response = requests.post(url, headers=HEADERS, json=py_stac_obj.item)
+        response = requests.post(url, headers=HEADERS, json=py_stac_obj.item, timeout=timeout)
 
     load_status = None
     # Success (OK, Created, Accepted)
@@ -98,7 +95,6 @@ def send_post_request_to_stac_api(
         if response.status_code == 409 and to_update is False:  # ConflictError
             return send_post_request_to_stac_api(
                 bulk_mgr=bulk_mgr,
-                eoapi_domain=eoapi_domain,
                 py_stac_obj=py_stac_obj,
                 to_update=True,
             )
@@ -130,13 +126,11 @@ def load_data(
     """Load data into STAC"""
     logger.info("Loading data start")
 
-    eoapi_domain = etl_config.EOAPI_DOMAIN
-    if eoapi_domain is None:
-        logger.warning(f"EOAPI_DOMAIN is not defined. {eoapi_domain}.. Skipping...")
+    if etl_config.EOAPI_STAC_API is None:
+        logger.warning(f"EOAPI_STAC_API is not defined. {etl_config.EOAPI_STAC_API}.. Skipping...")
         return
 
     available_collections_id = load_collections(
-        eoapi_domain=eoapi_domain,
         skip_collection_create=skip_collection_create,
     )
 
@@ -156,7 +150,6 @@ def load_data(
             # TODO: Send in bulk - https://stac-utils.github.io/stac-fastapi/api/stac_fastapi/extensions/third_party/
             send_post_request_to_stac_api(
                 bulk_mgr=bulk_mgr,
-                eoapi_domain=eoapi_domain,
                 py_stac_obj=py_stac_obj,
             )
         except Exception:

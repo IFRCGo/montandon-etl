@@ -21,7 +21,7 @@ app:
     # App Domain
     DJANGO_ALLOWED_HOSTS: "*"
     # ETL Load config
-    EOAPI_DOMAIN: https://montandon-eoapi.dummy.com
+    EOAPI_STAC_API: https://montandon-eoapi.dummy.com/stac
 
   secrets:
     DJANGO_SECRET_KEY: dummy-secret-key

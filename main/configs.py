@@ -75,7 +75,12 @@ class EtlConfig:
         except Exception as e:
             self.checks.append(Warning(f"{settings_key}: {e}"))
 
-    def parse_base_url(self, settings_key: str) -> str | None:
+    def parse_base_url(
+        self,
+        settings_key: str,
+        preserve_path: bool = False,
+        strip_path_trailing_slash: bool = False,
+    ) -> str | None:
         """
         Parse and validate a base URL.
         If the URL is invalid, it appends a warning.
@@ -100,6 +105,11 @@ class EtlConfig:
             )
             return None
         new_url = f"{parsed.scheme}://{parsed.netloc}"
+        if preserve_path:
+            parsed_path = parsed.path
+            if strip_path_trailing_slash:
+                parsed_path = parsed_path.rstrip("/")
+            new_url = f"{new_url}{parsed_path}"
         if new_url != url:
             self.checks.append(
                 Info(
@@ -167,7 +177,7 @@ class EtlConfig:
         # NOTE: Used by main/checks.py
         self.checks: list[CheckMessage] = []
 
-        self.EOAPI_DOMAIN = self.parse_base_url("EOAPI_DOMAIN")
+        self.EOAPI_STAC_API = self.parse_base_url("EOAPI_STAC_API", preserve_path=True, strip_path_trailing_slash=True)
         self.EOAPI_SYNC_LIMIT = self.parse_int_value_required("EOAPI_SYNC_LIMIT")
         self.GEOCODER_URL = self.parse_base_url_required("GEOCODER_URL")
         self.REQUESTS_PROXY_HOST = self.parse_proxy_url()

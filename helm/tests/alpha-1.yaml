@@ -99,7 +99,7 @@ app:
     EOAPI_SYNC_LIMIT: "5000"
     # App Domain
     DJANGO_ALLOWED_HOSTS: "*"
-    EOAPI_DOMAIN: https://montandon-eoapi-stage.monty.org
+    EOAPI_STAC_API: https://montandon-eoapi-stage.monty.org/stac
 
   secrets:
     DJANGO_SECRET_KEY: "XYZ"
