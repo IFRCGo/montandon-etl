@@ -1,0 +1,1082 @@
+---
+# Source: montandon-etl-helm/charts/app/templates/api/service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-token-reader
+  annotations:
+    
+    azure.workload.identity/client-id: XXXXCLIENT-IDXXXX
+  labels:
+    
+    azure.workload.identity/use: "true"
+automountServiceAccountToken: true
+---
+# Source: montandon-etl-helm/charts/app/templates/config/configmap.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: monty-etl-env-name
+  labels:
+    app: monty-etl
+    environment: PROD
+    release: release-name
+data:
+  # Configs
+  APP_RELEASE: "SET-BY-CICD-TAG"
+  AZURE_CLIENT_ID: "XXXXCLIENT-IDXXXX"
+  AZURE_STORAGE_ACCOUNT_NAME: "montyXYZ"
+  AZURE_STORAGE_ENABLE: "true"
+  AZURE_STORAGE_MANAGED_IDENTITY: "true"
+  AZURE_STORAGE_MEDIA_CONTAINER: "montandon-etl-media-container"
+  AZURE_STORAGE_STATIC_CONTAINER: "montandon-etl-static-container"
+  AZURE_TENANT_ID: "XXXXTENANT-IDXXXX"
+  DJANGO_ALLOWED_HOSTS: "*"
+  DJANGO_APP_ENVIRONMENT: "PROD"
+  DJANGO_DEBUG: "false"
+  DJANGO_TIME_ZONE: "UTC"
+  EOAPI_STAC_API: "https://montandon-eoapi.ifrc.org/stac"
+---
+# Source: montandon-etl-helm/charts/geocoding/templates/geocoding/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: geocoder-shared-volume
+  labels:
+    app: geocoder
+    component: geocoding
+spec:
+  accessModes:
+    - "ReadWriteOnce"
+  storageClassName: default
+  resources:
+    requests:
+      storage: 3Gi
+---
+# Source: montandon-etl-helm/charts/app/templates/api/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: monty-etl-api
+  labels:
+    app: monty-etl
+    component: api
+    environment: PROD
+    release: release-name
+spec:
+  type: ClusterIP
+  selector:
+    app: monty-etl
+    component: api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# Source: montandon-etl-helm/charts/app/templates/celery-flower/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: monty-etl-celery-flower
+  labels:
+    app: monty-etl
+    component: celery-flower
+    environment: PROD
+    release: release-name
+spec:
+  type: ClusterIP
+  selector:
+    app: monty-etl
+    component: worker-flower
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+# Source: montandon-etl-helm/charts/geocoding/templates/geocoding/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: monty-geocoder
+  labels:
+    app: geocoder
+    component: geocoding
+spec:
+  type: ClusterIP
+  selector:
+    app: geocoder
+    component: geocoding
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8002
+      nodePort: null
+---
+# Source: montandon-etl-helm/charts/app/templates/api/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-api
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: api
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: api
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: api
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: api
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          command:
+            - /code/scripts/run_web.sh
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "web"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/celery-flower/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-celery-flower
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker-flower
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker-flower
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker-flower
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          command:
+            - celery
+            - -A
+            - main
+            - flower
+            - --port=8000
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "1"
+              memory: 0.5Gi
+            requests:
+              cpu: "0.1"
+              memory: 0.5Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/worker-beat/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-worker-beat
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker-beat
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1  # This should only 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker-beat
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker-beat
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker-beat
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          command:
+            - celery
+            - -A
+            - main
+            - beat
+            - -l
+            - INFO
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "1"
+              memory: 0.5Gi
+            requests:
+              cpu: "0.1"
+              memory: 0.2Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
+# Queue: default
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-worker-default
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker
+    queue: default
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker
+      queue: default
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker
+        queue: default
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker
+          command:
+            - celery
+            - -A
+            - main
+            - worker
+            - -l
+            - INFO
+            - --prefetch-multiplier
+            - "1"
+            - -Q
+            - default
+            - --concurrency
+            - "5"
+            - --max-tasks-per-child
+            - "10"
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
+# Queue: extraction
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-worker-extraction
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker
+    queue: extraction
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker
+      queue: extraction
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker
+        queue: extraction
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker
+          command:
+            - celery
+            - -A
+            - main
+            - worker
+            - -l
+            - INFO
+            - --prefetch-multiplier
+            - "1"
+            - -Q
+            - extraction
+            - --concurrency
+            - "5"
+            - --max-tasks-per-child
+            - "5"
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
+# Queue: transform
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-worker-transform
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker
+    queue: transform
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker
+      queue: transform
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker
+        queue: transform
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker
+          command:
+            - celery
+            - -A
+            - main
+            - worker
+            - -l
+            - INFO
+            - --prefetch-multiplier
+            - "1"
+            - -Q
+            - transform
+            - --concurrency
+            - "4"
+            - --max-tasks-per-child
+            - "5"
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
+# Queue: usgs-extraction
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-worker-usgs-extraction
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl
+    component: worker
+    queue: usgs-extraction
+    environment: PROD
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl
+      component: worker
+      queue: usgs-extraction
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: worker
+        queue: usgs-extraction
+        azure.workload.identity/use: "true"
+    spec:
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: worker
+          command:
+            - celery
+            - -A
+            - main
+            - worker
+            - -l
+            - INFO
+            - --prefetch-multiplier
+            - "1"
+            - -Q
+            - usgs-extraction
+            - --concurrency
+            - "5"
+            - --max-tasks-per-child
+            - "5"
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/geocoding/templates/geocoding/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: geocoder-geocoding
+  labels:
+    app: geocoder
+    component: geocoding
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: geocoder
+      component: geocoding
+  template:
+    metadata:
+      labels:
+        app: geocoder
+        component: geocoding
+    spec:
+      containers:  # TODO: Add Container Init
+        - name: geocoding
+          image: "ghcr.io/ifrcgo/geocoding-service:main.c26a216"
+          imagePullPolicy: IfNotPresent
+          command: ["uvicorn", "service:app", "--host=0.0.0.0", "--port=8002", "--workers=1"]
+          ports:
+            - name: http
+              containerPort: 8002
+              protocol: TCP
+          # TODO: livenessProbe and readinessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 3Gi
+            requests:
+              cpu: "0.1"
+              memory: 1.5Gi
+          env:
+            - name: SERVICE_PORT
+              value: "8002"
+            - name: WAB_FILE_PATH
+              value: "/shared-volume/simple.wab.fgb"
+            - name: GAUL_FILE_PATH
+              value: "/shared-volume/simple.gaul.gpkg"
+          volumeMounts:
+            - mountPath: "/shared-volume"
+              name: shared-volume
+      volumes:
+        - name: shared-volume
+          persistentVolumeClaim:
+            claimName: geocoder-shared-volume
+---
+# Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
+# Hook: collect-static
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: monty-etl-collect-static
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+spec:
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: argo-hooks
+        azure.workload.identity/use: "true"
+    spec:
+      restartPolicy: "Never"
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: collect-static
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          command: 
+            - ./manage.py
+            - collectstatic
+            - --noinput
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "hook"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
+# Hook: db-migrate
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: monty-etl-db-migrate-
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+spec:
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+        checksum/configmap: 8e951f6bc763668344314261f283698baeeccb239a8ae84cb4c037778135dd5d
+      labels:
+        app: monty-etl
+        component: argo-hooks
+        azure.workload.identity/use: "true"
+    spec:
+      restartPolicy: "Never"
+      volumes:
+        - name: monty-etl-secret
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: monty-etl-secret-provider
+      serviceAccountName: service-token-reader
+      containers:
+        - name: db-migrate
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          command: 
+            - ./manage.py
+            - migrate
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-secret
+            - configMapRef:
+                name: monty-etl-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "hook"
+            - name: CELERY_RABBITMQ_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  key: connection_string
+                  name: monty-rabbitmq-default-user
+            - name: CELERY_RABBITMQ_VHOST
+              value: celery
+            - name: CELERY_RESULT_BACKEND
+              value: redis://monty-dragonfly:6379/0
+            - name: CACHE_REDIS_URL
+              value: redis://monty-dragonfly:6379/1
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+          volumeMounts:
+            - name: monty-etl-secret
+              mountPath: /mnt/secrets-store
+              readOnly: true
+---
+# Source: montandon-etl-helm/charts/app/templates/api/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monty-etl-api
+  labels:
+    app: monty-etl
+    component: api
+    environment: PROD
+    release: release-name
+spec:
+  ingressClassName: "nginx"
+  rules:
+    - host: "montandon-etl.monty.org"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: monty-etl-api
+                port:
+                  number: 80
+  tls:
+    - secretName: montandon-helm-secret-cert
+      hosts:
+        - "montandon-etl.monty.org"
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: dragonflydb-cluster
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  labels:
+    app.kubernetes.io/name: dragonfly
+  name: monty-dragonfly
+spec:
+  args:
+  - --dbfilename=mainSnapshot
+  replicas: 1
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1024Mi
+    requests:
+      cpu: "0.1"
+      memory: 1024Mi
+  snapshot:
+    cron: '*/5 * * * *'
+    persistentVolumeClaimSpec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: rabbitmq-cluster
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: monty-rabbitmq
+spec:
+  persistence:
+    storage: 2Gi
+  rabbitmq:
+    additionalConfig: |
+      default_vhost = celery
+  replicas: 1
+  resources:
+    limits:
+      cpu: "4"
+      memory: 2Gi
+    requests:
+      cpu: 100m
+      memory: 2Gi
+---
+# Source: montandon-etl-helm/charts/app/templates/api/secrets-provider-class.yaml
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: monty-etl-secret-provider
+spec:
+  provider: azure
+  parameters:
+    clientID: XXXXCLIENT-IDXXXX
+    keyvaultName: montandon-etl-kv
+    tenantId: XXXXTENANT-IDXXXX
+    usePodIdentity: "false"
+    objects: |
+      array:
+        - |
+          objectName: DB-HOST
+          objectType: secret
+        - |
+          objectName: DB-NAME
+          objectType: secret
+        - |
+          objectName: DB-PASSWORD
+          objectType: secret
+        - |
+          objectName: DB-PORT
+          objectType: secret
+        - |
+          objectName: DB-USER
+          objectType: secret
+        - |
+          objectName: DJANGO-SECRET-KEY
+          objectType: secret
+        - |
+          objectName: EMDAT-AUTHORIZATION-KEY
+          objectType: secret
+        - |
+          objectName: GFD-CREDENTIAL
+          objectType: secret
+        - |
+          objectName: GFD-SERVICE-ACCOUNT
+          objectType: secret
+        - |
+          objectName: IDMC-CLIENT-ID
+          objectType: secret
+        - |
+          objectName: PDC-ARCGIS-PASSWORD
+          objectType: secret
+        - |
+          objectName: PDC-ARCGIS-USERNAME
+          objectType: secret
+        - |
+          objectName: PDC-SENTRY-AUTHORIZATION-KEY
+          objectType: secret
+        - |
+          objectName: SENTRY-DSN
+          objectType: secret
+  secretObjects:
+    - secretName: monty-etl-secret
+      type: Opaque
+      data:
+        - objectName: DB-HOST
+          key: DB_HOST
+        - objectName: DB-NAME
+          key: DB_NAME
+        - objectName: DB-PASSWORD
+          key: DB_PASSWORD
+        - objectName: DB-PORT
+          key: DB_PORT
+        - objectName: DB-USER
+          key: DB_USER
+        - objectName: DJANGO-SECRET-KEY
+          key: DJANGO_SECRET_KEY
+        - objectName: EMDAT-AUTHORIZATION-KEY
+          key: EMDAT_AUTHORIZATION_KEY
+        - objectName: GFD-CREDENTIAL
+          key: GFD_CREDENTIAL
+        - objectName: GFD-SERVICE-ACCOUNT
+          key: GFD_SERVICE_ACCOUNT
+        - objectName: IDMC-CLIENT-ID
+          key: IDMC_CLIENT_ID
+        - objectName: PDC-ARCGIS-PASSWORD
+          key: PDC_ARCGIS_PASSWORD
+        - objectName: PDC-ARCGIS-USERNAME
+          key: PDC_ARCGIS_USERNAME
+        - objectName: PDC-SENTRY-AUTHORIZATION-KEY
+          key: PDC_SENTRY_AUTHORIZATION_KEY
+        - objectName: SENTRY-DSN
+          key: SENTRY_DSN

@@ -1,0 +1,28 @@
+app:
+  ingress:
+    host: montandon-etl.monty.org
+    tls:
+      secretName: montandon-helm-secret-cert
+
+  # Environment variables
+  env:
+    # Azure configs
+    AZURE_STORAGE_ENABLE: "true"
+    AZURE_CLIENT_ID: XXXXCLIENT-IDXXXX
+    AZURE_TENANT_ID: XXXXTENANT-IDXXXX
+    AZURE_STORAGE_MEDIA_CONTAINER: montandon-etl-media-container
+    AZURE_STORAGE_STATIC_CONTAINER: montandon-etl-static-container
+    AZURE_STORAGE_ACCOUNT_NAME: montyXYZ
+    AZURE_STORAGE_MANAGED_IDENTITY: "true"
+    # ETL Load config
+    EOAPI_STAC_API: "https://montandon-eoapi.ifrc.org/stac"
+
+  serviceAccount:
+    annotations:
+      azure.workload.identity/client-id : "XXXXCLIENT-IDXXXX"
+
+  secretsStoreCsiDriver:
+    parameters:
+      clientID: "XXXXCLIENT-IDXXXX"
+      keyvaultName: "montandon-etl-kv"
+      tenantId: "XXXXTENANT-IDXXXX"

@@ -5,3 +5,7 @@ tests:
     - values/operators.yaml
     - values/go-deploy.yaml
     - values/staging.yaml
+  prod.yaml:
+    - values/operators.yaml
+    - values/go-deploy.yaml
+    - values/prod.yaml
