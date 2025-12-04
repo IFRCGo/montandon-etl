@@ -36,7 +36,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
             id=input_metadata.exposure_detail.geojson_id, status=ExtractionData.Status.SUCCESS
         ).first()
 
-        with extraction_obj.parent.resp_data.open("rb") as f:
+        with extraction_obj.parent.parent.resp_data.open("rb") as f:
             file_content = f.read()
         # FIXME: Why do we have delete=False? We need to delete this in post action
         tmp_hazard_file = write_into_temp_file(file_content, tmp_dir_path)
