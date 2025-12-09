@@ -3,7 +3,7 @@ from typing import List
 
 import strawberry
 from asgiref.sync import sync_to_async
-from celery import shared_task
+from celery import chain, chord, group, shared_task
 
 from apps.etl.extraction.sources.desinventar.extract import DesInventarExtraction
 from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
@@ -113,22 +113,44 @@ def run_transform_retrigger(transform_objects_ids: List[int]) -> None:
 def run_pipeline_retrigger(extraction_objects_ids: List[int]) -> None:
     logger.info("Pipeline retrigger processing")
 
-    failed_extraction_objects = ExtractionData.objects.filter(
-        id__in=extraction_objects_ids,
+    pdc_failed_objects = ExtractionData.objects.filter(id__in=extraction_objects_ids, source=ExtractionData.Source.PDC)
+
+    failed_extraction_objects = ExtractionData.objects.filter(id__in=extraction_objects_ids).exclude(
+        id__in=pdc_failed_objects
     )
     if failed_extraction_objects.exists():
-        failed_extraction_objects.update(status=ExtractionData.Status.PENDING)
-
         for obj in failed_extraction_objects:
             # during the retrigger process some to the failed_extraction_objects are retriggered internally
             # so lets not retrigger those objects
             if obj.status == ExtractionData.Status.SUCCESS:
                 continue
+            obj.status = ExtractionData.Status.PENDING
+            obj.save(update_fields=["status"])
+
             extraction_class = source_extraction_map[obj.source]
-            if extraction_class in [GdacsExtraction, USGSExtraction, PDCExtractionV2]:  # nested extraction
+            if extraction_class in [GdacsExtraction, USGSExtraction]:  # nested extraction
                 extraction_class.retrigger(obj)
             else:
                 extraction_class.task.delay(obj.id)
+
+    # Retrigger Pdc
+    pdc_polygon_objects = pdc_failed_objects.filter(metadata__type="POLYGON")
+    pdc_list_objects = pdc_failed_objects.filter(metadata__type="EXPOSURE_LIST")
+    pdc_detail_objects = pdc_failed_objects.filter(metadata__type="EXPOSURE_DETAIL")
+
+    polygon_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_polygon_objects]
+    list_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_list_objects]
+    detail_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_detail_objects]
+
+    workflow = chord(
+        polygon_tasks,
+        chain(
+            group(list_tasks),
+            group(detail_tasks),
+        ),
+    )
+
+    workflow.apply_async()
 
 
 @strawberry.type
