@@ -8,7 +8,7 @@ import pydantic
 from celery import chain, chord
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
-from apps.etl.models import ExtractionData
+from apps.etl.models import ExtractionData, HazardType
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
@@ -23,6 +23,7 @@ class GdacsExtractionMetadataType(str, Enum):
     DETAIL = "DETAIL"
     GEOMETRY = "GEOMETRY"
     EPISODE = "EPISODE"
+    IMPACT = "IMPACT"
 
 
 class GdacsExtractionParamsMetadata(pydantic.BaseModel):
@@ -45,11 +46,39 @@ class GdacsEventExtractionMetadata(pydantic.BaseModel):
     type: GdacsExtractionMetadataType
 
 
+class GdacsImpactData(pydantic.BaseModel):
+    impact_data_list: list
+    hazard_type: str
+
+    def _handle_tc(self, impact_data: dict):
+        """Handle Tropical Cyclone impact data"""
+        impact_source_agency = impact_data.get("source")
+        resource = impact_data.get("resource", {})
+        impact_url = resource.get("timeline", None)
+        if not impact_url:
+            return {}
+        return {"impact_url": impact_url, "source_agency": impact_source_agency}
+
+    def handler(self):
+        """Common handler for impact data"""
+        transformed_impact_data = []
+        for impact_data in self.impact_data_list:
+            # TODO: Add a check for hazard_type while transforming
+            match self.hazard_type:
+                case HazardType.CYCLONE:
+                    # Impact data of Tropical Cyclone(TC)
+                    impact_data_tc = self._handle_tc(impact_data)
+                    if impact_data_tc:
+                        transformed_impact_data.append(impact_data_tc)
+        return transformed_impact_data
+
+
 class GdacsExtractionMetadata(pydantic.BaseModel):
     url: str
     params: typing.Optional[GdacsExtractionParamsMetadata] = None
     type: GdacsExtractionMetadataType
     event_params: typing.Optional[GdacsEventExtractionParamsMetadata] = None
+    impact_source: typing.Optional[str] = None
 
 
 class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
@@ -141,6 +170,11 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             event_episode_url = episode_data["details"]
             event_episode_extraction_obj = self.init_extraction(
                 metadata=GdacsExtractionMetadata(
+                    event_params=GdacsEventExtractionParamsMetadata(
+                        eventtype=event_response_data["properties"]["eventtype"],
+                        episodeid=event_response_data["properties"]["episodeid"],
+                        eventid=event_response_data["properties"]["eventid"],
+                    ),
                     url=event_episode_url,
                     type=GdacsExtractionMetadataType.EPISODE,
                 ),
@@ -176,9 +210,15 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
         event_episode_response_data = json.loads(self.extraction_object.resp_data.read())
         geometry_episode_url = event_episode_response_data["properties"]["url"]["geometry"]
+        impact_list = event_episode_response_data["properties"].get("impacts")
 
         geo_obj = self.init_extraction(
             metadata=GdacsExtractionMetadata(
+                event_params=GdacsEventExtractionParamsMetadata(
+                    eventtype=event_episode_response_data["properties"]["eventtype"],
+                    episodeid=event_episode_response_data["properties"]["episodeid"],
+                    eventid=event_episode_response_data["properties"]["eventid"],
+                ),
                 params=None,
                 url=geometry_episode_url,
                 type=GdacsExtractionMetadataType.GEOMETRY,
@@ -186,9 +226,37 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             parent_extraction=self.extraction_object,
             add_to_queue=False,
         )
+        # Extract Impact data
+        if impact_list:
+            hazard_type = event_episode_response_data["properties"]["eventtype"]
+            impact_data = GdacsImpactData(impact_data_list=impact_list, hazard_type=hazard_type)
+            processed_impact_data = impact_data.handler()
+            for impact_item in processed_impact_data:
+                impact_obj = self.init_extraction(
+                    metadata=GdacsExtractionMetadata(
+                        event_params=GdacsEventExtractionParamsMetadata(
+                            eventtype=event_episode_response_data["properties"]["eventtype"],
+                            episodeid=event_episode_response_data["properties"]["episodeid"],
+                            eventid=event_episode_response_data["properties"]["eventid"],
+                        ),
+                        params=None,
+                        url=impact_item["impact_url"],
+                        type=GdacsExtractionMetadataType.IMPACT,
+                        impact_source=impact_item["source_agency"],
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
+                GdacsExtraction.task(impact_obj.id)
         return geo_obj.id
 
     def handle_type_geometry(self):
+        self._extraction_fetch_url(
+            self.extraction_object.url,
+            headers={"Content-Type": "application/json"},
+        )
+
+    def handle_type_impact(self):
         self._extraction_fetch_url(
             self.extraction_object.url,
             headers={"Content-Type": "application/json"},
@@ -206,6 +274,8 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
                 return self.handle_type_episode()
             case GdacsExtractionMetadataType.GEOMETRY:
                 return self.handle_type_geometry()
+            case GdacsExtractionMetadataType.IMPACT:
+                return self.handle_type_impact()
             case _:
                 typing.assert_never(handler_type)
 
@@ -217,7 +287,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == GdacsExtractionMetadataType.EPISODE:
             GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
-        if metadata_type == GdacsExtractionMetadataType.GEOMETRY:
+        if metadata_type in [GdacsExtractionMetadataType.GEOMETRY, GdacsExtractionMetadataType.IMPACT]:
             GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True, failed_int=extraction_object.id)
 
     @staticmethod
