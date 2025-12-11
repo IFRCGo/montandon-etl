@@ -209,7 +209,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             raise NoDataException
 
         for item in response_data:
-            # if not retrigger:
             exposure_extraction_obj = self.init_extraction(
                 metadata=PDCExtractionMetadata(
                     url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",  # type: ignore

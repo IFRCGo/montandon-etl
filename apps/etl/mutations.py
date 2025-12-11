@@ -14,7 +14,7 @@ from apps.etl.extraction.sources.glide.extract import GlideExtraction
 from apps.etl.extraction.sources.idu.extract import IDUExtraction
 from apps.etl.extraction.sources.ifrc_event.extract import IFRCEventExtractionV2
 from apps.etl.extraction.sources.noaa_IBTrACS.extract import IBTrACSExtraction
-from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
+from apps.etl.extraction.sources.pdc.extract import PDCExtractionMetaDataType, PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
@@ -110,6 +110,21 @@ def run_transform_retrigger(transform_objects_ids: List[int]) -> None:
 
 
 @shared_task
+def trigger_pdc_transform(trace_ids: List[int]):
+    """Collect the failed items from the Transform table"""
+    success_ext_detail_ids = ExtractionData.objects.filter(
+        metadata__type="EXPOSURE_DETAIL",
+        status=ExtractionData.Status.SUCCESS,
+        source=ExtractionData.Source.PDC,
+    ).values("id")
+
+    failed_transform_objs = Transform.objects.filter(
+        extraction__id__in=success_ext_detail_ids, status=Transform.Status.FAILED, trace__id__in=trace_ids
+    )
+    run_transform_retrigger.delay(list(failed_transform_objs.values_list("id", flat=True)))
+
+
+@shared_task
 def run_pipeline_retrigger(extraction_objects_ids: List[int]) -> None:
     logger.info("Pipeline retrigger processing")
 
@@ -133,24 +148,29 @@ def run_pipeline_retrigger(extraction_objects_ids: List[int]) -> None:
             else:
                 extraction_class.task.delay(obj.id)
 
-    # Retrigger Pdc
-    pdc_polygon_objects = pdc_failed_objects.filter(metadata__type="POLYGON")
-    pdc_list_objects = pdc_failed_objects.filter(metadata__type="EXPOSURE_LIST")
-    pdc_detail_objects = pdc_failed_objects.filter(metadata__type="EXPOSURE_DETAIL")
+    # Retrigger PDC
+    if pdc_failed_objects:
+        pdc_hazard_objects = pdc_failed_objects.filter(metadata__type=PDCExtractionMetaDataType.HAZARD)
+        pdc_polygon_objects = pdc_failed_objects.filter(metadata__type=PDCExtractionMetaDataType.POLYGON)
+        pdc_list_objects = pdc_failed_objects.filter(metadata__type=PDCExtractionMetaDataType.EXPOSURE_LIST)
+        pdc_detail_objects = pdc_failed_objects.filter(metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL)
 
-    polygon_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_polygon_objects]
-    list_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_list_objects]
-    detail_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_detail_objects]
+        trace_ids = list(
+            set(pdc_hazard_objects.values_list("trace", flat=True))
+            | set(pdc_polygon_objects.values_list("trace", flat=True))
+            | set(pdc_list_objects.values_list("trace", flat=True))
+            | set(pdc_detail_objects.values_list("trace", flat=True))
+        )
+        pdc_hazard_objects = [PDCExtractionV2.task.si(obj.id) for obj in pdc_hazard_objects]
+        polygon_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_polygon_objects]
+        list_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_list_objects]
+        detail_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_detail_objects]
 
-    workflow = chord(
-        polygon_tasks,
-        chain(
-            group(list_tasks),
-            group(detail_tasks),
-        ),
-    )
-
-    workflow.apply_async()
+        pdc_retrigger_workflow = chord(
+            pdc_hazard_objects,
+            chain(group(polygon_tasks), group(list_tasks), group(detail_tasks), trigger_pdc_transform.si(trace_ids)),
+        )
+        pdc_retrigger_workflow.apply_async()
 
 
 @strawberry.type
