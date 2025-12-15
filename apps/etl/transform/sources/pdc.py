@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from pystac_monty.sources.common import DataType, File
 from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransformer
 
@@ -35,6 +36,9 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
         geo_json_obj = ExtractionData.objects.filter(
             id=input_metadata.exposure_detail.geojson_id, status=ExtractionData.Status.SUCCESS
         ).first()
+
+        if not geo_json_obj:
+            raise ObjectDoesNotExist("Geolocation object not found. It might not be extracted.")
 
         with extraction_obj.parent.parent.resp_data.open("rb") as f:
             file_content = f.read()
