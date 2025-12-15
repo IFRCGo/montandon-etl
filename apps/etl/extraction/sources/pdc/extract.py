@@ -184,7 +184,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                 add_to_queue=False,
             )
 
-            # TODO: rsh Add the exposure extraction object id to the the metadata of the geo object
             geo_object.metadata["polygon"]["exposure_obj_id"] = exposure_extraction_obj.id
             geo_object.save()
 
