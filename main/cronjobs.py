@@ -62,16 +62,16 @@ class CronJob(typing.NamedTuple):
 
 # NOTE: PeriodicTask will be delete from database if removed from here
 SCHEDULES: dict[str, CronJob] = {
-    # "import_pdc_data": CronJob(
-    #     task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
-    #     schedule=crontab(hour=1, minute=0),
-    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-    #     sentry_config=CronJobSentryConfig(
-    #         failure_issue_threshold=2,
-    #         checkin_margin=10,
-    #         max_runtime=12 * 60,
-    #     ),
-    # ),
+    "import_pdc_data": CronJob(
+        task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
+        schedule=crontab(hour=1, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=10,
+            max_runtime=12 * 60,
+        ),
+    ),
     "import_emdat_data": CronJob(
         task="apps.etl.etl_tasks.emdat.ext_and_transform_emdat_latest_data",
         schedule=crontab(hour=5, minute=0),
