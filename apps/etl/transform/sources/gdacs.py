@@ -26,6 +26,8 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
 
     @classmethod
     def get_schema_data(cls, extraction_object, dir_uuid: str):
+        from apps.etl.extraction.sources.gdacs.extract import GdacsExtractionMetadataType
+
         tmp_dir_path = Path("/tmp") / extraction_object.get_source_display() / dir_uuid
         if not os.path.isdir(tmp_dir_path):
             os.makedirs(tmp_dir_path, exist_ok=True)
@@ -37,6 +39,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
         episodes = []
         event_objects = extraction_object.child_extractions.filter(status=ExtractionData.Status.SUCCESS)
         for episode_obj in event_objects:
+            event_episode_data = geometry_episode_data = impact_episode_data = None
             if episode_obj and episode_obj.resp_data:
                 with episode_obj.resp_data.open("rb") as f:
                     file_content = f.read()
@@ -48,8 +51,11 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                         source_url=episode_obj.url,
                         input_data=File(path=episode_data_temp_file.name, data_type=DataType.FILE),
                     ),
+                    hazard_type=episode_obj.metadata["event_params"]["eventtype"],
                 )
-                geometry_object = episode_obj.child_extractions.filter(status=ExtractionData.Status.SUCCESS).first()
+                geometry_object = episode_obj.child_extractions.filter(
+                    status=ExtractionData.Status.SUCCESS, metadata__type=GdacsExtractionMetadataType.GEOMETRY
+                ).first()
 
                 if geometry_object and geometry_object.resp_data:
                     with geometry_object.resp_data.open("rb") as f:
@@ -61,10 +67,27 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                             source_url=geometry_object.url,
                             input_data=File(path=geometry_detail_temp_file.name, data_type=DataType.FILE),
                         ),
+                        hazard_type=geometry_object.metadata["event_params"]["eventtype"],
                     )
 
-                    episode_data_tuple = (event_episode_data, geometry_episode_data)
-                    episodes.append(episode_data_tuple)
+                impact_object = episode_obj.child_extractions.filter(
+                    status=ExtractionData.Status.SUCCESS, metadata__type=GdacsExtractionMetadataType.IMPACT
+                ).first()
+                if impact_object and impact_object.resp_data:
+                    with impact_object.resp_data.open("rb") as f:
+                        file_content = f.read()
+                        impact_detail_temp_file = write_into_temp_file(file_content, tmp_dir_path)
+                        impact_episode_data = GdacsEpisodes(
+                            type=GDACSDataSourceType.IMPACT,
+                            data=GenericDataSource(
+                                source_url=impact_object.url,
+                                input_data=File(path=impact_detail_temp_file.name, data_type=DataType.FILE),
+                            ),
+                            hazard_type=impact_object.metadata["event_params"]["eventtype"],
+                        )
+            if event_episode_data and geometry_episode_data:
+                # Each item is a tuple of event, geometry and impact objects
+                episodes.append((event_episode_data, geometry_episode_data, impact_episode_data))
 
         result = cls.transformer_schema(
             data=GdacsDataSourceType(

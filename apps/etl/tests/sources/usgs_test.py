@@ -23,6 +23,7 @@ TEST_CASES = [
             "query": "usgs_all_day.geojson",
             "detail": "usgs_detail.json",
             "losses": "losses.json",
+            "alerts": "alerts.json",
         },
         "expected": "fixed_output_usgs.json",
     },
@@ -42,6 +43,8 @@ def test_handle_extraction_various_usgs_files(case):
         detail_data = json.load(f)
     with open(dataset_dir / case["input_files"]["losses"], "r", encoding="utf-8") as f:
         losses_data = json.load(f)
+    with open(dataset_dir / case["input_files"]["alerts"], "r", encoding="utf-8") as f:
+        alerts_data = json.load(f)
 
     # Setup mocks
     def mock_get(url, *args, **kwargs):
@@ -51,6 +54,8 @@ def test_handle_extraction_various_usgs_files(case):
             return _mock_response(detail_data)
         elif "losses.json" in url:
             return _mock_response(losses_data)
+        elif "alerts.json" in url:
+            return _mock_response(alerts_data)
         return MagicMock(status_code=404)
 
     def _mock_response(data, content_type="application/json"):
@@ -66,9 +71,9 @@ def test_handle_extraction_various_usgs_files(case):
         ext_and_transform_usgs_latest_data()
 
     # Assertions
-    assert ExtractionData.objects.count() == 3
+    assert ExtractionData.objects.count() == 4
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 2
+    assert PyStacLoadData.objects.count() == 4
 
     # Compare with expected output
     expected_path = dataset_dir / case["expected"]
