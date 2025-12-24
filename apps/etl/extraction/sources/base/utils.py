@@ -25,7 +25,7 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     the previous file.
     """
     if not isinstance(response_data, bytes):
-        response_data = json.dumps(response_data, indent=2)
+        response_data = json.dumps(response_data, indent=2).encode("utf-8")
 
     duplicate_extraction_qs = ExtractionData.objects.filter(
         source=source,
