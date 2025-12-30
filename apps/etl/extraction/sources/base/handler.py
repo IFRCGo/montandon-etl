@@ -2,6 +2,7 @@ import abc
 import json
 import logging
 import typing
+import uuid
 from typing import Any, Callable, Optional
 
 import pydantic
@@ -259,7 +260,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         """
         Save extracted data into data base. Checks for duplicate content using hashing.
         """
-        file_name = f"{extraction_object.source}.{file_extension}"
+        file_name = f"{extraction_object.source}-{uuid.uuid4().hex[:8]}.{file_extension}"
         resp_data_content = response.content
 
         # save the additional response data after the data is fetched from api.
