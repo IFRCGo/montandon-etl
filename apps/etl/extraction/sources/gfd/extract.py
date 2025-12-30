@@ -3,6 +3,7 @@ import json
 import logging
 import tempfile
 import typing
+import uuid
 from enum import Enum
 
 import ee
@@ -63,7 +64,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         """
         Save extracted data into database. Checks for duplicate content using hashing.
         """
-        file_name = f"{extraction_object.source}.{file_extension}"
+        file_name = f"{extraction_object.source}-{uuid.uuid4().hex[:8]}.{file_extension}"
         extraction_object.resp_data_type = content_type
 
         extraction_object.save(update_fields=["resp_data_type"])
