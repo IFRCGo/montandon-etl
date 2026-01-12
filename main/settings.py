@@ -507,6 +507,12 @@ LOGGING = {
             }
             for app in ["apps", "main", "utils", "celery", "django"]
         },
+        # NOTE: Azure provides high amount of logs for INFO
+        "azure.core.pipeline.policies.http_logging_policy": {
+            "level": "WARNING",
+            "handlers": ["console"],
+            "propagate": False,
+        },
     },
     "root": {
         "level": env("APP_LOG_LEVEL"),
