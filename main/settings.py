@@ -182,6 +182,14 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
 CELERY_ACKS_LATE = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Per-consumer prefetch (fixes queue stall)
+CELERY_BROKER_TRANSPORT_OPTIONS = {"qos_global": False}
+# Task reliability
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+# Heartbeat & timeout
+CELERY_BROKER_HEARTBEAT = 60  # or more for long tasks
+CELERY_BROKER_CONNECTION_TIMEOUT = 30  # seconds
 
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
