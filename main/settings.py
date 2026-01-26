@@ -185,8 +185,8 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 # Per-consumer prefetch (fixes queue stall)
 CELERY_BROKER_TRANSPORT_OPTIONS = {"qos_global": False}
 # Task reliability
-CELERY_TASK_ACKS_LATE = True
-CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_ACKS_LATE = False
+CELERY_TASK_REJECT_ON_WORKER_LOST = True  # Note: this might not be applicable when CELERY_TASK_ACKS_LATE = False
 # Heartbeat & timeout
 CELERY_BROKER_HEARTBEAT = 60  # or more for long tasks
 CELERY_BROKER_CONNECTION_TIMEOUT = 30  # seconds
