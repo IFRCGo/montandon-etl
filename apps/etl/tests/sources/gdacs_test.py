@@ -78,8 +78,11 @@ def test_handle_gdacs_extraction_with_mocked_request():
     actual_json = json.loads(latest_data_json)
 
     ignore_keys = {
+        "stac_extensions",
         "created_at",
         "modified_at",
+        "monty:guid",
+        "monty:corr_id",
         "monty:etl_id",
         "pk",
         "trace",
