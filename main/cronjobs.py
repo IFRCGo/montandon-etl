@@ -122,16 +122,16 @@ SCHEDULES: dict[str, CronJob] = {
     #         max_runtime=2 * 60,
     #     ),
     # ),
-    # "import_usgs_data": CronJob(
-    #     task="apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
-    #     schedule=crontab(hour=17, minute=0),
-    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-    #     sentry_config=CronJobSentryConfig(
-    #         failure_issue_threshold=2,
-    #         checkin_margin=10,
-    #         max_runtime=12 * 60,
-    #     ),
-    # ),
+    "import_usgs_data": CronJob(
+        task="apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
+        schedule=crontab(hour=17, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=10,
+            max_runtime=12 * 60,
+        ),
+    ),
     # "import_idu_data": CronJob(
     #     task="apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
     #     schedule=crontab(hour=19, minute=0),
