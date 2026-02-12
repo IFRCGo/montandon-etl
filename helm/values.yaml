@@ -135,21 +135,21 @@ app:
       default:
         enabled: true
         replicaCount: 1
-        celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "10"]
+        celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "25"]
       extraction:
         enabled: true
         replicaCount: 1
-        celeryArgs: ["-Q", "extraction", "--concurrency", "5", "--max-tasks-per-child", "5"]
+        celeryArgs: ["-Q", "extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
       transform:
         enabled: true
         replicaCount: 2
-        celeryArgs: ["-Q", "transform", "--concurrency", "4", "--max-tasks-per-child", "5"]
+        celeryArgs: ["-Q", "transform", "--concurrency", "2", "--max-tasks-per-child", "25"]
       # By source
       # TODO: Is this used?
       usgs-extraction:
         enabled: true
         replicaCount: 1
-        celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "5", "--max-tasks-per-child", "5"]
+        celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
 
   argoHook:
     enabled: true

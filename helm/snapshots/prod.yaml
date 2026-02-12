@@ -409,7 +409,7 @@ spec:
             - --concurrency
             - "5"
             - --max-tasks-per-child
-            - "10"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -500,9 +500,9 @@ spec:
             - -Q
             - extraction
             - --concurrency
-            - "5"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -593,9 +593,9 @@ spec:
             - -Q
             - transform
             - --concurrency
-            - "4"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -686,9 +686,9 @@ spec:
             - -Q
             - usgs-extraction
             - --concurrency
-            - "5"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -983,6 +983,7 @@ spec:
   rabbitmq:
     additionalConfig: |
       default_vhost = celery
+      consumer_timeout = 7200000
   replicas: 1
   resources:
     limits:

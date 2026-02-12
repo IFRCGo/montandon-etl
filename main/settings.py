@@ -182,11 +182,17 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_EVENT_QUEUE_PREFIX = "etl-celery-"
 CELERY_ACKS_LATE = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Hard time limit for tasks (kill if exceeded)
+CELERY_TASK_TIME_LIMIT = 7200  # seconds (2 hours)
+# Soft time limit (graceful stop before hard limit)
+CELERY_TASK_SOFT_TIME_LIMIT = 7000
+
 # Per-consumer prefetch (fixes queue stall)
 CELERY_BROKER_TRANSPORT_OPTIONS = {"qos_global": False}
 # Task reliability
-CELERY_TASK_ACKS_LATE = False
-CELERY_TASK_REJECT_ON_WORKER_LOST = True  # Note: this might not be applicable when CELERY_TASK_ACKS_LATE = False
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # Heartbeat & timeout
 CELERY_BROKER_HEARTBEAT = 60  # or more for long tasks
 CELERY_BROKER_CONNECTION_TIMEOUT = 30  # seconds

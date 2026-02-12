@@ -64,6 +64,7 @@ app:
         rabbitmq:
           additionalConfig: |
             default_vhost = celery
+            consumer_timeout = 7200000
         persistence:
          # storageClassName:
          storage: "2Gi"
