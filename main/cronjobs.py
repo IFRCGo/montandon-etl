@@ -142,6 +142,16 @@ SCHEDULES: dict[str, CronJob] = {
             max_runtime=3 * 60,
         ),
     ),
+    "import_alert_hub_data": CronJob(
+        task="apps.etl.etl_tasks.alert_hub.ext_and_transform_alert_hub_latest_data",
+        schedule=crontab(hour=20, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=5,
+            max_runtime=3 * 60,
+        ),
+    ),
     "import_gidd_data": CronJob(
         task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
         schedule=crontab(hour=20, minute=0, day_of_week="sunday"),
