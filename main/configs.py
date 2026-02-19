@@ -218,6 +218,9 @@ class EtlConfig:
         # PDC
         # -- ARC GIS
         self.PDC_ARCGIS_DOMAIN = self.parse_base_url_required("PDC_ARCGIS_DOMAIN")
+
+        # ALERT_HUB
+        self.ALERT_HUB_URL = self.parse_base_url_required("ALERT_HUB_URL")
         # -- Credentials
         self.PDC_ARCGIS_PASSWORD = self.parse_non_empty_value("PDC_ARCGIS_PASSWORD")
         self.PDC_ARCGIS_USERNAME = self.parse_non_empty_value("PDC_ARCGIS_USERNAME")
