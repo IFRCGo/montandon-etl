@@ -116,7 +116,7 @@ env = environ.Env(
     PDC_EXTRACTION_INTERVAL_YEARS=(int, 2),
     USGS_DATA_URL=(str, "https://earthquake.usgs.gov"),
     USGS_START_DATE=(str, date.today().replace(day=1).isoformat()),
-    ALERT_HUB_URL=(str, "https://alert-hub-1-api.ifrc-go.dev.togglecorp.com/"),
+    ALERT_HUB_URL=(str, "https://alerthub-api.ifrc.org/"),
     TRANSFORM_SUCCESS_RATE=(int, 80),
     #  transformer version
     GDACS_TRANSFORMER_VERSION=(str, "1.0.0"),
