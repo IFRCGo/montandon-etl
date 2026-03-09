@@ -167,7 +167,7 @@ def ext_and_transform_alert_hub_historical_data(start_date, end_date):
             params=AlertHubExtractionParamsMetadata(
                 start=str(start_date),
                 end=str(end_date),
-                limit=0,
+                limit=0,  # NOTE: Parent extraction limit set to zero for extracting "count" for pagination.
                 offset=0,
             ),
             url=f"{etl_config.ALERT_HUB_URL}/graphql/",
