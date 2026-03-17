@@ -979,7 +979,7 @@ metadata:
   name: monty-rabbitmq
 spec:
   persistence:
-    storage: 2Gi
+    storage: 3Gi
   rabbitmq:
     additionalConfig: |
       default_vhost = celery
@@ -988,7 +988,7 @@ spec:
   resources:
     limits:
       cpu: "4"
-      memory: 2Gi
+      memory: 3Gi
     requests:
       cpu: 100m
       memory: 2Gi

@@ -1,2 +1,14 @@
 app:
   environment: STAGING
+  worker:
+    queues:
+      # NOTE: Make sure keys are lowercase
+      extraction:
+        replicaCount: 2
+        resources:
+          requests:
+            memory: 1.5Gi
+      transform:
+        resources:
+          requests:
+            memory: 1.5Gi
