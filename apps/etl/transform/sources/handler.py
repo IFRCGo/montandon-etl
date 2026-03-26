@@ -47,6 +47,8 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "gdacs-events": PyStacLoadData.ItemType.EVENT,
     "gdacs-impacts": PyStacLoadData.ItemType.IMPACT,
     "gdacs-hazards": PyStacLoadData.ItemType.HAZARD,
+    "alerthub-events": PyStacLoadData.ItemType.EVENT,
+    "alerthub-hazards": PyStacLoadData.ItemType.HAZARD,
 }
 
 
