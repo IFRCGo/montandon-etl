@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import importlib.util
 import os
 import socket
 import typing
@@ -235,6 +236,20 @@ CACHES = {
 
 # Application definition
 
+
+def _optional_apps(*module_paths: str) -> list[str]:
+    return [module for module in module_paths if module and importlib.util.find_spec(module)]
+
+
+def _optional_app(module_path: str, *dependency_modules: str) -> list[str]:
+    if not module_path or importlib.util.find_spec(module_path) is None:
+        return []
+    for dependency in dependency_modules:
+        if importlib.util.find_spec(dependency) is None:
+            return []
+    return [module_path]
+
+
 INSTALLED_APPS = [
     # Core
     "django.contrib.admin",
@@ -249,12 +264,14 @@ INSTALLED_APPS = [
     "corsheaders",
     # - Health-check
     "health_check",  # required
-    "health_check.db",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.redis",  # requires Redis broker
-    "health_check.contrib.rabbitmq",  # requires RabbitMQ broker
+    *_optional_apps(
+        "health_check.db",
+        "health_check.cache",
+        "health_check.storage",
+        "health_check.contrib.migrations",
+        "health_check.contrib.redis",  # requires Redis broker
+    ),
+    *_optional_app("health_check.contrib.rabbitmq", "aio_pika"),  # requires RabbitMQ broker
     # Internal
     "apps.common",
     "apps.etl",
