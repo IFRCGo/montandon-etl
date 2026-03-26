@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+import importlib.util
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -30,7 +32,6 @@ base_graphql_kwargs = dict(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("health-check/", include("health_check.urls")),
     path(
         "graphql/",
         csrf_exempt(
@@ -41,6 +42,9 @@ urlpatterns = [
         name="graphql",
     ),
 ]
+
+if importlib.util.find_spec("health_check.urls") is not None:
+    urlpatterns.append(path("health-check/", include("health_check.urls")))
 
 if settings.DEBUG:
     urlpatterns.extend(
