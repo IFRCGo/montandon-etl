@@ -1,5 +1,5 @@
 FROM python:3.13-slim-bookworm AS base
-COPY --from=ghcr.io/astral-sh/uv:0.6.8 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /uvx /bin/
 
 LABEL maintainer="Montandon Dev"
 LABEL org.opencontainers.image.source="https://github.com/IFRCGo/montandon-etl/"
@@ -14,8 +14,6 @@ WORKDIR /code
 
 COPY libs /code/libs
 
-RUN apt-get update && apt-get install -y jq
-
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
@@ -26,12 +24,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         gcc libc-dev gdal-bin libproj-dev \
         # Helper packages
         procps \
-        wait-for-it \
+        jq wait-for-it \
     # FIXME: Add condition to skip dev dependencies
-    && uv sync --frozen --no-install-project --all-groups \
+    && uv lock --locked --offline \
+        && uv sync --frozen --no-install-project --all-groups \
     # Clean-up
-    && apt-get remove -y gcc libc-dev libproj-dev \
-     build-essential libgdal-dev \
+    && apt-get remove -y \
+        gcc libc-dev libproj-dev \
+        build-essential libgdal-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
