@@ -44,7 +44,7 @@ class DesinventarTransformHandler(BaseTransformerHandler[DesinventarTransformer,
             iso3=iso3,
             country_code=country_code,
         )
-        result = cls.transformer_schema(data_source)
+        result = cls.transformer_schema(data=data_source, eoapi_url=etl_config.EOAPI_STAC_API)
 
         return result
 

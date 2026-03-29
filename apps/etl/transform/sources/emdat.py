@@ -10,6 +10,7 @@ from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,8 @@ class EMDATTransformHandler(BaseTransformerHandler[EMDATTransformer, EMDATDataSo
             data=GenericDataSource(
                 source_url=extraction_obj.url,
                 input_data=File(path=data_file.name, data_type=DataType.FILE),
-            )
+            ),
+            eoapi_url=etl_config.EOAPI_STAC_API,
         )
 
         return result

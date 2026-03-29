@@ -10,6 +10,7 @@ from pystac_monty.sources.pdc import PDCDataSource, PDCDataSourceType, PDCTransf
 from apps.etl.models import ExtractionData
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
+from main.configs import etl_config
 
 from .handler import BaseTransformerHandler
 
@@ -57,7 +58,8 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
                 hazard_data=File(path=tmp_hazard_file.name, data_type=DataType.FILE),
                 exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
                 geojson_path=geo_json_obj.resp_data.url,
-            )
+            ),
+            eoapi_url=etl_config.EOAPI_STAC_API,
         )
 
         return result

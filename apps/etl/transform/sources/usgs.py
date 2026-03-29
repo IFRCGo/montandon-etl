@@ -10,6 +10,7 @@ from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
+from main.configs import etl_config
 
 
 class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSource]):
@@ -54,12 +55,13 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
         data_path = write_into_temp_file(data, tmp_dir_path)
 
         result = cls.transformer_schema(
-            USGSDataSourceType(
+            data=USGSDataSourceType(
                 source_url=extraction_obj.url,
                 event_data=File(path=data_path.name, data_type=DataType.FILE),
                 loss_data=File(path=losses_data_path.name, data_type=DataType.FILE),
                 alerts_data=File(path=alerts_data_path.name, data_type=DataType.FILE),
-            )
+            ),
+            eoapi_url=etl_config.EOAPI_STAC_API,
         )
 
         return result

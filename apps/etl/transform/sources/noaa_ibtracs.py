@@ -9,6 +9,7 @@ from pystac_monty.sources.ibtracs import IBTrACSDataSource, IBTrACSTransformer
 from apps.etl.transform.sources.handler import BaseTransformerHandler
 from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
+from main.configs import etl_config
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class IbtracsTransformHandler(BaseTransformerHandler[IBTrACSTransformer, IBTrACS
             input_data=File(path=data_file.name, data_type=DataType.FILE),
         )
 
-        result = cls.transformer_schema(data=data_source)
+        result = cls.transformer_schema(data=data_source, eoapi_url=etl_config.EOAPI_STAC_API)
 
         return result
 
