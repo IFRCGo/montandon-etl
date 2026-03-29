@@ -461,7 +461,7 @@ metadata:
     environment: PROD
     release: release-name
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: monty-etl
@@ -512,7 +512,7 @@ spec:
               memory: 2Gi
             requests:
               cpu: "0.1"
-              memory: 1Gi
+              memory: 1.5Gi
           envFrom:
             - secretRef:
                 name: monty-etl-secret
@@ -605,7 +605,7 @@ spec:
               memory: 2Gi
             requests:
               cpu: "0.1"
-              memory: 1Gi
+              memory: 1.5Gi
           envFrom:
             - secretRef:
                 name: monty-etl-secret
