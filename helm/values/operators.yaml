@@ -60,10 +60,11 @@ app:
             memory: "2Gi"
           limits:
             cpu: "4"
-            memory: "2Gi"
+            memory: "3Gi"
         rabbitmq:
           additionalConfig: |
             default_vhost = celery
+            consumer_timeout = 7200000
         persistence:
          # storageClassName:
-         storage: "2Gi"
+         storage: "3Gi"

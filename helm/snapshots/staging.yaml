@@ -409,7 +409,7 @@ spec:
             - --concurrency
             - "5"
             - --max-tasks-per-child
-            - "10"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -461,7 +461,7 @@ metadata:
     environment: STAGING
     release: release-name
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: monty-etl
@@ -500,9 +500,9 @@ spec:
             - -Q
             - extraction
             - --concurrency
-            - "5"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -512,7 +512,7 @@ spec:
               memory: 2Gi
             requests:
               cpu: "0.1"
-              memory: 1Gi
+              memory: 1.5Gi
           envFrom:
             - secretRef:
                 name: monty-etl-secret
@@ -593,9 +593,9 @@ spec:
             - -Q
             - transform
             - --concurrency
-            - "4"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -605,7 +605,7 @@ spec:
               memory: 2Gi
             requests:
               cpu: "0.1"
-              memory: 1Gi
+              memory: 1.5Gi
           envFrom:
             - secretRef:
                 name: monty-etl-secret
@@ -686,9 +686,9 @@ spec:
             - -Q
             - usgs-extraction
             - --concurrency
-            - "5"
+            - "2"
             - --max-tasks-per-child
-            - "5"
+            - "25"
           image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
           imagePullPolicy: IfNotPresent
           # TODO: livenessProbe
@@ -979,15 +979,16 @@ metadata:
   name: monty-rabbitmq
 spec:
   persistence:
-    storage: 2Gi
+    storage: 3Gi
   rabbitmq:
     additionalConfig: |
       default_vhost = celery
+      consumer_timeout = 7200000
   replicas: 1
   resources:
     limits:
       cpu: "4"
-      memory: 2Gi
+      memory: 3Gi
     requests:
       cpu: 100m
       memory: 2Gi

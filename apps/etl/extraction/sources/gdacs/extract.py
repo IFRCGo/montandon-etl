@@ -6,6 +6,7 @@ from typing import Optional
 
 import pydantic
 from celery import chain, chord
+from celery.exceptions import Ignore, SoftTimeLimitExceeded
 
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.models import ExtractionData, HazardType
@@ -296,6 +297,13 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         base=RetryableTask,
         queue=CeleryQueue.EXTRACTION,
         rate_limit="100/m",
+        autoretry_for=(SoftTimeLimitExceeded,),
     )
     def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None) -> int:
-        return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+        try:
+            return GdacsExtraction(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+        except SoftTimeLimitExceeded as exc:
+            GdacsExtraction.task.apply_async(
+                args=(extraction_id,), kwargs={"retrigger": retrigger, "failed_int": failed_int}
+            )
+            raise Ignore() from exc
