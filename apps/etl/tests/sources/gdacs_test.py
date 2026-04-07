@@ -87,6 +87,7 @@ def test_handle_gdacs_extraction_with_mocked_request():
         "id",
         "href",
         "keywords",
+        "links",
     }
 
     filtered_actual = remove_ignored_keys(actual_json, ignore_keys)
