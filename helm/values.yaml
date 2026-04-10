@@ -201,3 +201,81 @@ app:
     # -- Geocoder
     - name: GEOCODER_URL
       value: http://monty-geocoder:80
+
+  extraManifests:
+    keda-trigger-auth: |
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-rabbitmq-conn
+      spec:
+        secretTargetRef:
+          - parameter: host
+            name: monty-rabbitmq-default-user
+            key: connection_string
+          - parameter: vhostName
+            name: {{ include "django-app.secretname" . }}
+            key: CELERY_RABBITMQ_VHOST
+
+    keda-scaledobject-default: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-default
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-default
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: default
+              mode: QueueLength
+              value: "500"
+              pollingInterval: "5"
+              cooldownPeriod: "30"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
+
+    keda-scaledobject-extraction: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-extraction
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-extraction
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: extraction
+              mode: QueueLength
+              value: "500"
+              pollingInterval: "5"
+              cooldownPeriod: "30"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
+
+    keda-scaledobject-transform: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-transform
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-transform
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: transform
+              mode: QueueLength
+              value: "500"
+              pollingInterval: "5"
+              cooldownPeriod: "30"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
