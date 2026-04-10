@@ -2394,6 +2394,87 @@ spec:
                 port:
                   number: 80
 ---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-default
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-default
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-default
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: default
+        mode: QueueLength
+        value: "500"
+        pollingInterval: "5"
+        cooldownPeriod: "30"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-extraction
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-extraction
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: extraction
+        mode: QueueLength
+        value: "500"
+        pollingInterval: "5"
+        cooldownPeriod: "30"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-transform
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-transform
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-transform
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: transform
+        mode: QueueLength
+        value: "500"
+        pollingInterval: "5"
+        cooldownPeriod: "30"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-trigger-auth
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-trigger-auth-rabbitmq-conn
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: monty-rabbitmq-default-user
+      key: connection_string
+    - parameter: vhostName
+      name: monty-etl-1-secret
+      key: CELERY_RABBITMQ_VHOST
+---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/provisioning-job.yaml
 apiVersion: batch/v1
 kind: Job

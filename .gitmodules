@@ -1,3 +1,7 @@
 [submodule "libs/pystac-monty"]
 	path = libs/pystac-monty
 	url = https://github.com/IFRCGo/pystac-monty.git
+[submodule "fugit"]
+	path = fugit
+	url = git@github.com:toggle-corp/fugit.git
+	branch = v0.1.4
