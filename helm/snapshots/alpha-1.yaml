@@ -1201,7 +1201,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1270,7 +1269,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1339,7 +1337,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl-1
@@ -2405,14 +2402,14 @@ spec:
     name: monty-etl-1-worker-default
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: default
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -2427,14 +2424,14 @@ spec:
     name: monty-etl-1-worker-extraction
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: extraction
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -2449,14 +2446,14 @@ spec:
     name: monty-etl-1-worker-transform
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: transform
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -2469,8 +2466,8 @@ metadata:
 spec:
   secretTargetRef:
     - parameter: host
-      name: monty-rabbitmq-default-user
-      key: connection_string
+      name: monty-etl-1-secret
+      key: CELERY_RABBITMQ_CONNECTION_STRING
     - parameter: vhostName
       name: monty-etl-1-secret
       key: CELERY_RABBITMQ_VHOST
@@ -2513,7 +2510,7 @@ spec:
       serviceAccountName: montandon-etl-minio
       initContainers:
         - name: wait-for-available-minio
-          image: docker.io/bitnami/os-shell:12-debian-12-r35
+          image: docker.io/bitnamilegacy/os-shell:12-debian-12-r35
           imagePullPolicy: "IfNotPresent"
           securityContext:
             allowPrivilegeEscalation: false

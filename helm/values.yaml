@@ -16,7 +16,7 @@ geocoding:
         memory: 3Gi
     persistence:
       enabled: true
-      storageClassName: default
+      storageClassName: "local-path"
       size: 3Gi
 
 app:
@@ -134,21 +134,17 @@ app:
       # NOTE: Make sure keys are lowercase
       default:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "25"]
       extraction:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
       transform:
         enabled: true
-        replicaCount: 2
         celeryArgs: ["-Q", "transform", "--concurrency", "2", "--max-tasks-per-child", "25"]
       # By source
       # TODO: Is this used?
       usgs-extraction:
-        enabled: true
-        replicaCount: 1
+        enabled: false
         celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
 
   argoHook:
@@ -211,8 +207,8 @@ app:
       spec:
         secretTargetRef:
           - parameter: host
-            name: monty-rabbitmq-default-user
-            key: connection_string
+            name: {{ include "django-app.secretname" . }}
+            key: CELERY_RABBITMQ_CONNECTION_STRING
           - parameter: vhostName
             name: {{ include "django-app.secretname" . }}
             key: CELERY_RABBITMQ_VHOST
@@ -227,14 +223,14 @@ app:
           name: {{ include "django-app.fullname" $ }}-worker-default
         minReplicaCount: 1
         maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
         triggers:
           - type: rabbitmq
             metadata:
               queueName: default
               mode: QueueLength
               value: "500"
-              pollingInterval: "5"
-              cooldownPeriod: "30"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -248,14 +244,14 @@ app:
           name: {{ include "django-app.fullname" $ }}-worker-extraction
         minReplicaCount: 1
         maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
         triggers:
           - type: rabbitmq
             metadata:
               queueName: extraction
               mode: QueueLength
               value: "500"
-              pollingInterval: "5"
-              cooldownPeriod: "30"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -269,13 +265,13 @@ app:
           name: {{ include "django-app.fullname" $ }}-worker-transform
         minReplicaCount: 1
         maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
         triggers:
           - type: rabbitmq
             metadata:
               queueName: transform
               mode: QueueLength
               value: "500"
-              pollingInterval: "5"
-              cooldownPeriod: "30"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
