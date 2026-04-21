@@ -6,6 +6,7 @@ LABEL org.opencontainers.image.source="https://github.com/IFRCGo/montandon-etl/"
 
 ENV PYTHONUNBUFFERED=1
 
+ENV UV_SYSTEM_PYTHON=1
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
