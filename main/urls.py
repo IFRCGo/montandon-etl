@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+import redis
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -39,8 +40,11 @@ urlpatterns = [
                 "health_check.Database",
                 "health_check.Storage",
                 # 3rd party checks
-                "health_check.contrib.rabbitmq.RabbitMQ",
-                "health_check.contrib.redis.Redis",
+                ("health_check.contrib.rabbitmq.RabbitMQ", {"amqp_url": settings.CELERY_BROKER_URL}),
+                (
+                    "health_check.contrib.redis.Redis",
+                    {"client_factory": lambda: redis.asyncio.from_url(settings.CACHE_REDIS_URL)},
+                ),
             ]
         ),
     ),
