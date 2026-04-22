@@ -7,9 +7,9 @@ sources:
   - https://github.com/IFRCGo/montandon-etl/
 
 dependencies:
-  - name: toggle-django-helm
+  - name: banjo-helm
     alias: app
-    version: 0.2.4
+    version: 0.2.8
     repository: oci://ghcr.io/toggle-corp
   - name: geocoding-helm
     alias: geocoding
