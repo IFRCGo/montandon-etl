@@ -247,14 +247,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "djangoql",
     "corsheaders",
-    # - Health-check
-    "health_check",  # required
-    "health_check.db",
-    "health_check.cache",
-    "health_check.storage",
-    "health_check.contrib.migrations",
-    "health_check.contrib.redis",  # requires Redis broker
-    "health_check.contrib.rabbitmq",  # requires RabbitMQ broker
+    "health_check",
     # Internal
     "apps.common",
     "apps.etl",
@@ -482,11 +475,6 @@ if SENTRY_DSN is not None:
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# HEALTH-CHECK
-BROKER_URL = CELERY_BROKER_URL
-REDIS_URL = CACHE_REDIS_URL
-HEALTHCHECK_CACHE_KEY = "MONTY_ETL_HEALTHCHECK_KEY"
 
 # Logging
 

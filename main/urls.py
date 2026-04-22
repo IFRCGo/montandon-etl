@@ -15,11 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+import redis
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
+from health_check.views import HealthCheckView
 
 from main.graphql.schema import CustomAsyncGraphQLView, schema
 
@@ -30,7 +32,22 @@ base_graphql_kwargs = dict(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("health-check/", include("health_check.urls")),
+    path(
+        "health-check/",
+        HealthCheckView.as_view(
+            checks=[
+                "health_check.Cache",
+                "health_check.Database",
+                "health_check.Storage",
+                # 3rd party checks
+                ("health_check.contrib.rabbitmq.RabbitMQ", {"amqp_url": settings.CELERY_BROKER_URL}),
+                (
+                    "health_check.contrib.redis.Redis",
+                    {"client_factory": lambda: redis.asyncio.from_url(settings.CACHE_REDIS_URL)},
+                ),
+            ]
+        ),
+    ),
     path(
         "graphql/",
         csrf_exempt(
