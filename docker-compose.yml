@@ -62,7 +62,7 @@ services:
     #   - command: sh -c "redis-cli SELECT 0 && redis-cli CONFIG SET maxmemory 500mb"
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4.2.6-management
     hostname: "rabbit"  # https://github.com/docker-library/rabbitmq/issues/392
     environment:
       RABBITMQ_DEFAULT_VHOST: celery
