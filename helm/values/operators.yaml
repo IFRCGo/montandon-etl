@@ -53,6 +53,7 @@ app:
       metadata:
         name: monty-rabbitmq  # NOTE: This is used secret name
       spec:
+        image: rabbitmq:4.2.6-management
         replicas: 1  # Scaling down is not supported
         resources:
           requests:
