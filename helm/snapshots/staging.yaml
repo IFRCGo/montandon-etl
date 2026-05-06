@@ -48,7 +48,7 @@ metadata:
 spec:
   accessModes:
     - "ReadWriteOnce"
-  storageClassName: default
+  storageClassName: local-path
   resources:
     requests:
       storage: 3Gi
@@ -368,7 +368,6 @@ metadata:
     environment: STAGING
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl
@@ -554,7 +553,6 @@ metadata:
     environment: STAGING
     release: release-name
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: monty-etl
@@ -647,7 +645,6 @@ metadata:
     environment: STAGING
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl
@@ -1004,14 +1001,14 @@ spec:
     name: monty-etl-worker-default
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: default
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -1026,14 +1023,14 @@ spec:
     name: monty-etl-worker-extraction
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: extraction
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -1048,14 +1045,14 @@ spec:
     name: monty-etl-worker-transform
   minReplicaCount: 1
   maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
   triggers:
     - type: rabbitmq
       metadata:
         queueName: transform
         mode: QueueLength
         value: "500"
-        pollingInterval: "5"
-        cooldownPeriod: "30"
       authenticationRef:
         name: keda-trigger-auth-rabbitmq-conn
 ---
@@ -1157,8 +1154,8 @@ metadata:
 spec:
   secretTargetRef:
     - parameter: host
-      name: monty-rabbitmq-default-user
-      key: connection_string
+      name: monty-etl-secret
+      key: CELERY_RABBITMQ_CONNECTION_STRING
     - parameter: vhostName
       name: monty-etl-secret
       key: CELERY_RABBITMQ_VHOST
