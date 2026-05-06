@@ -980,7 +980,7 @@ metadata:
 spec:
   image: rabbitmq:4.2.6-management
   persistence:
-    storage: 3Gi
+    storage: 4Gi
   rabbitmq:
     additionalConfig: |
       default_vhost = celery
