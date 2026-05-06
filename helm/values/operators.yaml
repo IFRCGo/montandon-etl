@@ -68,4 +68,4 @@ app:
             consumer_timeout = 7200000
         persistence:
          # storageClassName:
-         storage: "3Gi"
+         storage: "4Gi"
