@@ -978,6 +978,7 @@ kind: RabbitmqCluster
 metadata:
   name: monty-rabbitmq
 spec:
+  image: rabbitmq:4.2.6-management
   persistence:
     storage: 3Gi
   rabbitmq:
