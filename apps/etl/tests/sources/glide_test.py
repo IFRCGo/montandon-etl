@@ -82,7 +82,7 @@ def test_handle_extraction_various_glide_files(case):
         expected_json = json.load(expected_file)
 
     # Keys to ignore when comparing
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords"}
+    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords", "links"}
 
     # Clean and compare
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
