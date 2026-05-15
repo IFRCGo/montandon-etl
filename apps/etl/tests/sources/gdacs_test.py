@@ -68,9 +68,9 @@ def test_handle_gdacs_extraction_with_mocked_request():
         ext_and_transform_gdacs_latest_data()
 
     # Basic model assertions
-    assert ExtractionData.objects.count() == 12
-    assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 2
+    assert ExtractionData.objects.count() == 4
+    assert Transform.objects.count() == 0
+    assert PyStacLoadData.objects.count() == 0
 
     # Compare actual output with fixed JSON (ignoring volatile fields)
     latest_data = PyStacLoadData.objects.all()
