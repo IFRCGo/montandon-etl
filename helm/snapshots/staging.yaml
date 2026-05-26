@@ -11,6 +11,7 @@ metadata:
     
     azure.workload.identity/use: "true"
 automountServiceAccountToken: true
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/config/configmap.yaml
 kind: ConfigMap
@@ -36,6 +37,7 @@ data:
   DJANGO_DEBUG: "false"
   DJANGO_TIME_ZONE: "UTC"
   EOAPI_STAC_API: "https://montandon-eoapi-stage.monty.org/stac"
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/pvc.yaml
 apiVersion: v1
@@ -52,6 +54,7 @@ spec:
   resources:
     requests:
       storage: 3Gi
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/service.yaml
 apiVersion: v1
@@ -72,6 +75,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/service.yaml
 apiVersion: v1
@@ -92,6 +96,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8000
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/service.yaml
 apiVersion: v1
@@ -111,6 +116,7 @@ spec:
       port: 80
       targetPort: 8002
       nodePort: null
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/deployment.yaml
 apiVersion: apps/v1
@@ -191,6 +197,7 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/deployment.yaml
 apiVersion: apps/v1
@@ -271,6 +278,7 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker-beat/deployment.yaml
 apiVersion: apps/v1
@@ -352,6 +360,7 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: default
@@ -724,6 +733,7 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/deployment.yaml
 apiVersion: apps/v1
@@ -777,6 +787,7 @@ spec:
         - name: shared-volume
           persistentVolumeClaim:
             claimName: geocoder-shared-volume
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
 # Hook: collect-static
@@ -914,6 +925,7 @@ spec:
             - name: monty-etl-secret
               mountPath: /mnt/secrets-store
               readOnly: true
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -942,6 +954,7 @@ spec:
     - secretName: montandon-helm-secret-cert
       hosts:
         - "montandon-etl-stage.monty.org"
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
 # Manifest: dragonflydb-cluster
@@ -993,6 +1006,7 @@ spec:
     requests:
       cpu: 100m
       memory: 2Gi
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/secrets-provider-class.yaml
 apiVersion: secrets-store.csi.x-k8s.io/v1

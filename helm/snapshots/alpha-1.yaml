@@ -26,6 +26,7 @@ spec:
     - ports:
         - port: 9001
         - port: 9000
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/provisioning-networkpolicy.yaml
 kind: NetworkPolicy
@@ -49,6 +50,7 @@ spec:
   egress:
     - {}
   ingress:
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/networkpolicy.yaml
 kind: NetworkPolicy
@@ -80,6 +82,7 @@ spec:
         - port: 5671
         - port: 25672
         - port: 15672
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/networkpolicy.yaml
 kind: NetworkPolicy
@@ -107,6 +110,7 @@ spec:
     # Allow inbound connections
     - ports:
         - port: 6379
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/pdb.yaml
 apiVersion: policy/v1
@@ -126,6 +130,7 @@ spec:
     matchLabels:
       app.kubernetes.io/instance: release-name
       app.kubernetes.io/name: minio
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/pdb.yaml
 apiVersion: policy/v1
@@ -145,6 +150,7 @@ spec:
     matchLabels:
       app.kubernetes.io/instance: release-name
       app.kubernetes.io/name: rabbitmq
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/master/pdb.yaml
 apiVersion: policy/v1
@@ -166,6 +172,7 @@ spec:
       app.kubernetes.io/instance: release-name
       app.kubernetes.io/name: redis
       app.kubernetes.io/component: master
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/serviceaccount.yaml
 apiVersion: v1
@@ -182,6 +189,7 @@ metadata:
 automountServiceAccountToken: false
 secrets:
   - name: montandon-etl-minio
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/serviceaccount.yaml
 apiVersion: v1
@@ -198,6 +206,8 @@ metadata:
 automountServiceAccountToken: false
 secrets:
   - name: montandon-etl-rabbitmq
+
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/master/serviceaccount.yaml
 apiVersion: v1
@@ -212,6 +222,7 @@ metadata:
     app.kubernetes.io/name: redis
     app.kubernetes.io/version: 7.4.2
     helm.sh/chart: redis-20.6.3
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/secrets.yaml
 apiVersion: v1
@@ -229,6 +240,7 @@ type: Opaque
 data:
   root-user: "bW9udHktZXRs"
   root-password: "WFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg="
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/config-secret.yaml
 apiVersion: v1
@@ -246,6 +258,7 @@ type: Opaque
 data:
   rabbitmq.conf: |-
     IyMgVXNlcm5hbWUgYW5kIHBhc3N3b3JkCmRlZmF1bHRfdXNlciA9IG1vbnR5CiMjIENsdXN0ZXJpbmcKIyMKY2x1c3Rlcl9uYW1lID0gbW9udGFuZG9uLWV0bC1yYWJiaXRtcQpjbHVzdGVyX2Zvcm1hdGlvbi5wZWVyX2Rpc2NvdmVyeV9iYWNrZW5kICA9IHJhYmJpdF9wZWVyX2Rpc2NvdmVyeV9rOHMKY2x1c3Rlcl9mb3JtYXRpb24uazhzLmhvc3QgPSBrdWJlcm5ldGVzLmRlZmF1bHQKY2x1c3Rlcl9mb3JtYXRpb24uazhzLmFkZHJlc3NfdHlwZSA9IGhvc3RuYW1lCmNsdXN0ZXJfZm9ybWF0aW9uLms4cy5zZXJ2aWNlX25hbWUgPSBtb250YW5kb24tZXRsLXJhYmJpdG1xLWhlYWRsZXNzCmNsdXN0ZXJfZm9ybWF0aW9uLms4cy5ob3N0bmFtZV9zdWZmaXggPSAubW9udGFuZG9uLWV0bC1yYWJiaXRtcS1oZWFkbGVzcy5kZWZhdWx0LnN2Yy5jbHVzdGVyLmxvY2FsCmNsdXN0ZXJfZm9ybWF0aW9uLm5vZGVfY2xlYW51cC5pbnRlcnZhbCA9IDEwCmNsdXN0ZXJfZm9ybWF0aW9uLm5vZGVfY2xlYW51cC5vbmx5X2xvZ193YXJuaW5nID0gdHJ1ZQpjbHVzdGVyX3BhcnRpdGlvbl9oYW5kbGluZyA9IGF1dG9oZWFsCgojIHF1ZXVlIG1hc3RlciBsb2NhdG9yCnF1ZXVlX21hc3Rlcl9sb2NhdG9yID0gbWluLW1hc3RlcnMKIyBlbmFibGUgbG9vcGJhY2sgdXNlcgpsb29wYmFja191c2Vycy5tb250eSA9IGZhbHNlCmRlZmF1bHRfdmhvc3QgPSBjZWxlcnkKZGVmYXVsdF9wZXJtaXNzaW9ucy5jb25maWd1cmUgPSAuKgpkZWZhdWx0X3Blcm1pc3Npb25zLnJlYWQgPSAuKgpkZWZhdWx0X3Blcm1pc3Npb25zLndyaXRlID0gLioKIyMgUHJvbWV0aGV1cyBtZXRyaWNzCiMjCnByb21ldGhldXMudGNwLnBvcnQgPSA5NDE5CiMjIFRDUCBMaXN0ZW4gT3B0aW9ucwojIwp0Y3BfbGlzdGVuX29wdGlvbnMuYmFja2xvZyA9IDEyOAp0Y3BfbGlzdGVuX29wdGlvbnMubm9kZWxheSA9IHRydWUKdGNwX2xpc3Rlbl9vcHRpb25zLmxpbmdlci5vbiAgICAgID0gdHJ1ZQp0Y3BfbGlzdGVuX29wdGlvbnMubGluZ2VyLnRpbWVvdXQgPSAwCnRjcF9saXN0ZW5fb3B0aW9ucy5rZWVwYWxpdmUgPSBmYWxzZQ==
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/secrets.yaml
 apiVersion: v1
@@ -263,6 +276,7 @@ type: Opaque
 data:
   rabbitmq-password: "WFhYWFg="
   rabbitmq-erlang-cookie: "WFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg="
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/config/secret.yaml
 kind: Secret
@@ -302,6 +316,7 @@ stringData:
   PDC_ARCGIS_USERNAME: "monty-xyz"
   PDC_SENTRY_AUTHORIZATION_KEY: "XYZ"
   SENTRY_DSN: "https://XYZ@sentry.local.monty.com/36"
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/provisioning-configmap.yaml
 apiVersion: v1
@@ -317,6 +332,7 @@ metadata:
     helm.sh/chart: minio-14.10.5
     app.kubernetes.io/component: minio-provisioning
 data:
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/configmap.yaml
 apiVersion: v1
@@ -350,6 +366,7 @@ data:
     rename-command FLUSHDB ""
     rename-command FLUSHALL ""
     # End of replica configuration
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/health-configmap.yaml
 apiVersion: v1
@@ -458,6 +475,7 @@ data:
     "$script_dir/ping_liveness_local.sh" $1 || exit_status=$?
     "$script_dir/ping_liveness_master.sh" $1 || exit_status=$?
     exit $exit_status
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/scripts-configmap.yaml
 apiVersion: v1
@@ -514,6 +532,7 @@ data:
   SENTRY_PROFILE_SAMPLE_RATE: "0.2"
   SENTRY_TRACES_SAMPLE_RATE: "0.2"
   TRANSFORM_SUCCESS_RATE: "80"
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/pvc.yaml
 kind: PersistentVolumeClaim
@@ -534,6 +553,7 @@ spec:
     requests:
       storage: "2Gi"
   storageClassName: local-path
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/pvc.yaml
 apiVersion: v1
@@ -550,6 +570,7 @@ spec:
   resources:
     requests:
       storage: 3Gi
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/role.yaml
 kind: Role
@@ -570,6 +591,7 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create"]
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/rolebinding.yaml
 kind: RoleBinding
@@ -590,6 +612,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: montandon-etl-rabbitmq-endpoint-reader
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/service.yaml
 apiVersion: v1
@@ -617,6 +640,7 @@ spec:
   selector:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/name: minio
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/svc-headless.yaml
 apiVersion: v1
@@ -650,6 +674,7 @@ spec:
     app.kubernetes.io/name: rabbitmq
   publishNotReadyAddresses: true
   trafficDistribution: PreferClose
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/svc.yaml
 apiVersion: v1
@@ -686,6 +711,7 @@ spec:
   selector:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/name: rabbitmq
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/headless-svc.yaml
 apiVersion: v1
@@ -709,6 +735,7 @@ spec:
   selector:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/name: redis
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/master/service.yaml
 apiVersion: v1
@@ -736,6 +763,7 @@ spec:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/name: redis
     app.kubernetes.io/component: master
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/service.yaml
 apiVersion: v1
@@ -756,6 +784,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/service.yaml
 apiVersion: v1
@@ -776,6 +805,7 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 8000
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/service.yaml
 apiVersion: v1
@@ -795,6 +825,7 @@ spec:
       port: 80
       targetPort: 8002
       nodePort: null
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/standalone/deployment.yaml
 apiVersion: apps/v1
@@ -947,6 +978,7 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: montandon-etl-minio
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/deployment.yaml
 apiVersion: apps/v1
@@ -1003,6 +1035,7 @@ spec:
               value: "web"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/celery-flower/deployment.yaml
 apiVersion: apps/v1
@@ -1059,6 +1092,7 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker-beat/deployment.yaml
 apiVersion: apps/v1
@@ -1116,6 +1150,7 @@ spec:
               value: "worker"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: default
@@ -1676,6 +1711,7 @@ spec:
               value: http://monty-geocoder:80
             - name: REQUESTS_PROXY_TO_USE
               value: "EXTRACTION_PROXY_4"
+
 ---
 # Source: montandon-etl-helm/charts/geocoding/templates/geocoding/deployment.yaml
 apiVersion: apps/v1
@@ -1729,6 +1765,7 @@ spec:
         - name: shared-volume
           persistentVolumeClaim:
             claimName: geocoder-shared-volume
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/rabbitmq/templates/statefulset.yaml
 apiVersion: apps/v1
@@ -1995,6 +2032,7 @@ spec:
           requests:
             storage: "2Gi"
         storageClassName: local-path
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/redis/templates/master/application.yaml
 apiVersion: apps/v1
@@ -2179,6 +2217,7 @@ spec:
           requests:
             storage: "1Gi"
         storageClassName: local-path
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/argo-hooks/hook-job.yaml
 # Hook: alpha-instance-users
@@ -2341,6 +2380,7 @@ spec:
               value: "hook"
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
+
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/api-ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -2369,6 +2409,7 @@ spec:
                 name: montandon-etl-minio
                 port:
                   name: minio-api
+
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/ingress.yaml
 apiVersion: networking.k8s.io/v1
@@ -2608,3 +2649,4 @@ spec:
         - name: minio-provisioning
           configMap:
             name: montandon-etl-minio-provisioning
+
