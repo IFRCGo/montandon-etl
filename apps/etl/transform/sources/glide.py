@@ -32,7 +32,7 @@ class GlideTransformHandler(BaseTransformerHandler[GlideTransformer, GlideDataSo
                 source_url=extraction_obj.url,
                 input_data=File(path=data_file.name, data_type=DataType.FILE),
             ),
-            eoapi_url=etl_config.EOAPI_STAC_API,
+            eoapi_url=etl_config.EOAPI_STAC_API_PUBLIC,
         )
         return result
 

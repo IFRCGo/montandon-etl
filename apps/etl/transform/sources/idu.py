@@ -30,7 +30,7 @@ class IDUTransformHandler(BaseTransformerHandler[IDUTransformer, IDUDataSource])
             source_url=extraction_obj.url, input_data=File(path=data_file.name, data_type=DataType.FILE)
         )
 
-        result = cls.transformer_schema(data=data_source, eoapi_url=etl_config.EOAPI_STAC_API)
+        result = cls.transformer_schema(data=data_source, eoapi_url=etl_config.EOAPI_STAC_API_PUBLIC)
 
         return result
 
