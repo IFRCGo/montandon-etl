@@ -59,7 +59,7 @@ class PDCTransformHandler(BaseTransformerHandler[PDCTransformer, PDCDataSource])
                 exposure_detail_data=File(path=tmp_exposure_detail_file.name, data_type=DataType.FILE),
                 geojson_path=geo_json_obj.resp_data.url,
             ),
-            eoapi_url=etl_config.EOAPI_STAC_API,
+            eoapi_url=etl_config.EOAPI_STAC_API_GLOBAL,
         )
 
         return result

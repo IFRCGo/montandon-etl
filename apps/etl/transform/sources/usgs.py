@@ -61,7 +61,7 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
                 loss_data=File(path=losses_data_path.name, data_type=DataType.FILE),
                 alerts_data=File(path=alerts_data_path.name, data_type=DataType.FILE),
             ),
-            eoapi_url=etl_config.EOAPI_STAC_API,
+            eoapi_url=etl_config.EOAPI_STAC_API_GLOBAL,
         )
 
         return result

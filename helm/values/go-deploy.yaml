@@ -26,6 +26,7 @@ app:
     # AZURE_STORAGE_STATIC_CONTAINER: XXX: go-deploy
     # ETL Load config
     # EOAPI_STAC_API: XXX: go-deploy
+    # EOAPI_STAC_API_GLOBAL: XXX: go-deploy
 
   serviceAccountName: "service-token-reader"
   serviceAccount:

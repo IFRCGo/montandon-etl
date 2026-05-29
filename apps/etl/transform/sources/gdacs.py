@@ -96,7 +96,7 @@ class GDACSTransformHandler(BaseTransformerHandler[GDACSTransformer, GDACSDataSo
                 event_data=File(path=data_file.name, data_type=DataType.FILE),
                 episodes=episodes,
             ),
-            eoapi_url=etl_config.EOAPI_STAC_API,
+            eoapi_url=etl_config.EOAPI_STAC_API_GLOBAL,
         )
 
         return result

@@ -179,6 +179,9 @@ class EtlConfig:
 
         self.EOAPI_STAC_API = self.parse_base_url("EOAPI_STAC_API", preserve_path=True, strip_path_trailing_slash=True)
         self.EOAPI_SYNC_LIMIT = self.parse_int_value_required("EOAPI_SYNC_LIMIT")
+        self.EOAPI_STAC_API_GLOBAL = self.parse_base_url(
+            "EOAPI_STAC_API_GLOBAL", preserve_path=True, strip_path_trailing_slash=True
+        )
         self.GEOCODER_URL = self.parse_base_url_required("GEOCODER_URL")
         self.REQUESTS_PROXY_HOST = self.parse_proxy_url()
 

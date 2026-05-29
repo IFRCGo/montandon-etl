@@ -88,6 +88,7 @@ env = environ.Env(
     # /stac is required for external domain. eg:  https://montandon-eoapi-stage.monty.org/stac
     EOAPI_STAC_API=(str, None),
     EOAPI_SYNC_LIMIT=(int, 10000),
+    EOAPI_STAC_API_GLOBAL=(str, None),
     REQUESTS_PROXY_TO_USE=(str, None),  # NOTE: For more detail look at ./README.md
     # Sources
     # FIXME: Check if all start dates are used
@@ -134,6 +135,9 @@ env = environ.Env(
 
 EOAPI_STAC_API = env("EOAPI_STAC_API")
 EOAPI_SYNC_LIMIT = env("EOAPI_SYNC_LIMIT")
+# NOTE We add _GLOBAL field to be ingested within stac items
+# so that the links can be accessed outside of cluster
+EOAPI_STAC_API_GLOBAL = env("EOAPI_STAC_API_GLOBAL")
 GEOCODER_URL = env("GEOCODER_URL")
 REQUESTS_PROXY_TO_USE = env("REQUESTS_PROXY_TO_USE")
 
