@@ -47,7 +47,7 @@ class Command(BaseCommand):
         eoapi_url: str | None = options.get("eoapi_url")
         eoapi_token: str | None = options.get("token")
         if not eoapi_url:
-            eoapi_url = settings.EOAPI_STAC_API
+            eoapi_url = settings.EOAPI_STAC_API_INTERNAL
             if not eoapi_url:
                 self.stderr.write(self.style.ERROR("eoAPI url not found in the environment. Exiting."))
                 return

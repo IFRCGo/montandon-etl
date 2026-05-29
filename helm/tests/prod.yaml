@@ -15,7 +15,8 @@ app:
     AZURE_STORAGE_ACCOUNT_NAME: montyXYZ
     AZURE_STORAGE_MANAGED_IDENTITY: "true"
     # ETL Load config
-    EOAPI_STAC_API: "https://montandon-eoapi.ifrc.org/stac"
+    EOAPI_STAC_API_INTERNAL: "https://montandon-eoapi.ifrc.org/stac"
+    EOAPI_STAC_API_PUBLIC: "https://montandon-eoapi.ifrc.org/stac"
 
   serviceAccount:
     annotations:

@@ -526,7 +526,8 @@ data:
   DJANGO_APP_ENVIRONMENT: "ALPHA-1"
   DJANGO_DEBUG: "false"
   DJANGO_TIME_ZONE: "UTC"
-  EOAPI_STAC_API: "https://montandon-eoapi-stage.monty.org/stac"
+  EOAPI_STAC_API_INTERNAL: "https://montandon-eoapi-stage.monty.org/stac"
+  EOAPI_STAC_API_PUBLIC: "https://montandon-eoapi-stage.monty.org/stac"
   EOAPI_SYNC_LIMIT: "5000"
   SENTRY_MONITOR_CELERY_BEAT_TASKS: "true"
   SENTRY_PROFILE_SAMPLE_RATE: "0.2"
@@ -1002,7 +1003,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: api
@@ -1059,7 +1060,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker-flower
@@ -1116,7 +1117,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker-beat
@@ -1177,7 +1178,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1246,7 +1247,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1315,7 +1316,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1384,7 +1385,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1453,7 +1454,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1524,7 +1525,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1595,7 +1596,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -1666,7 +1667,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: worker
@@ -2232,7 +2233,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2305,7 +2306,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: argo-hooks
@@ -2350,7 +2351,7 @@ spec:
     metadata:
       annotations:
         checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
-        checksum/configmap: d2451572b9f9bc4a9af275f8006d023e33b02846cdadf0147d3cbe301e171dd4
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
         component: argo-hooks

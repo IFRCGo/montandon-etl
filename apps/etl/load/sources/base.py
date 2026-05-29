@@ -19,9 +19,9 @@ def load_collections(*, skip_collection_create: bool, timeout: int = 30) -> list
     """
     logger.info("Sync collections")
 
-    assert etl_config.EOAPI_STAC_API is not None
+    assert etl_config.EOAPI_STAC_API_INTERNAL is not None
 
-    url = f"{etl_config.EOAPI_STAC_API}/collections"
+    url = f"{etl_config.EOAPI_STAC_API_INTERNAL}/collections"
     # response = requests.get(f"{url}?limit={len(ITEM_TYPE_COLLECTION_ID_MAP.keys())}", headers=HEADERS)
     # NOTE : We have assigned the limit to be 50 but in actual, we need to
     # get the length from the ITEM_TYPE_COLLEcTION_ID_MAP.keys() but the issue is
@@ -73,9 +73,9 @@ def load_collections(*, skip_collection_create: bool, timeout: int = 30) -> list
 def send_post_request_to_stac_api(
     *, bulk_mgr: BulkUpdateManager, py_stac_obj: PyStacLoadData, to_update: bool = False, timeout: int = 30
 ):
-    assert etl_config.EOAPI_STAC_API is not None
+    assert etl_config.EOAPI_STAC_API_INTERNAL is not None
 
-    url = f"{etl_config.EOAPI_STAC_API}/collections/{py_stac_obj.collection_id}/items"
+    url = f"{etl_config.EOAPI_STAC_API_INTERNAL}/collections/{py_stac_obj.collection_id}/items"
 
     if to_update:
         # Note: not to use slash(/) at the end to avoid redirection
@@ -126,8 +126,8 @@ def load_data(
     """Load data into STAC"""
     logger.info("Loading data start")
 
-    if etl_config.EOAPI_STAC_API is None:
-        logger.warning(f"EOAPI_STAC_API is not defined. {etl_config.EOAPI_STAC_API}.. Skipping...")
+    if etl_config.EOAPI_STAC_API_INTERNAL is None:
+        logger.warning(f"EOAPI_STAC_API_INTERNAL is not defined. {etl_config.EOAPI_STAC_API_INTERNAL}.. Skipping...")
         return
 
     available_collections_id = load_collections(
