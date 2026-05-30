@@ -164,7 +164,7 @@ SCHEDULES: dict[str, CronJob] = {
     ),
     "load_data_to_stac": CronJob(
         task="apps.etl.tasks.load_data",
-        schedule=crontab(hour="*", minute=30),  # Every hour
+        schedule=crontab(hour="*", minute="*/20"),  # Every 20 mins
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
