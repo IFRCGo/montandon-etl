@@ -19,10 +19,15 @@ from main.configs import etl_config
 @shared_task
 def extract_and_transform_pdc_latest_data():
     data_url = f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazards/t/json/search_hazard"
-    pdc_latest_extraction = ExtractionData.objects.filter(
-        source=ExtractionData.Source.PDC,
-        status=ExtractionData.Status.SUCCESS,
-    ).last()
+    pdc_latest_extraction = (
+        ExtractionData.objects.filter(
+            source=ExtractionData.Source.PDC,
+            status=ExtractionData.Status.SUCCESS,
+        )
+        .order_by("-id")
+        .first()
+    )
+
     if pdc_latest_extraction:
         created_at = pdc_latest_extraction.created_at.strftime("%Y-%m-%d %H:%M:%S.%f")
         start_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S.%f")
