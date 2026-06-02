@@ -51,11 +51,20 @@ class GdacsImpactData(pydantic.BaseModel):
     impact_data_list: list
     hazard_type: str
 
-    def _handle_tc(self, impact_data: dict):
+    def _handle_tc(self, impact_data: dict) -> dict:
         """Handle Tropical Cyclone impact data"""
         impact_source_agency = impact_data.get("source")
         resource = impact_data.get("resource", {})
         impact_url = resource.get("timeline", None)
+        if not impact_url:
+            return {}
+        return {"impact_url": impact_url, "source_agency": impact_source_agency}
+
+    def _handle_wf(self, impact_data: dict) -> dict:
+        """Handle WildFire impact data"""
+        impact_source_agency = impact_data.get("source")
+        resource = impact_data.get("resource", {})
+        impact_url = resource.get("impact", None)
         if not impact_url:
             return {}
         return {"impact_url": impact_url, "source_agency": impact_source_agency}
@@ -71,6 +80,11 @@ class GdacsImpactData(pydantic.BaseModel):
                     impact_data_tc = self._handle_tc(impact_data)
                     if impact_data_tc:
                         transformed_impact_data.append(impact_data_tc)
+                case HazardType.WILDFIRE:
+                    # Impact data of WildFire
+                    impact_data_wf = self._handle_wf(impact_data)
+                    if impact_data_wf:
+                        transformed_impact_data.append(impact_data_wf)
         return transformed_impact_data
 
 
