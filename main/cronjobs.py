@@ -62,141 +62,119 @@ class CronJob(typing.NamedTuple):
 
 # NOTE: PeriodicTask will be delete from database if removed from here
 SCHEDULES: dict[str, CronJob] = {
-    "import_pdc_data": CronJob(
-        task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
-        schedule=crontab(hour=1, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=12 * 60,
-        ),
-    ),
-    "import_emdat_data": CronJob(
-        task="apps.etl.etl_tasks.emdat.ext_and_transform_emdat_latest_data",
-        schedule=crontab(hour=5, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=2 * 60,
-        ),
-    ),
-    "import_glide_data": CronJob(
-        task="apps.etl.etl_tasks.glide.ext_and_transform_glide_latest_data",
-        schedule=crontab(hour=7, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=2 * 60,
-        ),
-    ),
-    "import_gdacs_data": CronJob(
-        task="apps.etl.etl_tasks.gdacs.ext_and_transform_gdacs_latest_data",
-        schedule=crontab(hour=9, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=12 * 60,
-        ),
-    ),
-    "import_ibtracs_data": CronJob(
-        task="apps.etl.etl_tasks.noaa_IBTrACS.ext_and_transform_ibtracs_latest_data",
-        schedule=crontab(hour=12, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=2 * 60,
-        ),
-    ),
-    "import_ifrc_event_data": CronJob(
-        task="apps.etl.etl_tasks.ifrc_event.ext_and_transform_ifrcevent_latest_data",
-        schedule=crontab(hour=15, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=2 * 60,
-        ),
-    ),
-    "import_usgs_data": CronJob(
-        task="apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
-        schedule=crontab(hour=17, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=12 * 60,
-        ),
-    ),
-    "import_idu_data": CronJob(
-        task="apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
-        schedule=crontab(hour=19, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=3 * 60,
-        ),
-    ),
-    "import_gidd_data": CronJob(
-        task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
-        schedule=crontab(hour=20, minute=0, day_of_week="sunday"),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=3 * 60,
-        ),
-    ),
-    "import_cems_data": CronJob(
-        task="apps.etl.etl_tasks.cems.ext_and_transform_cems_latest_data",
-        schedule=crontab(hour=8, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=2 * 60,
-        ),
-    ),
-    "import_charter_data": CronJob(
-        task="apps.etl.etl_tasks.charter.ext_and_transform_charter_latest_data",
-        schedule=crontab(hour=21, minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=5 * 60,
-        ),
-    ),
-    "trigger_pending_extraction": CronJob(
-        task="apps.etl.tasks.trigger_pending_extraction",
-        schedule=crontab(hour="6,11,16,23", minute=0),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=10,
-            max_runtime=5 * 60,
-        ),
-    ),
-    "load_data_to_stac": CronJob(
-        task="apps.etl.tasks.load_data",
-        # Every 20 mins, except between 01:00 and 02:45 UTC
-        # During this inactive period, the STAC database performs some actions and is not available
-        schedule=crontab(hour="0,3-23", minute="*/20"),
-        sentry_config=CronJobSentryConfig(
-            failure_issue_threshold=2,
-            checkin_margin=5,
-            max_runtime=60,
-        ),
-        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
-    ),
+    # "import_pdc_data": CronJob(
+    #     task="apps.etl.etl_tasks.pdc.extract_and_transform_pdc_latest_data",
+    #     schedule=crontab(hour=1, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=10,
+    #         max_runtime=12 * 60,
+    #     ),
+    # ),
+    # "import_emdat_data": CronJob(
+    #     task="apps.etl.etl_tasks.emdat.ext_and_transform_emdat_latest_data",
+    #     schedule=crontab(hour=5, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=2 * 60,
+    #     ),
+    # ),
+    # "import_glide_data": CronJob(
+    #     task="apps.etl.etl_tasks.glide.ext_and_transform_glide_latest_data",
+    #     schedule=crontab(hour=7, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=2 * 60,
+    #     ),
+    # ),
+    # "import_gdacs_data": CronJob(
+    #     task="apps.etl.etl_tasks.gdacs.ext_and_transform_gdacs_latest_data",
+    #     schedule=crontab(hour=9, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=10,
+    #         max_runtime=12 * 60,
+    #     ),
+    # ),
+    # "import_ibtracs_data": CronJob(
+    #     task="apps.etl.etl_tasks.noaa_IBTrACS.ext_and_transform_ibtracs_latest_data",
+    #     schedule=crontab(hour=12, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=2 * 60,
+    #     ),
+    # ),
+    # "import_ifrc_event_data": CronJob(
+    #     task="apps.etl.etl_tasks.ifrc_event.ext_and_transform_ifrcevent_latest_data",
+    #     schedule=crontab(hour=15, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=2 * 60,
+    #     ),
+    # ),
+    # "import_usgs_data": CronJob(
+    #     task="apps.etl.etl_tasks.usgs.ext_and_transform_usgs_latest_data",
+    #     schedule=crontab(hour=17, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=10,
+    #         max_runtime=12 * 60,
+    #     ),
+    # ),
+    # "import_idu_data": CronJob(
+    #     task="apps.etl.etl_tasks.idu.ext_and_transform_idu_latest_data",
+    #     schedule=crontab(hour=19, minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=3 * 60,
+    #     ),
+    # ),
+    # "import_gidd_data": CronJob(
+    #     task="apps.etl.etl_tasks.gidd.ext_and_transform_gidd_latest_data",
+    #     schedule=crontab(hour=20, minute=0, day_of_week="sunday"),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=3 * 60,
+    #     ),
+    # ),
+    # "trigger_pending_extraction": CronJob(
+    #     task="apps.etl.tasks.trigger_pending_extraction",
+    #     schedule=crontab(hour="6,11,16,23", minute=0),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_HALF_DAY),
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=10,
+    #         max_runtime=5 * 60,
+    #     ),
+    # ),
+    # "load_data_to_stac": CronJob(
+    #     task="apps.etl.tasks.load_data",
+    #     schedule=crontab(hour="*", minute="*/20"),  # Every 20 mins
+    #     sentry_config=CronJobSentryConfig(
+    #         failure_issue_threshold=2,
+    #         checkin_margin=5,
+    #         max_runtime=60,
+    #     ),
+    #     options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
+    # ),
     "cleanup_pystac_load_tbl_data": CronJob(
         task="apps.etl.etl_tasks.delete_tbl_rows.cleanup_pystac_load_data",
-        schedule=crontab(hour=3, minute=0),
+        schedule=crontab(hour="*/3", minute=0),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
