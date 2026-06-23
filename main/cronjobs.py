@@ -172,6 +172,16 @@ SCHEDULES: dict[str, CronJob] = {
         ),
         options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
     ),
+    "cleanup_pystac_load_tbl_data": CronJob(
+        task="apps.etl.etl_tasks.delete_tbl_rows.cleanup_pystac_load_data",
+        schedule=crontab(hour=3, minute=0),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=5,
+            max_runtime=180,
+        ),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
+    ),
     **{
         f"celery_queue_uptime_{celery_queue_name}": CronJob(
             task="apps.etl.tasks.celery_queue_uptime_check",
