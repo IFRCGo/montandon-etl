@@ -223,6 +223,9 @@ class EtlConfig:
         self.IFRC_DATA_URL = self.parse_base_url_required("IFRC_DATA_URL")
         self.IFRC_EVENT_START_DATE = self.parse_date_value_required("IFRC_EVENT_START_DATE")
 
+        # Charter
+        self.CHARTER_SUPERVISOR_URL = self.parse_base_url_required("CHARTER_SUPERVISOR_URL")
+
         # PDC
         # -- ARC GIS
         self.PDC_ARCGIS_DOMAIN = self.parse_base_url_required("PDC_ARCGIS_DOMAIN")
