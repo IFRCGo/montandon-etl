@@ -182,6 +182,16 @@ SCHEDULES: dict[str, CronJob] = {
         ),
         options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_HOUR),
     ),
+    "import_charter_data": CronJob(
+        task="apps.etl.etl_tasks.disaster_charter.ext_and_transform_charter_latest_data",
+        schedule=crontab(hour=0, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=10,
+            max_runtime=3 * 60,
+        ),
+    ),
     "cleanup_pystac_load_tbl_data": CronJob(
         task="apps.etl.etl_tasks.delete_tbl_rows.cleanup_pystac_load_data",
         schedule=crontab(hour=3, minute=0),

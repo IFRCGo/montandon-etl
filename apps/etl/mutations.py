@@ -7,6 +7,7 @@ from celery import chain, chord, group, shared_task
 
 from apps.etl.extraction.sources.cems.extract import CEMSExtraction
 from apps.etl.extraction.sources.desinventar.extract import DesInventarExtraction
+from apps.etl.extraction.sources.disaster_charter.extract import CharterExtraction
 from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
 from apps.etl.extraction.sources.gdacs.extract import GdacsExtraction
 from apps.etl.extraction.sources.gfd.extract import GFDExtraction
@@ -21,6 +22,7 @@ from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
 from apps.etl.transform.sources.cems import CEMSTransformHandler
 from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
+from apps.etl.transform.sources.disaster_charter import DisasterCharterTransformHandler
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
 from apps.etl.transform.sources.gfd import GFDTransformHandler
@@ -48,6 +50,7 @@ source_extraction_map = {
     ExtractionData.Source.USGS: USGSExtraction,
     ExtractionData.Source.PDC: PDCExtractionV2,
     ExtractionData.Source.IBTRACS: IBTrACSExtraction,
+    ExtractionData.Source.DISASTERCHARTER: CharterExtraction,
     ExtractionData.Source.CEMS: CEMSExtraction,
 }
 source_transform_map = {
@@ -62,6 +65,7 @@ source_transform_map = {
     ExtractionData.Source.IBTRACS: IbtracsTransformHandler,
     ExtractionData.Source.PDC: PDCTransformHandler,
     ExtractionData.Source.USGS: USGSTransformHandler,
+    ExtractionData.Source.DISASTERCHARTER: DisasterCharterTransformHandler,
     ExtractionData.Source.CEMS: CEMSTransformHandler,
 }
 
