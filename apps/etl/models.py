@@ -237,6 +237,7 @@ class PyStacLoadData(EtlTraceResource, Resource):
         EVENT = 1, "Event"
         HAZARD = 2, "Hazard"
         IMPACT = 3, "Impact"
+        RESPONSE = 4, "Response"
 
     # METADATA
     transform_id = models.ForeignKey(Transform, on_delete=models.PROTECT, verbose_name=_("transform"))
