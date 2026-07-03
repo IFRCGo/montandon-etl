@@ -139,3 +139,6 @@ media/
 
 apps/etl/dataset
 .DS_Store
+
+# Claude Code
+.claude/

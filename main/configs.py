@@ -224,7 +224,10 @@ class EtlConfig:
         self.IFRC_EVENT_START_DATE = self.parse_date_value_required("IFRC_EVENT_START_DATE")
 
         # Charter
-        self.CHARTER_SUPERVISOR_URL = self.parse_base_url_required("CHARTER_SUPERVISOR_URL")
+        self.CHARTER_S3_ENDPOINT_URL = self.parse_non_empty_value("CHARTER_S3_ENDPOINT_URL")
+        self.CHARTER_S3_ACCESS_KEY_ID = self.parse_non_empty_value("CHARTER_S3_ACCESS_KEY_ID")
+        self.CHARTER_S3_SECRET_ACCESS_KEY = self.parse_non_empty_value("CHARTER_S3_SECRET_ACCESS_KEY")
+        self.CHARTER_S3_BUCKET_NAME = self.parse_non_empty_value("CHARTER_S3_BUCKET_NAME")
 
         # PDC
         # -- ARC GIS

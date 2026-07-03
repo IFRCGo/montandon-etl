@@ -1,12 +1,15 @@
 import json
 import logging
+import os
+from pathlib import Path
 
 from django.conf import settings
 from pystac_monty.sources.charter import CharterDataSource, CharterTransformer
-from pystac_monty.sources.common import DataType, GenericDataSource, Memory
+from pystac_monty.sources.common import DataType, File, GenericDataSource
 
 from apps.etl.models import ExtractionData
 from apps.etl.transform.sources.handler import BaseTransformerHandler
+from apps.etl.utils import write_into_temp_file
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 
@@ -24,6 +27,7 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
 
         areas_data: list[dict] = []
         vaps_data: list[dict] = []
+        calibrated_datasets_data: list[dict] = []
 
         for area_ext in extraction_obj.child_extractions.filter(
             status=ExtractionData.Status.SUCCESS,
@@ -63,13 +67,36 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
                 except Exception:
                     logger.warning("Failed to read vaps extraction %s", vaps_ext.id, exc_info=True)
 
+        for cal_datasets_ext in extraction_obj.child_extractions.filter(
+            status=ExtractionData.Status.SUCCESS,
+            metadata__type="CALIBRATED_DATASETS",
+        ).order_by("id"):
+            for cal_dataset_ext in cal_datasets_ext.child_extractions.filter(
+                status=ExtractionData.Status.SUCCESS,
+                metadata__type="CALIBRATED_DATASET",
+            ).order_by("id"):
+                if not cal_dataset_ext.resp_data:
+                    continue
+                try:
+                    with cal_dataset_ext.resp_data.open("rb") as f:
+                        cal_data = json.load(f)
+                    if isinstance(cal_data, dict):
+                        calibrated_datasets_data.append(cal_data)
+                except Exception:
+                    logger.warning("Failed to read calibrated dataset extraction %s", cal_dataset_ext.id, exc_info=True)
+
         activation_data["areas"] = areas_data
         activation_data["vaps"] = vaps_data
+        activation_data["calibrated_datasets"] = calibrated_datasets_data
+
+        tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
+        os.makedirs(tmp_dir_path, exist_ok=True)
+        data_file = write_into_temp_file(json.dumps(activation_data).encode("utf-8"), tmp_dir_path)
 
         return cls.transformer_schema(
             data=GenericDataSource(
                 source_url=extraction_obj.url,
-                input_data=Memory(content=activation_data, data_type=DataType.MEMORY),
+                input_data=File(path=data_file.name, data_type=DataType.FILE),
             ),
             eoapi_url=etl_config.EOAPI_STAC_API_PUBLIC,
         )
