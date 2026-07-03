@@ -174,7 +174,7 @@ SCHEDULES: dict[str, CronJob] = {
     ),
     "cleanup_pystac_load_tbl_data": CronJob(
         task="apps.etl.etl_tasks.delete_tbl_rows.cleanup_pystac_load_data",
-        schedule=crontab(hour="*/6", minute=0),
+        schedule=crontab(hour=3, minute=0),
         sentry_config=CronJobSentryConfig(
             failure_issue_threshold=2,
             checkin_margin=5,
