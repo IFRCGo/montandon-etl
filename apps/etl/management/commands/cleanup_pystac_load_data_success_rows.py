@@ -38,31 +38,38 @@ class Command(BaseCommand):
 
         cutoff = timezone.now() - timedelta(days=retention_days)
 
-        while True:
-            remaining_rows = max_rows - total_deleted
-            current_batch_size = min(batch_size, remaining_rows)
+        qs = PyStacLoadData.objects.filter(
+            status=ExtractionData.Status.SUCCESS,
+            item_datetime__lt=cutoff,
+        )
 
-            query_set = PyStacLoadData.objects.filter(
-                status=ExtractionData.Status.SUCCESS,
-                item_datetime__lt=cutoff,
-            ).order_by("id")
+        threshold = int(0.5 * max_rows)
+        if len(list(qs.values_list("id", flat=True)[: threshold + 1])) > threshold:
+            while True:
+                remaining_rows = max_rows - total_deleted
+                current_batch_size = min(batch_size, remaining_rows)
 
-            ids = list(query_set.values_list("id", flat=True)[:current_batch_size])
+                query_set = PyStacLoadData.objects.filter(
+                    status=ExtractionData.Status.SUCCESS,
+                    item_datetime__lt=cutoff,
+                ).order_by("id")
 
-            if not ids:
-                break
+                ids = list(query_set.values_list("id", flat=True)[:current_batch_size])
 
-            # NOTE PyStacLoadData has no related objects with cascading deletes,
-            # so the count returned by delete() is exactly the number of
-            # PyStacLoadData rows deleted.
-            deleted_count, _ = query_set.filter(id__in=ids).delete()
+                if not ids:
+                    break
 
-            total_deleted += deleted_count
+                # NOTE PyStacLoadData has no related objects with cascading deletes,
+                # so the count returned by delete() is exactly the number of
+                # PyStacLoadData rows deleted.
+                deleted_count, _ = query_set.filter(id__in=ids).delete()
 
-            if total_deleted >= max_rows:
-                break
+                total_deleted += deleted_count
 
-            time.sleep(0.2)  # Sleep between deletion process
+                if total_deleted >= max_rows:
+                    break
+
+                time.sleep(0.2)  # Sleep between deletion process
 
         if total_deleted:
             self.stdout.write("Running VACUUM Analyze..")
