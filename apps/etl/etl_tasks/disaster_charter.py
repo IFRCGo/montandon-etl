@@ -11,7 +11,7 @@ from main.configs import etl_config
 
 @shared_task
 def ext_and_transform_charter_latest_data():
-    catalog_url = f"{etl_config.CHARTER_SUPERVISOR_URL}/api/activations/catalog.json"
+    catalog_url = f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}/activations/"
     CharterExtraction.init_extraction(
         metadata=CharterExtractionMetadata(
             url=catalog_url,
