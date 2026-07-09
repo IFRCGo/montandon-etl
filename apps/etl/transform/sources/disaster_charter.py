@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -27,7 +28,7 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
 
         areas_data: list[dict] = []
         vaps_data: list[dict] = []
-        calibrated_datasets_data: list[dict] = []
+        acquisitions_data: list[dict] = []
 
         for area_ext in extraction_obj.child_extractions.filter(
             status=ExtractionData.Status.SUCCESS,
@@ -67,27 +68,40 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
                 except Exception:
                     logger.warning("Failed to read vaps extraction %s", vaps_ext.id, exc_info=True)
 
-        for cal_datasets_ext in extraction_obj.child_extractions.filter(
+        for acquisitions_ext in extraction_obj.child_extractions.filter(
             status=ExtractionData.Status.SUCCESS,
-            metadata__type="CALIBRATED_DATASETS",
+            metadata__type="ACQUISITIONS",
         ).order_by("id"):
-            for cal_dataset_ext in cal_datasets_ext.child_extractions.filter(
+            for acq_ext in acquisitions_ext.child_extractions.filter(
                 status=ExtractionData.Status.SUCCESS,
-                metadata__type="CALIBRATED_DATASET",
+                metadata__type="ACQUISITION",
             ).order_by("id"):
-                if not cal_dataset_ext.resp_data:
+                if not acq_ext.resp_data:
                     continue
                 try:
-                    with cal_dataset_ext.resp_data.open("rb") as f:
-                        cal_data = json.load(f)
-                    if isinstance(cal_data, dict):
-                        calibrated_datasets_data.append(cal_data)
+                    with acq_ext.resp_data.open("rb") as f:
+                        acq_data = json.load(f)
+                    if not isinstance(acq_data, dict):
+                        continue
+                    # pystac-monty's _dataset_response_id regex expects the id to
+                    # start with DS_<instrument>_..._<strip>_<scene>-calibrated.
+                    # Extract the DS_* suffix from cpe:cos2_id as the synthetic id.
+                    cos2_id = acq_data.get("properties", {}).get("cpe:cos2_id", acq_data.get("id", ""))
+                    ds_match = re.search(r"DS_[A-Za-z0-9_]+$", cos2_id)
+                    if not ds_match:
+                        logger.warning(
+                            "Acquisition %s has no DS_ identifier in cpe:cos2_id, skipping",
+                            acq_data.get("id"),
+                        )
+                        continue
+                    acq_data["id"] = f"{ds_match.group()}-calibrated"
+                    acquisitions_data.append(acq_data)
                 except Exception:
-                    logger.warning("Failed to read calibrated dataset extraction %s", cal_dataset_ext.id, exc_info=True)
+                    logger.warning("Failed to read acquisition extraction %s", acq_ext.id, exc_info=True)
 
         activation_data["areas"] = areas_data
         activation_data["vaps"] = vaps_data
-        activation_data["calibrated_datasets"] = calibrated_datasets_data
+        activation_data["calibrated_datasets"] = acquisitions_data
 
         tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
         os.makedirs(tmp_dir_path, exist_ok=True)
