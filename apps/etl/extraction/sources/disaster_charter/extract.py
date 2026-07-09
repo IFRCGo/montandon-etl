@@ -26,8 +26,8 @@ class CharterExtractionMetadataType(str, Enum):
     AREA = "AREA"
     VAPS_CATALOG = "VAPS_CATALOG"
     VAPS = "VAPS"
-    CALIBRATED_DATASETS = "CALIBRATED_DATASETS"
-    CALIBRATED_DATASET = "CALIBRATED_DATASET"
+    ACQUISITIONS = "ACQUISITIONS"
+    ACQUISITION = "ACQUISITION"
 
 
 class CharterExtractionMetadata(pydantic.BaseModel):
@@ -118,7 +118,7 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             area_href = link.get("href", "")
             if not area_href:
                 continue
-            area_id = area_href.rstrip("/").split("/")[-1].split("?")[0].removesuffix(".json").lower()
+            area_id = area_href.rstrip("/").split("/")[-1].split("?")[0].removesuffix(".json")
             area_url = f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}/activations/act-{activation_id}/areas/{area_id}.json"
             self.init_extraction(
                 metadata=CharterExtractionMetadata(
@@ -193,16 +193,16 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
         else:
             DisasterCharterTransformHandler.task.apply_async(args=(activation_extraction_id,))
 
-        # Calibrated datasets: one CALIBRATED_DATASETS extraction per call
+        # Acquisitions: one extraction per call
         call_ids = activation_data.get("properties", {}).get("disaster:call_ids", [])
         for call_id in call_ids:
-            cal_datasets_url = (
-                f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}/calls/call-{call_id}/call-{call_id}-calibratedDatasets.json"
+            acquisitions_url = (
+                f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}/calls/call-{call_id}/acquisitions/"
             )
             self.init_extraction(
                 metadata=CharterExtractionMetadata(
-                    url=cal_datasets_url,
-                    type=CharterExtractionMetadataType.CALIBRATED_DATASETS,
+                    url=acquisitions_url,
+                    type=CharterExtractionMetadataType.ACQUISITIONS,
                     activation_id=activation_id,
                     call_id=call_id,
                 ),
@@ -216,74 +216,72 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
     def handle_type_vaps(self):
         self._extraction_fetch_s3(self.extraction_metadata.url)
 
-    def handle_type_calibrated_datasets(self):
+    def handle_type_acquisitions(self):
         from celery import chord
 
         from apps.etl.transform.sources.disaster_charter import DisasterCharterTransformHandler
 
-        extraction_status = self._extraction_fetch_s3(self.extraction_metadata.url)
-        if not extraction_status:
-            logger.warning(
-                "Failed to extract Charter calibrated datasets collection",
-                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
-            )
-            return
-
-        if not self.extraction_object.resp_data:
-            logger.warning(
-                "No response data for Charter calibrated datasets collection",
-                extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
-            )
-            return
-
         call_id = self.extraction_metadata.call_id
-        with self.extraction_object.resp_data.open("rb") as f:
-            collection_data = json.load(f)
-
         parent = self.extraction_object.parent
         if parent is None:
             logger.warning(
-                "CALIBRATED_DATASETS extraction has no parent, cannot trigger transform",
+                "ACQUISITIONS extraction has no parent, cannot trigger transform",
                 extra=log_extra({"source": self.source_enum}),
             )
             return
+
         activation_extraction_id: int = parent.pk
 
-        dataset_tasks = []
-        for link in collection_data.get("links", []):
-            if link.get("rel") != "item":
-                continue
-            href = link.get("href", "")
-            if not href:
-                continue
-            # href is relative: "calibratedDatasets/{dataset_dir}/{dataset_dir}.json"
-            parts = href.rstrip("/").split("/")
-            dataset_dir = parts[-2] if len(parts) >= 2 else parts[-1]
-            dataset_url = (
-                f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}"
-                f"/calls/call-{call_id}/calibratedDatasets/{dataset_dir}/{dataset_dir}.json"
+        try:
+            client = self._get_s3_client()
+            s3_response = client.list_objects_v2(
+                Bucket=etl_config.CHARTER_S3_BUCKET_NAME,
+                Prefix=f"calls/call-{call_id}/acquisitions/",
+                Delimiter="/",
             )
-            dataset_extraction = self.init_extraction(
+        except (BotoCoreError, ClientError):
+            logger.warning(
+                "Failed to list acquisitions from S3 for call %s, skipping acquisition extraction",
+                call_id,
+                extra=log_extra({"source": self.source_enum}),
+                exc_info=True,
+            )
+            DisasterCharterTransformHandler.task.apply_async(args=(activation_extraction_id,))
+            return
+
+        acquisition_tasks = []
+        for prefix_entry in s3_response.get("CommonPrefixes", []):
+            prefix = prefix_entry.get("Prefix", "")
+            acq_id = prefix.rstrip("/").split("/")[-1]
+            if not acq_id:
+                continue
+            acq_url = (
+                f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}"
+                f"/calls/call-{call_id}/acquisitions/{acq_id}/{acq_id}.json"
+            )
+            acq_extraction = self.init_extraction(
                 metadata=CharterExtractionMetadata(
-                    url=dataset_url,
-                    type=CharterExtractionMetadataType.CALIBRATED_DATASET,
+                    url=acq_url,
+                    type=CharterExtractionMetadataType.ACQUISITION,
                     activation_id=self.extraction_metadata.activation_id,
                     call_id=call_id,
                 ),
                 parent_extraction=self.extraction_object,
                 add_to_queue=False,
             )
-            dataset_tasks.append(CharterExtraction.task.s(dataset_extraction.pk).set(queue=CeleryQueue.EXTRACTION))
+            acquisition_tasks.append(
+                CharterExtraction.task.s(acq_extraction.pk).set(queue=CeleryQueue.EXTRACTION)
+            )
 
-        if dataset_tasks:
+        if acquisition_tasks:
             chord(
-                dataset_tasks,
+                acquisition_tasks,
                 DisasterCharterTransformHandler.task.si(activation_extraction_id),
             ).apply_async()
         else:
             DisasterCharterTransformHandler.task.apply_async(args=(activation_extraction_id,))
 
-    def handle_type_calibrated_dataset(self):
+    def handle_type_acquisition(self):
         self._extraction_fetch_s3(self.extraction_metadata.url)
 
     def _extraction_fetch_s3(self, s3_uri: str) -> bool:
@@ -336,10 +334,10 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
                 return None  # container record; no fetch needed
             case CharterExtractionMetadataType.VAPS:
                 return self.handle_type_vaps()
-            case CharterExtractionMetadataType.CALIBRATED_DATASETS:
-                return self.handle_type_calibrated_datasets()
-            case CharterExtractionMetadataType.CALIBRATED_DATASET:
-                return self.handle_type_calibrated_dataset()
+            case CharterExtractionMetadataType.ACQUISITIONS:
+                return self.handle_type_acquisitions()
+            case CharterExtractionMetadataType.ACQUISITION:
+                return self.handle_type_acquisition()
             case _:
                 typing.assert_never(handler_type)
 
