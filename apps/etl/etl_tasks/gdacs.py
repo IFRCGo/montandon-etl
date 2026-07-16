@@ -19,13 +19,13 @@ session = requests_cache.CachedSession(
 # Note: Use only TC and FL as they have impact data information
 # TODO once Impacts of other hazards are implemented, run all hazards.
 HAZARDS = [
-    # (HazardType.EARTHQUAKE, 64),
+    (HazardType.EARTHQUAKE, 64),
     (HazardType.CYCLONE, 64),
     (HazardType.FLOOD, 64),
-    # (HazardType.DROUGHT, 64),
-    # (HazardType.WILDFIRE, 64),
-    # (HazardType.VOLCANO, 64),
-    # (HazardType.TSUNAMI, 64),
+    (HazardType.DROUGHT, 64),
+    (HazardType.WILDFIRE, 64),
+    (HazardType.VOLCANO, 64),
+    (HazardType.TSUNAMI, 64),
 ]
 
 URL = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventlist/SEARCH"
