@@ -124,6 +124,9 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             return {**default_headers, **headers}
         return default_headers
 
+    def _find_existing_child(self, **metadata_filters) -> ExtractionData | None:
+        return ExtractionData.objects.filter(parent=self.extraction_object, **metadata_filters).order_by("-id").first()
+
     def handle_type_hazard(self, retrigger: bool, failed_int: int | None):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
@@ -145,10 +148,15 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             )
             return
         response_data = json.loads(self.extraction_object.resp_data.read())
-        if not retrigger:
-            if response_data and len(response_data) == 100:
+        if response_data and len(response_data) == 100:
+            next_page = self.extraction_metadata.hazard.pagination.page + 1
+            next_page_extraction = self._find_existing_child(
+                metadata__type=PDCExtractionMetaDataType.HAZARD,
+                metadata__hazard__pagination__page=next_page,
+            )
+            if next_page_extraction is None:
                 data = self.extraction_metadata.hazard.model_copy(deep=True)
-                data.pagination.page += 1
+                data.pagination.page = next_page
 
                 self.init_extraction(
                     metadata=PDCExtractionMetadata(
@@ -156,45 +164,60 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
                     ),
+                    parent_extraction=self.extraction_object,
                     queue_name=CeleryQueue.EXTRACTION,
                 )
 
         geo_objects = []
         hazard_extraction_objects = []
         for item in response_data:
-            geo_object = self.init_extraction(
-                metadata=PDCExtractionMetadata(
-                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",
-                    type=PDCExtractionMetaDataType.POLYGON,
-                    polygon=PdcPolygonMetadata(hazard_uuid=item["uuid"], hazard_id=item["hazard_ID"], exposure_obj_id=None),
-                ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=False,
+            geo_object = self._find_existing_child(
+                metadata__type=PDCExtractionMetaDataType.POLYGON,
+                metadata__polygon__hazard_uuid=item["uuid"],
             )
-
-            exposure_extraction_obj = self.init_extraction(
-                metadata=PDCExtractionMetadata(
-                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{item['uuid']}/exposure",
-                    type=PDCExtractionMetaDataType.EXPOSURE_LIST,
-                    exposure_list=PDCExposurelistMetadata(
-                        hazard_uuid=item["uuid"], hazard_id=item["hazard_ID"], geo_obj_id=geo_object.id
+            if geo_object is None:
+                geo_object = self.init_extraction(
+                    metadata=PDCExtractionMetadata(
+                        url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/mags/1/json/get_mags?hazard_id={item['hazard_ID']}",
+                        type=PDCExtractionMetaDataType.POLYGON,
+                        polygon=PdcPolygonMetadata(
+                            hazard_uuid=item["uuid"], hazard_id=item["hazard_ID"], exposure_obj_id=None
+                        ),
                     ),
-                ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=False,
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
+
+            exposure_extraction_obj = self._find_existing_child(
+                metadata__type=PDCExtractionMetaDataType.EXPOSURE_LIST,
+                metadata__exposure_list__hazard_uuid=item["uuid"],
             )
+            if exposure_extraction_obj is None:
+                exposure_extraction_obj = self.init_extraction(
+                    metadata=PDCExtractionMetadata(
+                        url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{item['uuid']}/exposure",
+                        type=PDCExtractionMetaDataType.EXPOSURE_LIST,
+                        exposure_list=PDCExposurelistMetadata(
+                            hazard_uuid=item["uuid"], hazard_id=item["hazard_ID"], geo_obj_id=geo_object.id
+                        ),
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
 
             geo_object.metadata["polygon"]["exposure_obj_id"] = exposure_extraction_obj.id
             geo_object.save()
 
-            geo_objects.append(PDCExtractionV2.task.s(geo_object.pk))
-            hazard_extraction_objects.append(PDCExtractionV2.task.si(exposure_extraction_obj.pk))
+            if geo_object.status != ExtractionData.Status.SUCCESS:
+                geo_objects.append(PDCExtractionV2.task.s(geo_object.pk))
+            if exposure_extraction_obj.status != ExtractionData.Status.SUCCESS:
+                hazard_extraction_objects.append(PDCExtractionV2.task.si(exposure_extraction_obj.pk))
 
         if hazard_extraction_objects:
             chord(geo_objects)(group(hazard_extraction_objects))
 
     def handle_exposure_list(self, retrigger: bool, failed_int: int | None):
-        if self.extraction_object.Status != ExtractionData.Status.SUCCESS:
+        if self.extraction_object.status != ExtractionData.Status.SUCCESS:
             self._extraction_fetch_url(
                 self.extraction_metadata.url,
                 headers=self._get_request_headers(),
@@ -208,19 +231,26 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             raise NoDataException
 
         for item in response_data:
-            exposure_extraction_obj = self.init_extraction(
-                metadata=PDCExtractionMetadata(
-                    url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",  # type: ignore
-                    type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
-                    exposure_detail=PdcExposureMetadata(
-                        exposure_id=item,
-                        hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,
-                        geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,
-                    ),
-                ),
-                parent_extraction=self.extraction_object,
-                add_to_queue=False,
+            exposure_extraction_obj = self._find_existing_child(
+                metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
+                metadata__exposure_detail__exposure_id=item,
             )
+            if exposure_extraction_obj is None:
+                exposure_extraction_obj = self.init_extraction(
+                    metadata=PDCExtractionMetadata(
+                        url=f"{etl_config.PDC_SENTRY_BASE_URL}/hp_srv/services/hazard/{self.extraction_metadata.exposure_list.hazard_uuid}/exposure/{item}",  # type: ignore
+                        type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
+                        exposure_detail=PdcExposureMetadata(
+                            exposure_id=item,
+                            hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,
+                            geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,
+                        ),
+                    ),
+                    parent_extraction=self.extraction_object,
+                    add_to_queue=False,
+                )
+            elif exposure_extraction_obj.status == ExtractionData.Status.SUCCESS:
+                continue
 
             chord(
                 PDCExtractionV2.task.si(exposure_extraction_obj.pk),

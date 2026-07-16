@@ -23,14 +23,23 @@ def extract_and_transform_pdc_latest_data():
         ExtractionData.objects.filter(
             source=ExtractionData.Source.PDC,
             status=ExtractionData.Status.SUCCESS,
+            metadata__type=PDCExtractionMetaDataType.HAZARD,
+            metadata__hazard__pagination__page=1,
         )
-        .order_by("-id")
+        .order_by("-created_at")
         .first()
     )
 
     if pdc_latest_extraction:
-        created_at = pdc_latest_extraction.created_at.strftime("%Y-%m-%d %H:%M:%S.%f")
-        start_date = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S.%f")
+        # The row's created_at drifts from the actual query window (pagination/queue delays),
+        # so read the window's own LESS_THAN bound instead of the row's insert time.
+        less_than = next(
+            restriction["createDate"]
+            for group in pdc_latest_extraction.metadata["hazard"]["restrictions"]
+            for restriction in group
+            if restriction["searchType"] == "LESS_THAN"
+        )
+        start_date = datetime.fromtimestamp(int(less_than) / 1000)
     else:
         start_date = datetime.strptime(str(etl_config.PDC_START_DATE), "%Y-%m-%d")
 
