@@ -1,0 +1,66 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "bbox": [
+        -74.9731,
+        -12.7873,
+        -74.9731,
+        -12.7873
+      ],
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.9731,
+          -12.7873
+        ]
+      },
+      "properties": {
+        "eventtype": "FL",
+        "eventid": 1103107,
+        "episodeid": 16,
+        "eventname": "",
+        "glide": "",
+        "name": "Flood in Peru",
+        "description": "Flood in Peru",
+        "htmldescription": "Green Flood in Peru from: 22 Jan 2025 01 to: 10 Mar 2026 01.",
+        "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+        "iconoverall": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+        "url": {
+          "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1103107&episodeid=16",
+          "report": "https://www.gdacs.org/report.aspx?eventid=1103107&episodeid=16&eventtype=FL",
+          "details": "https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=FL&eventid=1103107"
+        },
+        "alertlevel": "Green",
+        "alertscore": 1,
+        "episodealertlevel": "Green",
+        "episodealertscore": 0.5,
+        "istemporary": "false",
+        "iscurrent": "false",
+        "country": "Peru",
+        "fromdate": "2025-01-22T01:00:00",
+        "todate": "2026-03-10T01:00:00",
+        "datemodified": "2026-04-02T12:11:45",
+        "iso3": "PER",
+        "source": "GLOFAS",
+        "sourceid": "",
+        "polygonlabel": "Centroid",
+        "Class": "Point_Centroid",
+        "affectedcountries": [
+          {
+            "iso2": "PE",
+            "iso3": "PER",
+            "countryname": "Peru"
+          }
+        ],
+        "severitydata": {
+          "severity": 0.0,
+          "severitytext": "Magnitude 0 ",
+          "severityunit": ""
+        }
+      }
+    }
+  ],
+  "bbox": null
+}
