@@ -19,6 +19,11 @@ from pathlib import Path
 import environ
 from azure.identity import DefaultAzureCredential
 
+from banjo_utils.health import (
+    is_health_probe_path,
+    make_sentry_traces_sampler_with_health_probe_ignore,
+)
+
 from main import sentry
 
 from .logging import log_render_custom_field
@@ -252,6 +257,7 @@ INSTALLED_APPS = [
     "djangoql",
     "corsheaders",
     "health_check",
+    "banjo_utils",
     # Internal
     "apps.common",
     "apps.etl",
@@ -259,6 +265,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # HealthProbeMiddleware serves pod-local /healthz/live/ and /healthz/ready/
+    # (bypassing ALLOWED_HOSTS); keep it first.
+    "banjo_utils.health.HealthProbeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -268,6 +277,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Pod-local health probe endpoints served by HealthProbeMiddleware.
+BANJO_HEALTH_PROBE_LIVE_URL = "/healthz/live/"
+BANJO_HEALTH_PROBE_READY_URL = "/healthz/ready/"
 
 ROOT_URLCONF = "main.urls"
 
@@ -462,7 +475,9 @@ if SENTRY_DSN is not None:
         # TODO: define release
         # "release": env("APP_RELEASE"),
         "environment": DJANGO_APP_ENVIRONMENT,
-        "traces_sample_rate": env("SENTRY_TRACES_SAMPLE_RATE"),
+        "traces_sampler": make_sentry_traces_sampler_with_health_probe_ignore(
+            typing.cast(float, env("SENTRY_TRACES_SAMPLE_RATE"))
+        ),
         "profiles_sample_rate": env("SENTRY_PROFILE_SAMPLE_RATE"),
         "debug": env("SENTRY_DEBUG"),
     }
@@ -482,6 +497,25 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Logging
 
+
+def skip_health_probe_logs(record):
+    """Drop *successful* request-line log records for health-probe paths (/healthz/*)."""
+    args = record.args
+    path = ""
+    status = ""
+    if isinstance(args, dict):  # gunicorn.access
+        path = args.get("U", "")
+        status = str(args.get("s", ""))
+    elif isinstance(args, (tuple, list)) and args:  # django.server request line
+        request_line = str(args[0]).strip('"').split(" ")
+        if len(request_line) >= 2:
+            path = request_line[1]
+        if len(args) >= 2:
+            status = str(args[1])
+    is_probe_ok = is_health_probe_path(path) and status.startswith("2")
+    return not is_probe_ok
+
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -489,7 +523,11 @@ LOGGING = {
         "render_extra_context": {
             "()": "django.utils.log.CallbackFilter",
             "callback": log_render_custom_field,
-        }
+        },
+        "skip_health_probes": {
+            "()": "django.utils.log.CallbackFilter",
+            "callback": skip_health_probe_logs,
+        },
     },
     "formatters": {
         "simple": {
@@ -517,6 +555,13 @@ LOGGING = {
         "azure.core.pipeline.policies.http_logging_policy": {
             "level": "WARNING",
             "handlers": ["console"],
+            "propagate": False,
+        },
+        # Drop successful health-probe request lines (dev runserver access log).
+        "django.server": {
+            "level": env("APP_LOG_LEVEL"),
+            "handlers": ["console"],
+            "filters": ["skip_health_probes"],
             "propagate": False,
         },
     },
