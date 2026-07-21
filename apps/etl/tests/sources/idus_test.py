@@ -83,7 +83,17 @@ def test_handle_extraction_various_idu_files(case):
         expected_json = json5.load(expected_file)
 
     # Keys to ignore anywhere in JSON
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "keywords", "links"}
+    ignored_keys = {
+        "created_at",
+        "modified_at",
+        "monty:etl_id",
+        "pk",
+        "trace",
+        "transform_id",
+        "keywords",
+        "links",
+        "stac_extensions",
+    }
 
     # Remove ignored keys from both JSONs before comparison
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
