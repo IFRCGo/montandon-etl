@@ -18,7 +18,6 @@ from pathlib import Path
 
 import environ
 from azure.identity import DefaultAzureCredential
-
 from banjo_utils.health import (
     is_health_probe_path,
     make_sentry_traces_sampler_with_health_probe_ignore,

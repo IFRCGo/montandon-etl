@@ -217,8 +217,8 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
-  retriggerPipeline(data: PipelineRetriggerInput!): StrMutationResponseType!
-  retriggerTransform(data: TransformRetriggerInput!): StrMutationResponseType!
+  retriggerPipeline(data: PipelineRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
+  retriggerTransform(data: TransformRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
 }
 
 type OffsetPaginationInfo {
@@ -244,10 +244,22 @@ input PipelineRetriggerInput {
   traceIds: [ID!]!
 }
 
+type PipelineRetriggerType {
+  taskId: ID!
+  status: String!
+}
+
+type PipelineRetriggerTypeMutationResponseType {
+  ok: Boolean!
+  errors: CustomErrorType
+  result: PipelineRetriggerType
+}
+
 enum PyStacLoadDataItemTypeEnum {
   EVENT
   HAZARD
   IMPACT
+  RESPONSE
 }
 
 enum PyStacLoadDataStatusEnum {
@@ -480,12 +492,6 @@ input StrFilterLookup {
   Case-insensitive regular expression match. Filter will be skipped on `null` value
   """
   iRegex: String
-}
-
-type StrMutationResponseType {
-  ok: Boolean!
-  errors: CustomErrorType
-  result: String
 }
 
 input TransformDataFilter {
