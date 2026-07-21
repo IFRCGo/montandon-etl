@@ -1,9 +1,7 @@
-name: Helm
+name: Publish
 
 on:
   workflow_dispatch:
-  # Build and push Docker image and Helm charts on every push to develop branch
-  # and on every tag push
   push:
     branches:
       - develop
@@ -13,70 +11,30 @@ on:
       - "**"
 
 permissions:
+  contents: read
   packages: write
+  pull-requests: read
 
 jobs:
-  ci:
-    name: CI
-    uses: ./.github/workflows/ci.yml
+  _:
+    uses: toggle-corp/banjo-action/.github/workflows/pipeline.yml@v0.3.0
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: read
     with:
-      push_docker_image: true
-
-  build:
-    name: Publish Helm
-    needs: ci
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: 🐳 Helm dependency
-      run: |
-        yq --indent 0 '.dependencies | map(select(.repository | test("^oci:") | not)) | map(["helm", "repo", "add", .name, .repository] | join(" ")) | .[]' ./helm/Chart.lock | sh --
-        helm dependency build ./helm/
-
-    - name: Tag docker image in Helm Chart values.yaml
-      env:
-        IMAGE_NAME: ${{ needs.ci.outputs.docker_image_name }}
-        IMAGE_TAG: ${{ needs.ci.outputs.docker_image_tag }}
-      run: |
-        # Update values.yaml with latest docker image
-        sed -i "s|SET-BY-CICD-IMAGE|$IMAGE_NAME|" ./helm/values.yaml
-        sed -i "s/SET-BY-CICD-TAG/$IMAGE_TAG/" ./helm/values.yaml
-
-    - name: Package Helm Chart
-      id: set-variables
-      env:
-        IMAGE_TAG: ${{ needs.ci.outputs.docker_image_tag }}
-      run: |
-        # XXX: Check if there is a slash in the BRANCH_NAME eg: project/add-docker
-        if [[ "$GITHUB_REF_NAME" == *"/"* ]]; then
-            # XXX: Change the helm chart to <chart-name>-alpha
-            sed -i 's/^name: \(.*\)/name: \1-alpha/' ./helm/Chart.yaml
-        fi
-
-        sed -i "s/SET-BY-CICD/$IMAGE_TAG/g" ./helm/Chart.yaml
-        helm package ./helm/ -d ./helm/.helm-charts
-
-    - name: Push Helm Chart
-      env:
-        IMAGE: ${{ needs.ci.outputs.docker_image }}
-        OCI_REPO: oci://ghcr.io/${{ github.repository }}
-      run: |
-        OCI_REPO=$(echo $OCI_REPO | tr '[:upper:]' '[:lower:]')
-        PACKAGE_FILE=$(ls ./helm/.helm-charts/*.tgz | head -n 1)
-        echo "# Helm Chart" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo '```yaml' >> $GITHUB_STEP_SUMMARY
-        helm push "$PACKAGE_FILE" $OCI_REPO 2>> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        echo "> [!Important]" >> $GITHUB_STEP_SUMMARY
-        echo "> NOTE: Tagged docker image: **$IMAGE**" >> $GITHUB_STEP_SUMMARY
+      # -- Same as CI (./ci.yml)
+      # Job: Pre-commit
+      pre_commit__apt_packages: "gdal-bin libgdal-dev"
+      # Job: Docker
+      docker__wait_cmd: "./manage.py wait_for_resources --db --cache --celery-broker"
+      docker__migration_dummy_test: "main.tests.fake_test"
+      docker__run_graphql_check: true
+      docker__compose_file: "docker-compose.yml:gh-docker-compose.yml"
+      docker__compose_service_name: "web"
+      docker__compose_test_cmd: "/code/scripts/run_tests.sh"
+      # Job: Helm
+      helm__chart_directory: "./helm"
+      # -- Publish
+      docker__push: true
+      helm__push: true
