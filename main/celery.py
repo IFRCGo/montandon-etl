@@ -2,6 +2,7 @@ import logging
 import os
 from logging.config import dictConfig
 
+from banjo_utils.celery_health.worker import setup_worker_heartbeat
 from celery import Celery, signals
 from django.db import models
 
@@ -13,6 +14,9 @@ from .cronjobs import BEAT_SCHEDULES
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main.settings")
 
 app = Celery("main")
+
+# Emit a heartbeat file from each worker so a liveness probe can detect a hung worker.
+setup_worker_heartbeat(app)
 
 app.config_from_object("django.conf:settings", namespace="CELERY")
 
