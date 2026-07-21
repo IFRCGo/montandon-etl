@@ -1,5 +1,12 @@
+# Snapshot test matrix consumed by ./update-snapshots.sh (fugit).
+# Each key is a snapshot under ./snapshots/, rendered from values.yaml (base)
+# + the listed values files + the auto-appended tests/<key> dummy overrides.
+#   - values/operators.yaml : operator-managed infra (Dragonfly, RabbitMQ)
+#   - values/go-deploy.yaml  : Azure workload-identity + secret-store CSI overlay
+#   - tests/<key>            : dummy secrets/hosts/ids so fields render standalone
 tests:
-  alpha-1.yaml:
+  alpha.yaml:
+    - values/operators.yaml
     - values/alpha.yaml
   staging.yaml:
     - values/operators.yaml

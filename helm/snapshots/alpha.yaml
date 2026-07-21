@@ -1,26 +1,40 @@
 ---
-# Source: montandon-etl-helm/charts/app/templates/api/service-account.yaml
+# Source: montandon-etl-helm/charts/app/templates/config/secret.yaml
+kind: Secret
 apiVersion: v1
-kind: ServiceAccount
 metadata:
-  name: service-token-reader
-  annotations:
-    
-    azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+  name: release-name-ifrcgo-monty-etl-helm-secret
   labels:
-    
-    azure.workload.identity/use: "true"
-automountServiceAccountToken: true
+    app: release-name-ifrcgo-monty-etl-helm
+    environment: ALPHA
+    release: release-name
+type: Opaque
+stringData:
+  # secrets
+  DB_HOST: "dummy"
+  DB_NAME: "dummy"
+  DB_PASSWORD: "dummy"
+  DB_PORT: "5432"
+  DB_USER: "dummy"
+  DJANGO_SECRET_KEY: "dummy-secret-key"
+  EMDAT_AUTHORIZATION_KEY: "dummy-key"
+  GFD_CREDENTIAL: "dummy-gfd-cred"
+  GFD_SERVICE_ACCOUNT: "dummy-gfd-service-account"
+  IDMC_CLIENT_ID: "dummy-client-id"
+  PDC_ARCGIS_PASSWORD: "dummy-password"
+  PDC_ARCGIS_USERNAME: "dummy-username"
+  PDC_SENTRY_AUTHORIZATION_KEY: "dummy-key"
+  SENTRY_DSN: "https://dummy@sentry.example.com/1"
 
 ---
 # Source: montandon-etl-helm/charts/app/templates/config/configmap.yaml
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: monty-etl-env-name
+  name: release-name-ifrcgo-monty-etl-helm-env-name
   labels:
-    app: monty-etl
-    environment: STAGING
+    app: release-name-ifrcgo-monty-etl-helm
+    environment: ALPHA
     release: release-name
 data:
   # Configs
@@ -31,7 +45,7 @@ data:
   AZURE_STORAGE_MEDIA_CONTAINER: "dummy-media"
   AZURE_STORAGE_STATIC_CONTAINER: "dummy-static"
   DJANGO_ALLOWED_HOSTS: "*"
-  DJANGO_APP_ENVIRONMENT: "STAGING"
+  DJANGO_APP_ENVIRONMENT: "ALPHA"
   DJANGO_DEBUG: "false"
   DJANGO_TIME_ZONE: "UTC"
   EOAPI_STAC_API_INTERNAL: "https://eoapi.example.com/stac"
@@ -63,16 +77,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: monty-etl-api
+  name: release-name-ifrcgo-monty-etl-helm-api
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: api
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   type: ClusterIP
   selector:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: api
   ports:
     - protocol: TCP
@@ -85,17 +99,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: monty-etl-worker-flower
+  name: release-name-ifrcgo-monty-etl-helm-worker-flower
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker-addon
     addon: flower
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   type: ClusterIP
   selector:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker-addon
     addon: flower
   ports:
@@ -128,39 +142,30 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-api
+  name: release-name-ifrcgo-monty-etl-helm-api
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: api
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: api
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: api
-        azure.workload.identity/use: "true"
     spec:
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-      serviceAccountName: service-token-reader
       terminationGracePeriodSeconds: 38
       containers:
         - name: api
@@ -194,15 +199,15 @@ spec:
             periodSeconds: 5
           resources:
             limits:
-              memory: 2Gi
+              memory: 4Gi
             requests:
               cpu: "0.1"
-              memory: 1Gi
+              memory: 3Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "web"
@@ -224,10 +229,6 @@ spec:
             preStop:
               sleep:
                 seconds: 8
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
 
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker-addons/deployment.yaml
@@ -235,15 +236,15 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-beat
+  name: release-name-ifrcgo-monty-etl-helm-worker-beat
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker-addon
     addon: beat
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   strategy:
@@ -251,32 +252,24 @@ spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker-addon
       addon: beat
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker-addon
         addon: beat
-        azure.workload.identity/use: "true"
     spec:
       volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
         - emptyDir:
             medium: Memory
             sizeLimit: 1Mi
           name: celery-heartbeat
-      serviceAccountName: service-token-reader
       containers:
         - name: beat
           image: "local.example.com/ifrcgo/montandon-etl:develop.xxxxxxxx"
@@ -306,9 +299,9 @@ spec:
               memory: 256Mi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -329,9 +322,6 @@ spec:
             - name: BANJO_CELERY_HEARTBEAT_FILE
               value: "/var/run/celery/beat_heartbeat"
           volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
             - mountPath: /var/run/celery
               name: celery-heartbeat
 ---
@@ -340,42 +330,33 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-flower
+  name: release-name-ifrcgo-monty-etl-helm-worker-flower
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker-addon
     addon: flower
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker-addon
       addon: flower
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker-addon
         addon: flower
-        azure.workload.identity/use: "true"
     spec:
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-      serviceAccountName: service-token-reader
       containers:
         - name: flower
           image: "local.example.com/ifrcgo/montandon-etl:develop.xxxxxxxx"
@@ -398,9 +379,9 @@ spec:
               memory: 0.5Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -418,10 +399,6 @@ spec:
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
             
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
 
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
@@ -429,46 +406,39 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-default
+  name: release-name-ifrcgo-monty-etl-helm-worker-default
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker
     queue: default
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
+  replicas: 5
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker
       queue: default
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker
         queue: default
-        azure.workload.identity/use: "true"
     spec:
       volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
         - emptyDir:
             medium: Memory
             sizeLimit: 1Mi
           name: celery-heartbeat
-      serviceAccountName: service-token-reader
       containers:
         - name: worker
           command:
@@ -503,15 +473,15 @@ spec:
             periodSeconds: 5
           resources:
             limits:
-              memory: 2Gi
+              memory: 1.5Gi
             requests:
               cpu: "0.1"
               memory: 1Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -532,9 +502,6 @@ spec:
             - name: BANJO_CELERY_HEARTBEAT_FILE
               value: "/var/run/celery/worker_heartbeat"
           volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
             - mountPath: /var/run/celery
               name: celery-heartbeat
 ---
@@ -543,47 +510,38 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-extraction
+  name: release-name-ifrcgo-monty-etl-helm-worker-extraction
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker
     queue: extraction
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
-  replicas: 2
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker
       queue: extraction
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker
         queue: extraction
-        azure.workload.identity/use: "true"
     spec:
       volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
         - emptyDir:
             medium: Memory
             sizeLimit: 1Mi
           name: celery-heartbeat
-      serviceAccountName: service-token-reader
       containers:
         - name: worker
           command:
@@ -624,9 +582,9 @@ spec:
               memory: 1.5Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -647,9 +605,6 @@ spec:
             - name: BANJO_CELERY_HEARTBEAT_FILE
               value: "/var/run/celery/worker_heartbeat"
           volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
             - mountPath: /var/run/celery
               name: celery-heartbeat
 ---
@@ -658,46 +613,38 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-transform
+  name: release-name-ifrcgo-monty-etl-helm-worker-transform
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker
     queue: transform
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker
       queue: transform
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker
         queue: transform
-        azure.workload.identity/use: "true"
     spec:
       volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
         - emptyDir:
             medium: Memory
             sizeLimit: 1Mi
           name: celery-heartbeat
-      serviceAccountName: service-token-reader
       containers:
         - name: worker
           command:
@@ -738,9 +685,9 @@ spec:
               memory: 1.5Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -761,9 +708,6 @@ spec:
             - name: BANJO_CELERY_HEARTBEAT_FILE
               value: "/var/run/celery/worker_heartbeat"
           volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
             - mountPath: /var/run/celery
               name: celery-heartbeat
 ---
@@ -772,46 +716,38 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: monty-etl-worker-usgs-extraction
+  name: release-name-ifrcgo-monty-etl-helm-worker-usgs-extraction
   annotations:
     argocd.argoproj.io/sync-wave: "30"
     reloader.stakater.com/auto: "true"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: worker
     queue: usgs-extraction
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: monty-etl
+      app: release-name-ifrcgo-monty-etl-helm
       component: worker
       queue: usgs-extraction
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: worker
         queue: usgs-extraction
-        azure.workload.identity/use: "true"
     spec:
       volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
         - emptyDir:
             medium: Memory
             sizeLimit: 1Mi
           name: celery-heartbeat
-      serviceAccountName: service-token-reader
       containers:
         - name: worker
           command:
@@ -852,9 +788,9 @@ spec:
               memory: 1Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "worker"
@@ -875,9 +811,6 @@ spec:
             - name: BANJO_CELERY_HEARTBEAT_FILE
               value: "/var/run/celery/worker_heartbeat"
           volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
             - mountPath: /var/run/celery
               name: celery-heartbeat
 
@@ -941,38 +874,29 @@ spec:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: monty-etl-collect-static
+  name: release-name-ifrcgo-monty-etl-helm-collect-static
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
     argocd.argoproj.io/sync-wave: "20"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: hook
     hookName: collect-static
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: hook
         hookName: collect-static
-        azure.workload.identity/use: "true"
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-      serviceAccountName: service-token-reader
       containers:
         - name: collect-static
           image: "local.example.com/ifrcgo/montandon-etl:develop.xxxxxxxx"
@@ -990,9 +914,9 @@ spec:
               memory: 1Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -1009,26 +933,21 @@ spec:
               value: redis://monty-dragonfly:6379/0
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-            
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
 ---
 # Source: montandon-etl-helm/charts/app/templates/hooks/job.yaml
 # Hook: db-migrate
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: monty-etl-db-migrate-
+  generateName: release-name-ifrcgo-monty-etl-helm-db-migrate-
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/sync-wave: "20"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: hook
     hookName: db-migrate
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   activeDeadlineSeconds: 3600
@@ -1036,23 +955,14 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: hook
         hookName: db-migrate
-        azure.workload.identity/use: "true"
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-      serviceAccountName: service-token-reader
       containers:
         - name: db-migrate
           image: "local.example.com/ifrcgo/montandon-etl:develop.xxxxxxxx"
@@ -1069,9 +979,9 @@ spec:
               memory: 1Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -1088,49 +998,35 @@ spec:
               value: redis://monty-dragonfly:6379/0
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
-            
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
 ---
 # Source: montandon-etl-helm/charts/app/templates/hooks/job.yaml
 # Hook: wait-for-resources
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: monty-etl-wait-for-resources
+  name: release-name-ifrcgo-monty-etl-helm-wait-for-resources
   annotations:
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
     argocd.argoproj.io/sync-wave: "10"
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: hook
     hookName: wait-for-resources
-    environment: STAGING
+    environment: ALPHA
     release: release-name
 spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-        checksum/configmap: f9c4c5936722abb699d71a6078bf7df92cc510f6a2a130030df2c2f538111146
+        checksum/secret: b03c8f753be51f633bbca8f727da2380e178b53ce0d21861bf4dcf79aee0c493
+        checksum/configmap: 82724d3805389c607450f635df6f90584bf08f03b2715fe432ca487a96be216f
       labels:
-        app: monty-etl
+        app: release-name-ifrcgo-monty-etl-helm
         component: hook
         hookName: wait-for-resources
-        azure.workload.identity/use: "true"
     spec:
       restartPolicy: "Never"
-      volumes:
-        - name: monty-etl-secret
-          csi:
-            driver: "secrets-store.csi.k8s.io"
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: monty-etl-secret-provider
-      serviceAccountName: service-token-reader
       containers:
         - name: wait-for-resources
           image: "local.example.com/ifrcgo/montandon-etl:develop.xxxxxxxx"
@@ -1150,9 +1046,9 @@ spec:
               memory: 1Gi
           envFrom:
             - secretRef:
-                name: monty-etl-secret
+                name: release-name-ifrcgo-monty-etl-helm-secret
             - configMapRef:
-                name: monty-etl-env-name
+                name: release-name-ifrcgo-monty-etl-helm-env-name
           env:
             - name: DJANGO_APP_TYPE
               value: "hook"
@@ -1170,21 +1066,17 @@ spec:
             - name: GEOCODER_URL
               value: http://monty-geocoder:80
             
-          volumeMounts:
-            - name: monty-etl-secret
-              mountPath: /mnt/secrets-store
-              readOnly: true
 
 ---
 # Source: montandon-etl-helm/charts/app/templates/api/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: monty-etl-api
+  name: release-name-ifrcgo-monty-etl-helm-api
   labels:
-    app: monty-etl
+    app: release-name-ifrcgo-monty-etl-helm
     component: api
-    environment: STAGING
+    environment: ALPHA
     release: release-name
   annotations:
     argocd.argoproj.io/sync-wave: "30"
@@ -1197,13 +1089,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: monty-etl-api
+                name: release-name-ifrcgo-monty-etl-helm-api
                 port:
                   number: 80
-  tls:
-    - secretName: montandon-etl-tls
-      hosts:
-        - "montandon-etl.example.com"
 
 ---
 # Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
@@ -1256,93 +1144,3 @@ spec:
     requests:
       cpu: 100m
       memory: 2Gi
-
----
-# Source: montandon-etl-helm/charts/app/templates/api/secrets-provider-class.yaml
-apiVersion: secrets-store.csi.x-k8s.io/v1
-kind: SecretProviderClass
-metadata:
-  name: monty-etl-secret-provider
-spec:
-  provider: azure
-  parameters:
-    clientID: 00000000-0000-0000-0000-000000000000
-    keyvaultName: dummy-kv
-    tenantId: 00000000-0000-0000-0000-000000000000
-    usePodIdentity: "false"
-    objects: |
-      array:
-        - |
-          objectName: DB-HOST
-          objectType: secret
-        - |
-          objectName: DB-NAME
-          objectType: secret
-        - |
-          objectName: DB-PASSWORD
-          objectType: secret
-        - |
-          objectName: DB-PORT
-          objectType: secret
-        - |
-          objectName: DB-USER
-          objectType: secret
-        - |
-          objectName: DJANGO-SECRET-KEY
-          objectType: secret
-        - |
-          objectName: EMDAT-AUTHORIZATION-KEY
-          objectType: secret
-        - |
-          objectName: GFD-CREDENTIAL
-          objectType: secret
-        - |
-          objectName: GFD-SERVICE-ACCOUNT
-          objectType: secret
-        - |
-          objectName: IDMC-CLIENT-ID
-          objectType: secret
-        - |
-          objectName: PDC-ARCGIS-PASSWORD
-          objectType: secret
-        - |
-          objectName: PDC-ARCGIS-USERNAME
-          objectType: secret
-        - |
-          objectName: PDC-SENTRY-AUTHORIZATION-KEY
-          objectType: secret
-        - |
-          objectName: SENTRY-DSN
-          objectType: secret
-  secretObjects:
-    - secretName: monty-etl-secret
-      type: Opaque
-      data:
-        - objectName: DB-HOST
-          key: DB_HOST
-        - objectName: DB-NAME
-          key: DB_NAME
-        - objectName: DB-PASSWORD
-          key: DB_PASSWORD
-        - objectName: DB-PORT
-          key: DB_PORT
-        - objectName: DB-USER
-          key: DB_USER
-        - objectName: DJANGO-SECRET-KEY
-          key: DJANGO_SECRET_KEY
-        - objectName: EMDAT-AUTHORIZATION-KEY
-          key: EMDAT_AUTHORIZATION_KEY
-        - objectName: GFD-CREDENTIAL
-          key: GFD_CREDENTIAL
-        - objectName: GFD-SERVICE-ACCOUNT
-          key: GFD_SERVICE_ACCOUNT
-        - objectName: IDMC-CLIENT-ID
-          key: IDMC_CLIENT_ID
-        - objectName: PDC-ARCGIS-PASSWORD
-          key: PDC_ARCGIS_PASSWORD
-        - objectName: PDC-ARCGIS-USERNAME
-          key: PDC_ARCGIS_USERNAME
-        - objectName: PDC-SENTRY-AUTHORIZATION-KEY
-          key: PDC_SENTRY_AUTHORIZATION_KEY
-        - objectName: SENTRY-DSN
-          key: SENTRY_DSN

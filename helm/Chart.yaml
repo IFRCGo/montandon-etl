@@ -9,7 +9,7 @@ sources:
 dependencies:
   - name: banjo-helm
     alias: app
-    version: 0.2.8
+    version: 0.4.1
     repository: oci://ghcr.io/toggle-corp
   - name: geocoding-helm
     alias: geocoding
