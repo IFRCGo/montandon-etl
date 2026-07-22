@@ -1,0 +1,190 @@
+{
+  "type": "Feature",
+  "bbox": [
+    -74.9731,
+    -12.7873,
+    -74.9731,
+    -12.7873
+  ],
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      -74.9731,
+      -12.7873
+    ]
+  },
+  "properties": {
+    "eventtype": "FL",
+    "eventid": 1103107,
+    "episodeid": 16,
+    "eventname": "",
+    "glide": "",
+    "name": "Flood in Peru",
+    "description": "Flood in Peru",
+    "htmldescription": "Green Flood in Peru from: 22 Jan 2025 01 to: 10 Mar 2026 01.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "iconoverall": null,
+    "url": {
+      "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1103107&episodeid=16",
+      "report": "https://www.gdacs.org/report.aspx?eventid=1103107&episodeid=16&eventtype=FL",
+      "media": "https://www.gdacs.org/gdacsapi/api/emm/getemmnewsbykey?eventtype=FL&eventid=1103107",
+      "eventnews": "https://www.gdacs.org/gdacsapi/api/news/getnewsbygdacskey?eventtype=FL&eventid=1103107"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "false",
+    "country": "Peru",
+    "fromdate": "2025-01-22T01:00:00",
+    "todate": "2026-03-10T01:00:00",
+    "datemodified": "2026-04-02T12:11:45",
+    "iso3": "PER",
+    "source": "GLOFAS",
+    "sourceid": "eb44bcbe-062d-4f28-a3d1-1e369da4f820",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+      {
+        "iso2": "PE",
+        "iso3": "PER",
+        "countryname": "Peru"
+      }
+    ],
+    "severitydata": {
+      "severity": 0.0,
+      "severitytext": "Magnitude 0 ",
+      "severityunit": ""
+    },
+    "episodes": [
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=1"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=2"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=3"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=4"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=5"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=6"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=7"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=8"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=9"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=10"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=11"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=12"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=13"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=14"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=15"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=16"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=17"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=18"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=19"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=20"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=21"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=22"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=23"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=24"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=25"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=26"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=27"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=28"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=29"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=30"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=31"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=32"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=33"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=34"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=35"
+      },
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=36"
+      }
+    ],
+    "sendai": [],
+    "impacts": [],
+    "images": {
+      "populationmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107/2rest.png",
+      "floodmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107/7rest.png",
+      "thumbnailmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107.png",
+      "rainmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/6rest.png",
+      "overviewmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/flood_overview_1103107.png",
+      "overviewmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/flood_overview_1103107.png",
+      "rainimage": "https://www.gdacs.org/rainimage/2026/03/3B42RT.2026031000.7.7day.tif",
+      "meteoimages": "https://www.gdacs.org/contentdata/resources/FL/1103107/meteo/",
+      "mslpimages": "https://www.gdacs.org/contentdata/img/mslp/",
+      "event_icon_map": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+      "event_icon": "https://www.gdacs.org/images/gdacs_icons/big/Green/FL.png",
+      "thumbnailmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107.png",
+      "npp_icon": "https://www.gdacs.org/images/gdacs_icons/iconmap/Nuclear.png"
+    },
+    "additionalinfos": {},
+    "documents": {}
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "type": "Feature",
+  "bbox": [
+    -74.9731,
+    -12.7873,
+    -74.9731,
+    -12.7873
+  ],
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      -74.9731,
+      -12.7873
+    ]
+  },
+  "properties": {
+    "eventtype": "FL",
+    "eventid": 1103107,
+    "episodeid": 16,
+    "eventname": "",
+    "glide": "",
+    "name": "Flood in Peru",
+    "description": "Flood in Peru",
+    "htmldescription": "Green Flood in Peru from: 22 Jan 2025 01 to: 10 Mar 2026 01.",
+    "icon": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+    "iconoverall": null,
+    "url": {
+      "geometry": "https://www.gdacs.org/gdacsapi/api/polygons/getgeometry?eventtype=FL&eventid=1103107&episodeid=16",
+      "report": "https://www.gdacs.org/report.aspx?eventid=1103107&episodeid=16&eventtype=FL",
+      "media": "https://www.gdacs.org/gdacsapi/api/emm/getemmnewsbykey?eventtype=FL&eventid=1103107",
+      "eventnews": "https://www.gdacs.org/gdacsapi/api/news/getnewsbygdacskey?eventtype=FL&eventid=1103107"
+    },
+    "alertlevel": "Green",
+    "alertscore": 1,
+    "episodealertlevel": "Green",
+    "episodealertscore": 0.5,
+    "istemporary": "false",
+    "iscurrent": "false",
+    "country": "Peru",
+    "fromdate": "2025-01-22T01:00:00",
+    "todate": "2026-03-10T01:00:00",
+    "datemodified": "2026-04-02T12:11:45",
+    "iso3": "PER",
+    "source": "GLOFAS",
+    "sourceid": "eb44bcbe-062d-4f28-a3d1-1e369da4f820",
+    "polygonlabel": "Centroid",
+    "Class": "Point_Centroid",
+    "affectedcountries": [
+      {
+        "iso2": "PE",
+        "iso3": "PER",
+        "countryname": "Peru"
+      }
+    ],
+    "severitydata": {
+      "severity": 0.0,
+      "severitytext": "Magnitude 0 ",
+      "severityunit": ""
+    },
+    "episodes": [
+      {
+        "details": "https://www.gdacs.org/gdacsapi/api/events/getepisodedata?eventtype=FL&eventid=1103107&episodeid=16"
+      }
+    ],
+    "sendai": [
+      {
+        "latest": true,
+        "sendaitype": "C",
+        "sendainame": "houses damaged",
+        "sendaivalue": "5",
+        "country": "Peru",
+        "region": "Anchonga",
+        "dateinsert": "2026-04-02T14:11:45.66",
+        "description": "5 [buildings] Buildings damaged in Anchonga, Peru",
+        "onset_date": "2025-03-03T01:00:00",
+        "expires_date": "2025-03-04T01:00:00",
+        "effective_date": null
+      },
+      {
+        "latest": true,
+        "sendaitype": "B",
+        "sendainame": "displaced",
+        "sendaivalue": "4",
+        "country": "Peru",
+        "region": "Huancavelica",
+        "dateinsert": "2026-04-02T14:11:45.67",
+        "description": "4 [people] Evacuated in Huancavelica, Departamento de Huancavelica, Peru",
+        "onset_date": "2025-03-03T01:00:00",
+        "expires_date": "2025-03-04T01:00:00",
+        "effective_date": null
+      }
+    ],
+    "impacts": [],
+    "images": {
+      "populationmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107/2rest.png",
+      "floodmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107/7rest.png",
+      "thumbnailmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107.png",
+      "rainmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/6rest.png",
+      "overviewmap_cached": "https://www.gdacs.org/contentdata/resources/FL/1103107/flood_overview_1103107.png",
+      "overviewmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/flood_overview_1103107.png",
+      "rainimage": "https://www.gdacs.org/rainimage/2026/03/3B42RT.2026031000.7.7day.tif",
+      "meteoimages": "https://www.gdacs.org/contentdata/resources/FL/1103107/meteo/",
+      "mslpimages": "https://www.gdacs.org/contentdata/img/mslp/",
+      "event_icon_map": "https://www.gdacs.org/images/gdacs_icons/maps/Green/FL.png",
+      "event_icon": "https://www.gdacs.org/images/gdacs_icons/big/Green/FL.png",
+      "thumbnailmap": "https://www.gdacs.org/contentdata/resources/FL/1103107/dfo2026_1103107.png",
+      "npp_icon": "https://www.gdacs.org/images/gdacs_icons/iconmap/Nuclear.png"
+    },
+    "additionalinfos": {},
+    "documents": {}
+  }
+}
