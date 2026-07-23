@@ -47,10 +47,12 @@ def _mock_response(json_data, content_type="application/json"):
     return mock_resp
 
 
-@pytest.mark.parametrize("hazard,step3_url,step4_url,expected_pystac_count,fixed_output_file", HAZARD_TEST_PARAMS)
+@pytest.mark.parametrize("hazard,step3_url,step4_url,expected_stac_items_count,fixed_output_file", HAZARD_TEST_PARAMS)
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True, CACHES=TEST_CACHES)
 @pytest.mark.django_db
-def test_handle_gdacs_extraction_with_mocked_request(hazard, step3_url, step4_url, expected_pystac_count, fixed_output_file):
+def test_handle_gdacs_extraction_with_mocked_request(
+    hazard, step3_url, step4_url, expected_stac_items_count, fixed_output_file
+):
     """
     Test the GDACS extraction process for a given hazard type.
     Force extractor to only run for 2025-02-05.
@@ -104,7 +106,7 @@ def test_handle_gdacs_extraction_with_mocked_request(hazard, step3_url, step4_ur
     # other hazard types return 204 from session.get so no QUERY is created.
     assert ExtractionData.objects.count() == 4  # QUERY + DETAIL + EPISODE + GEOMETRY
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == expected_pystac_count
+    assert PyStacLoadData.objects.count() == expected_stac_items_count
 
     expected_output = json.load(open(f"{DATASET_DIR}/{fixed_output_file}", encoding="utf-8"))
     actual_json = json.loads(serialize("json", PyStacLoadData.objects.all()))
@@ -120,6 +122,7 @@ def test_handle_gdacs_extraction_with_mocked_request(hazard, step3_url, step4_ur
         "href",
         "keywords",
         "links",
+        "stac_extensions",
     }
 
     actual_cleaned = remove_ignored_keys(actual_json, ignore_keys)

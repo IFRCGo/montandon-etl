@@ -4,7 +4,7 @@ geocoding:
   fullnameOverride: geocoder
   image:
     # TODO: Why?
-    tag: main.c26a216
+    tag: main.a319723
   server:
     serviceName: monty-geocoder  # NOTE: This is used in app using extraEnvVars
     resources:

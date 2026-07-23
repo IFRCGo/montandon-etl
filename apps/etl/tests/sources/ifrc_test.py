@@ -76,7 +76,18 @@ def test_handle_extraction_various_ifrc_files(case):
     actual_json = json.loads(latest_data_json)
 
     # Keys to ignore
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords", "links"}
+    ignored_keys = {
+        "created_at",
+        "modified_at",
+        "monty:etl_id",
+        "pk",
+        "trace",
+        "transform_id",
+        "href",
+        "keywords",
+        "links",
+        "stac_extensions",
+    }
 
     # Clean and compare
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)

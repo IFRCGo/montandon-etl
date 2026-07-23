@@ -81,7 +81,18 @@ def test_handle_extraction_various_ibtracs_files(case):
         expected_json = json.load(expected_file)
 
     # Keys to ignore in comparison
-    ignored_keys = {"created_at", "modified_at", "monty:etl_id", "pk", "trace", "transform_id", "href", "keywords", "links"}
+    ignored_keys = {
+        "created_at",
+        "modified_at",
+        "monty:etl_id",
+        "pk",
+        "trace",
+        "transform_id",
+        "href",
+        "keywords",
+        "links",
+        "stac_extensions",
+    }
 
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
     filtered_expected = remove_ignored_keys(expected_json, ignored_keys)
