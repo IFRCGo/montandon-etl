@@ -1,6 +1,6 @@
 import datetime
-from datetime import date
-from urllib.parse import urlencode
+from datetime import UTC, date
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from celery import shared_task
 
@@ -29,13 +29,22 @@ def ext_and_transform_ifrcevent_latest_data():
     )
 
     if ext_object:
-        start_date = ext_object.created_at.date()
+        # Note: Sometimes the last fetched data can be different from the latest extraction object date
+        # In most cases, the `last_fetched_date` and object's created_at will be the same
+        last_fetched_date = next(
+            filter(
+                None,
+                parse_qs(urlparse(ext_object.metadata["url"]).query).get("created_at__lte", []),
+            ),
+            None,
+        )
+        start_date = last_fetched_date or ext_object.created_at.date()
     else:
         start_date = etl_config.IFRC_EVENT_START_DATE
 
     params = IfrcEventExtractionInputMetadata(
-        disaster_start_date__gte=str(start_date),
-        disaster_start_date__lte=str(datetime.datetime.today().date()),
+        created_at__gte=str(start_date),
+        created_at__lte=str(datetime.datetime.now(UTC).date()),
         limit=50,
         offset=0,
         ordering="-id",
@@ -56,8 +65,8 @@ def ext_and_transform_ifrcevent_historical_data(
     end_date: date,
 ):
     params = IfrcEventExtractionInputMetadata(
-        disaster_start_date__gte=str(start_date),
-        disaster_start_date__lte=str(end_date),
+        created_at__gte=str(start_date),
+        created_at__lte=str(end_date),
         limit=500,
         offset=0,
         ordering="-id",
