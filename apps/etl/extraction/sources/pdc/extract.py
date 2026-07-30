@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 import typing
@@ -230,6 +231,8 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         if not response_data:
             raise NoDataException
 
+        all_pks: list[int] = []
+        has_pending = False
         for item in response_data:
             exposure_extraction_obj = self._find_existing_child(
                 metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
@@ -249,13 +252,19 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     parent_extraction=self.extraction_object,
                     add_to_queue=False,
                 )
-            elif exposure_extraction_obj.status == ExtractionData.Status.SUCCESS:
-                continue
+                has_pending = True
+            elif exposure_extraction_obj.status != ExtractionData.Status.SUCCESS:
+                has_pending = True
+            all_pks.append(exposure_extraction_obj.pk)
 
-            chord(
-                PDCExtractionV2.task.si(exposure_extraction_obj.pk),
-                PDCTransformHandler.task.si(exposure_extraction_obj.id),
-            ).apply_async()
+        if not has_pending:
+            return
+
+        batch_tasks = [
+            PDCExposureBatchTask.task.si(all_pks[i : i + PDCExposureBatchTask.BATCH_SIZE])
+            for i in range(0, len(all_pks), PDCExposureBatchTask.BATCH_SIZE)
+        ]
+        group(batch_tasks).apply_async()
 
     def handle_polygon(self):
         headers = dict(self._get_request_headers())
@@ -305,3 +314,93 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     )
     def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
         PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+
+
+class PDCExposureBatchTask:
+    """
+    Processes a batch of EXPOSURE_DETAIL extractions sequentially.
+
+    Within each batch the impact data hash (excluding the timestamp field) is compared
+    between consecutive extractions.  When the hash is unchanged the extraction is marked
+    NO_CHANGE and the Transform step is skipped; otherwise Transform is queued as normal.
+    Batches run in parallel via Celery group, but items within a batch are sequential so
+    the comparison chain is maintained.
+    """
+
+    BATCH_SIZE = 100
+
+    @staticmethod
+    def compute_exposure_detail_hash(resp_data: bytes) -> str:
+        data = json.loads(resp_data)
+        data.pop("timestamp", None)
+        return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+    def __init__(self, celery_task):
+        self.celery_task = celery_task
+
+    def handle(self, extraction_pks: list[int]):
+        prev_hash: str | None = None
+        prev_extraction_obj: ExtractionData | None = None
+
+        for pk in extraction_pks:
+            extraction_obj = ExtractionData.objects.get(pk=pk)
+
+            # Already processed on a previous run — restore its hash for comparison continuity.
+            if extraction_obj.status == ExtractionData.Status.SUCCESS:
+                prev_hash = extraction_obj.file_hash
+                prev_extraction_obj = extraction_obj
+                continue
+
+            fetcher = PDCExtractionV2(self.celery_task, pk)
+            extraction_obj = fetcher.extraction_object
+            extraction_obj.mark_as_started()
+
+            try:
+                fetcher.handle_exposure_detail()
+            except Exception:
+                logger.exception(
+                    "Failed to extract ExposureDetail %s, resetting hash chain",
+                    pk,
+                    extra=log_extra({"source": ExtractionData.Source.PDC}),
+                )
+                extraction_obj.mark_as_ended(ExtractionData.Status.FAILED)
+                prev_hash = None
+                prev_extraction_obj = None
+                continue
+
+            extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS)
+
+            if not extraction_obj.resp_data:
+                prev_hash = None
+                prev_extraction_obj = None
+                continue
+
+            with extraction_obj.resp_data.open("rb") as f:
+                current_hash = PDCExposureBatchTask.compute_exposure_detail_hash(f.read())
+
+            extraction_obj.file_hash = current_hash
+
+            if prev_hash is not None and current_hash == prev_hash:
+                # Discard the newly-saved file; reuse the previous object's stored data.
+                extraction_obj.resp_data.delete(save=False)
+                extraction_obj.resp_data = prev_extraction_obj.resp_data
+                extraction_obj.revision_id = prev_extraction_obj
+                extraction_obj.source_validation_status = ExtractionData.ValidationStatus.NO_CHANGE
+                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "resp_data", "revision_id_id"])
+                logger.info("ExposureDetail %s: data unchanged, skipping transform", pk)
+            else:
+                extraction_obj.save(update_fields=["file_hash"])
+                PDCTransformHandler.task.delay(pk)
+                prev_extraction_obj = extraction_obj
+
+            prev_hash = current_hash
+
+    @staticmethod
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+        name="apps.etl.extraction.sources.pdc.extract.PDCExposureBatchTask.task",
+    )
+    def task(celery_task, extraction_pks: list[int]):
+        PDCExposureBatchTask(celery_task).handle(extraction_pks)
