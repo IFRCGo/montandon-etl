@@ -63,6 +63,7 @@ class BaseExtraction:
 
             # manage duplicate file content.
             hash_content = hash_file_content(resp_data_content)
+            extraction_instance.file_hash = hash_content
             manage_duplicate_file_content(
                 source=extraction_instance.source,
                 hash_content=hash_content,
@@ -272,6 +273,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         if resp_data_content:
             # manage duplicate file content. FIXME: Does this work
             hash_content = hash_file_content(resp_data_content)
+            extraction_object.file_hash = hash_content
             manage_duplicate_file_content(
                 source=extraction_object.source,
                 hash_content=hash_content,

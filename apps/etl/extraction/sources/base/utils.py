@@ -38,7 +38,7 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
     duplicate_extraction_obj = duplicate_extraction_qs.first()
     if duplicate_extraction_obj:
         instance.resp_data = duplicate_extraction_obj.resp_data
-        instance.revision_id = duplicate_extraction_obj.id
+        instance.revision_id = duplicate_extraction_obj
     else:
         instance.resp_data.save(file_name, ContentFile(response_data))
 
@@ -80,6 +80,7 @@ def store_extraction_data(
 
         # manage duplicate file content.
         hash_content = hash_file_content(resp_data_content)
+        extraction_instance.file_hash = hash_content
         manage_duplicate_file_content(
             source=source,
             hash_content=hash_content,

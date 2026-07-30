@@ -73,6 +73,7 @@ class GFDExtraction(BaseExtractionV2[GFDExtractionMetadata]):
         if response_data:
             # manage duplicate file content.
             hash_content = self.hash_json_content(response_data)
+            extraction_object.file_hash = hash_content
             manage_duplicate_file_content(
                 source=extraction_object.source,
                 hash_content=hash_content,
