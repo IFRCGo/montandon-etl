@@ -64,6 +64,7 @@ def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date
                 ),
                 type=GlideExtractionMetadataType.QUERY,
             ),
+            hazard_type=hazard_type.value,
             queue_name=CeleryQueue.EXTRACTION,
         )
 
@@ -104,6 +105,7 @@ def ext_and_transform_glide_latest_data():
                 ),
                 type=GlideExtractionMetadataType.QUERY,
             ),
+            hazard_type=hazard_type.value,
             queue_name=CeleryQueue.EXTRACTION,
         )
 

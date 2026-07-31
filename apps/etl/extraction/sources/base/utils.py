@@ -14,12 +14,11 @@ def hash_file_content(content):
     Compute the hash of a file using the specified algorithm.
     :return: Hexadecimal hash of the file
     """
-    file_hash = hashlib.sha256(content).hexdigest()
-    return file_hash
+    return hashlib.sha256(content).hexdigest()
 
 
 # FIXME: This is not correct. "revision_id" cannot be attached as such
-def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name):
+def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name, extra_filters=None):
     """
     if duplicate file content exists then do not create a new file, but point the url to
     the previous file.
@@ -31,6 +30,8 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
         source=source,
         file_hash=hash_content,
         file_hash__isnull=False,
+        hazard_type=instance.hazard_type,
+        **(extra_filters or {}),
     )
     if instance.id:
         duplicate_extraction_qs = duplicate_extraction_qs.exclude(id=instance.id)

@@ -1,3 +1,4 @@
+import json
 import logging
 import typing
 from enum import Enum
@@ -39,6 +40,21 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
     source_enum = ExtractionData.Source.GLIDE
     extraction_metadata_class = GlideExtractionMetadata
 
+    def get_duplicate_check_filters(self) -> dict | None:
+        return {"metadata__params__events": self.extraction_metadata.params.events}
+
+    @classmethod
+    def get_content_for_hash(cls, content: bytes) -> bytes | None:
+        try:
+            data = json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            return content
+        # Both {"glideset":[]} and {"glideset":[\r\n]} parse to an empty list — treat as empty file, skip hashing.
+        if not data.get("glideset"):
+            return None
+        # Normalize non-empty responses to canonical JSON before hashing.
+        return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
     def handle_type_query(self):
         url = self.extraction_metadata.url
         params = self.extraction_metadata.params
@@ -49,6 +65,9 @@ class GlideExtraction(BaseExtractionV2[GlideExtractionMetadata]):
                 "Failed to extract data",
                 extra=log_extra({"source": self.source_enum, "extraction": self.extraction_object}),
             )
+            return
+        # file_hash is None when get_content_for_hash signalled empty glideset — no transform needed.
+        if self.extraction_object.file_hash is None:
             return
         GlideTransformHandler.task.delay(self.extraction_object.id)
 

@@ -7,6 +7,7 @@ from typing import Any, Callable, Optional
 
 import pydantic
 import requests
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.functional import cached_property
 
@@ -250,8 +251,19 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         self.extraction_metadata = self.extraction_metadata_class(**self.extraction_object.metadata)
 
     @classmethod
+    def get_content_for_hash(cls, content: bytes) -> bytes | None:
+        """
+        Hook for subclasses to control hashing behaviour.
+        Return normalized bytes to hash, or None to skip hashing entirely
+        (the file will still be saved, but file_hash and revision_id won't be set).
+        """
+        return content
+
+    def get_duplicate_check_filters(self) -> dict | None:
+        return None
+
     def _extraction_store_data(
-        cls,
+        self,
         *,
         extraction_object: ExtractionData,
         response: requests.Response,
@@ -271,16 +283,23 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
 
         # Validate the non empty response data.
         if resp_data_content:
-            # manage duplicate file content. FIXME: Does this work
-            hash_content = hash_file_content(resp_data_content)
-            extraction_object.file_hash = hash_content
-            manage_duplicate_file_content(
-                source=extraction_object.source,
-                hash_content=hash_content,
-                instance=extraction_object,
-                response_data=resp_data_content,
-                file_name=file_name,
-            )
+            content_for_hash = self.get_content_for_hash(resp_data_content)
+            if content_for_hash is not None:
+                # manage duplicate file content. FIXME: Does this work
+                hash_content = hash_file_content(content_for_hash)
+                extraction_object.file_hash = hash_content
+                manage_duplicate_file_content(
+                    source=extraction_object.source,
+                    hash_content=hash_content,
+                    instance=extraction_object,
+                    response_data=resp_data_content,
+                    file_name=file_name,
+                    extra_filters=self.get_duplicate_check_filters(),
+                )
+            else:
+                # Hashing skipped by subclass — save the file as-is so it cannot become a revision_id.
+                extraction_object.resp_data.save(file_name, ContentFile(resp_data_content), save=False)
+                extraction_object.save()
         return extraction_object
 
     def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None, timeout: int = 30) -> bool:
@@ -369,6 +388,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         parent_extraction: ExtractionData | None = None,
         add_to_queue: bool = True,
         queue_name: str | None = None,
+        hazard_type: str | None = None,
     ) -> ExtractionData:
         extraction_obj = ExtractionData.objects.create(
             source=cls.source_enum,
@@ -380,6 +400,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             metadata=metadata.model_dump(),
             attempt_no=0,
             resp_code=0,
+            hazard_type=hazard_type,
         )
 
         if add_to_queue:
