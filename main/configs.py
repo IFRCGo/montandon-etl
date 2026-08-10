@@ -200,6 +200,9 @@ class EtlConfig:
         self.EMDAT_END_YEAR = self.parse_int_value_required("EMDAT_END_YEAR")
         self.EMDAT_AUTHORIZATION_KEY = self.parse_non_empty_value("EMDAT_AUTHORIZATION_KEY")
 
+        # Copernicus
+        self.COPERNICUS_URL = self.parse_base_url_required("COPERNICUS_URL")
+
         # GDACS
         self.GDACS_URL = self.parse_base_url_required("GDACS_URL")
         self.GDACS_START_DATE = self.parse_date_value_required("GDACS_START_DATE")
