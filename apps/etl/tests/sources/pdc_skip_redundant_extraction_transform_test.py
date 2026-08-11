@@ -66,11 +66,11 @@ def test_compute_exposure_detail_hash_ignores_timestamp():
 
 @pytest.mark.django_db
 def test_batch_task_skips_transform_for_unchanged_data_and_resets_after_failure():
-    # item_1: baseline
-    # item_2: identical content to item_1 (different timestamp) -> should be skipped (NO_CHANGE)
-    # item_3: content changed -> should transform normally
-    # item_4: fetch fails -> chain should reset
-    # item_5: identical content to item_3, but comes right after a failure -> must NOT be skipped
+    # item_1: baseline (A)        -> transform;   revision_id=None
+    # item_2: same content (A=T1) -> NO_CHANGE;   revision_id=item_1
+    # item_3: content changed (B) -> transform;   revision_id=None
+    # item_4: fetch fails (all retries) -> chain preserved (prev stays item_3)
+    # item_5: same content (B=T3) -> NO_CHANGE;   revision_id=item_3
     item_1 = _make_exposure_detail_extraction("1000")
     item_2 = _make_exposure_detail_extraction("2000")
     item_3 = _make_exposure_detail_extraction("3000")
@@ -91,6 +91,7 @@ def test_batch_task_skips_transform_for_unchanged_data_and_resets_after_failure(
 
     with (
         patch("requests.get", side_effect=mock_get),
+        patch("apps.etl.extraction.sources.pdc.extract.time.sleep"),
         patch.object(PDCTransformHandler.task, "delay") as mock_transform_delay,
     ):
         PDCExposureBatchTask(celery_task=MagicMock()).handle([item_1.pk, item_2.pk, item_3.pk, item_4.pk, item_5.pk])
@@ -101,31 +102,34 @@ def test_batch_task_skips_transform_for_unchanged_data_and_resets_after_failure(
     item_4.refresh_from_db()
     item_5.refresh_from_db()
 
-    # item_1: nothing to compare against yet -> transformed
+    # item_1: transform (no predecessor) -> revision_id not set
     assert item_1.status == ExtractionData.Status.SUCCESS
     assert item_1.source_validation_status != ExtractionData.ValidationStatus.NO_CHANGE
 
-    # item_2: same content as item_1 -> skipped, resp_data reuses item_1's file, revision_id points to item_1
+    # item_2: same content as item_1 -> NO_CHANGE; revision_id points to item_1
     assert item_2.status == ExtractionData.Status.SUCCESS
     assert item_2.source_validation_status == ExtractionData.ValidationStatus.NO_CHANGE
     assert item_2.file_hash == item_1.file_hash
-    assert item_2.resp_data.name == item_1.resp_data.name
+    assert item_2.resp_data.name != item_1.resp_data.name
     assert item_2.revision_id == item_1
 
-    # item_3: content changed -> transformed
+    # item_3: content changed -> transform; revision_id not set
     assert item_3.status == ExtractionData.Status.SUCCESS
     assert item_3.source_validation_status != ExtractionData.ValidationStatus.NO_CHANGE
+    assert item_3.revision_id is None
 
-    # item_4: fetch failed
+    # item_4: fetch failed after all retries; hash chain preserved
     assert item_4.status == ExtractionData.Status.FAILED
 
-    # item_5: same content as item_3, but chain was reset by item_4's failure -> transformed, not skipped
+    # item_5: same content as item_3, chain preserved through item_4's failure -> NO_CHANGE;
+    # compared against item_3, revision_id points to item_3
     assert item_5.status == ExtractionData.Status.SUCCESS
-    assert item_5.source_validation_status != ExtractionData.ValidationStatus.NO_CHANGE
+    assert item_5.source_validation_status == ExtractionData.ValidationStatus.NO_CHANGE
     assert item_5.file_hash == item_3.file_hash
+    assert item_5.revision_id == item_3
 
     transformed_pks = {call.args[0] for call in mock_transform_delay.call_args_list}
-    assert transformed_pks == {item_1.pk, item_3.pk, item_5.pk}
+    assert transformed_pks == {item_1.pk, item_3.pk}
 
 
 @pytest.mark.django_db
@@ -153,7 +157,7 @@ def test_batch_task_restores_hash_chain_for_already_successful_items():
     item_1.refresh_from_db()
     assert item_2.status == ExtractionData.Status.SUCCESS
     assert item_2.source_validation_status == ExtractionData.ValidationStatus.NO_CHANGE
-    assert item_2.resp_data.name == item_1.resp_data.name
+    assert item_2.resp_data.name != item_1.resp_data.name
     assert item_2.revision_id == item_1
     mock_transform_delay.assert_not_called()
 

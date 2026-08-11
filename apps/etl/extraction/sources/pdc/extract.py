@@ -1,6 +1,7 @@
 import hashlib
 import json
 import logging
+import time
 import typing
 from enum import Enum
 
@@ -328,6 +329,7 @@ class PDCExposureBatchTask:
     """
 
     BATCH_SIZE = 100
+    BATCH_ITEM_MAX_RETRIES = 3
 
     @staticmethod
     def compute_exposure_detail_hash(resp_data: bytes) -> str:
@@ -355,17 +357,33 @@ class PDCExposureBatchTask:
             extraction_obj = fetcher.extraction_object
             extraction_obj.mark_as_started()
 
-            try:
-                fetcher.handle_exposure_detail()
-            except Exception:
-                logger.exception(
-                    "Failed to extract ExposureDetail %s, resetting hash chain",
-                    pk,
-                    extra=log_extra({"source": ExtractionData.Source.PDC}),
-                )
-                extraction_obj.mark_as_ended(ExtractionData.Status.FAILED)
-                prev_hash = None
-                prev_extraction_obj = None
+            for attempt in range(PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1):
+                try:
+                    fetcher.handle_exposure_detail()
+                    break
+                except Exception:
+                    if attempt < PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES:
+                        delay = RetryableTask.exponential_backoff_with_jitter(attempt)
+                        logger.warning(
+                            "ExposureDetail %s: attempt %d/%d failed, retrying in %.1fs",
+                            pk,
+                            attempt + 1,
+                            PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1,
+                            delay,
+                            extra=log_extra({"source": ExtractionData.Source.PDC}),
+                        )
+                        time.sleep(delay)
+                    else:
+                        logger.exception(
+                            "ExposureDetail %s failed after %d attempts, preserving hash chain",
+                            pk,
+                            PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1,
+                            extra=log_extra({"source": ExtractionData.Source.PDC}),
+                        )
+                        extraction_obj.mark_as_ended(ExtractionData.Status.FAILED)
+            else:
+                # All retries exhausted — skip to next item, keep prev_hash/prev_extraction_obj
+                # intact so the next successful item still compares against the last known state.
                 continue
 
             extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS)
@@ -379,20 +397,16 @@ class PDCExposureBatchTask:
                 current_hash = PDCExposureBatchTask.compute_exposure_detail_hash(f.read())
 
             extraction_obj.file_hash = current_hash
-
             if prev_hash is not None and current_hash == prev_hash:
-                # Discard the newly-saved file; reuse the previous object's stored data.
-                extraction_obj.resp_data.delete(save=False)
-                extraction_obj.resp_data = prev_extraction_obj.resp_data
                 extraction_obj.revision_id = prev_extraction_obj
                 extraction_obj.source_validation_status = ExtractionData.ValidationStatus.NO_CHANGE
-                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "resp_data", "revision_id_id"])
+                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "revision_id_id"])
                 logger.info("ExposureDetail %s: data unchanged, skipping transform", pk)
             else:
                 extraction_obj.save(update_fields=["file_hash"])
                 PDCTransformHandler.task.delay(pk)
-                prev_extraction_obj = extraction_obj
 
+            prev_extraction_obj = extraction_obj
             prev_hash = current_hash
 
     @staticmethod
