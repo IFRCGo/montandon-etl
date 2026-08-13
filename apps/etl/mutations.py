@@ -5,6 +5,7 @@ import strawberry
 from asgiref.sync import sync_to_async
 from celery import chain, chord, group, shared_task
 
+from apps.etl.extraction.sources.copernicus.extract import CopernicusExtraction
 from apps.etl.extraction.sources.desinventar.extract import DesInventarExtraction
 from apps.etl.extraction.sources.emdat.extract import EmdatExtraction
 from apps.etl.extraction.sources.gdacs.extract import GdacsExtraction
@@ -18,6 +19,7 @@ from apps.etl.extraction.sources.pdc.extract import PDCExtractionMetaDataType, P
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.input_types import PipelineRetriggerInput, TransformRetriggerInput
 from apps.etl.models import ExtractionData, Transform
+from apps.etl.transform.sources.copernicus import CopernicusTransformHandler
 from apps.etl.transform.sources.desinventar import DesinventarTransformHandler
 from apps.etl.transform.sources.emdat import EMDATTransformHandler
 from apps.etl.transform.sources.gdacs import GDACSTransformHandler
@@ -46,6 +48,7 @@ source_extraction_map = {
     ExtractionData.Source.USGS: USGSExtraction,
     ExtractionData.Source.PDC: PDCExtractionV2,
     ExtractionData.Source.IBTRACS: IBTrACSExtraction,
+    ExtractionData.Source.COPERNICUS: CopernicusExtraction,
 }
 source_transform_map = {
     ExtractionData.Source.EMDAT: EMDATTransformHandler,
@@ -59,6 +62,7 @@ source_transform_map = {
     ExtractionData.Source.IBTRACS: IbtracsTransformHandler,
     ExtractionData.Source.PDC: PDCTransformHandler,
     ExtractionData.Source.USGS: USGSTransformHandler,
+    ExtractionData.Source.COPERNICUS: CopernicusTransformHandler,
 }
 
 
