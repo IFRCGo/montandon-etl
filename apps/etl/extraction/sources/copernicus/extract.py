@@ -39,6 +39,10 @@ class CopernicusExtraction(BaseExtractionV2[CopernicusExtractionMetadata]):
     source_enum = ExtractionData.Source.COPERNICUS
     extraction_metadata_class = CopernicusExtractionMetadata
 
+    @classmethod
+    def _duplicate_extra_filters(cls, extraction_object: ExtractionData) -> dict | None:
+        return {"metadata__url": extraction_object.metadata.get("url")}
+
     def handle_type_query(self):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
