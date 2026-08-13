@@ -166,7 +166,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
                     ),
-                    parent_extraction=self.extraction_object,
                     queue_name=CeleryQueue.EXTRACTION,
                 )
 
@@ -342,7 +341,8 @@ class PDCExposureBatchTask:
 
     def handle(self, extraction_pks: list[int]):
         prev_hash: str | None = None
-        prev_extraction_obj: ExtractionData | None = None
+        prev_success_extraction_obj: ExtractionData | None = None
+        last_extraction_obj: ExtractionData | None = None
 
         for pk in extraction_pks:
             extraction_obj = ExtractionData.objects.get(pk=pk)
@@ -350,11 +350,17 @@ class PDCExposureBatchTask:
             # Already processed on a previous run — restore its hash for comparison continuity.
             if extraction_obj.status == ExtractionData.Status.SUCCESS:
                 prev_hash = extraction_obj.file_hash
-                prev_extraction_obj = extraction_obj
+                prev_success_extraction_obj = extraction_obj
+                last_extraction_obj = extraction_obj
                 continue
 
             fetcher = PDCExtractionV2(self.celery_task, pk)
             extraction_obj = fetcher.extraction_object
+
+            if last_extraction_obj is not None:
+                extraction_obj.metadata["previous_obj_id"] = last_extraction_obj.id
+                extraction_obj.metadata["previous_obj_status"] = str(ExtractionData.Status(last_extraction_obj.status).label)
+
             extraction_obj.mark_as_started()
 
             for attempt in range(PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1):
@@ -380,17 +386,19 @@ class PDCExposureBatchTask:
                             PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1,
                             extra=log_extra({"source": ExtractionData.Source.PDC}),
                         )
-                        extraction_obj.mark_as_ended(ExtractionData.Status.FAILED)
+                        extraction_obj.mark_as_ended(ExtractionData.Status.FAILED, update_fields=["metadata"])
             else:
                 # All retries exhausted — skip to next item, keep prev_hash/prev_extraction_obj
                 # intact so the next successful item still compares against the last known state.
+                last_extraction_obj = extraction_obj
                 continue
 
-            extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS)
+            extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["metadata"])
 
             if not extraction_obj.resp_data:
                 prev_hash = None
-                prev_extraction_obj = None
+                prev_success_extraction_obj = None
+                last_extraction_obj = extraction_obj
                 continue
 
             with extraction_obj.resp_data.open("rb") as f:
@@ -398,16 +406,17 @@ class PDCExposureBatchTask:
 
             extraction_obj.file_hash = current_hash
             if prev_hash is not None and current_hash == prev_hash:
-                extraction_obj.revision_id = prev_extraction_obj
+                extraction_obj.revision_id = prev_success_extraction_obj
                 extraction_obj.source_validation_status = ExtractionData.ValidationStatus.NO_CHANGE
-                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "revision_id_id"])
+                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "revision_id_id", "metadata"])
                 logger.info("ExposureDetail %s: data unchanged, skipping transform", pk)
             else:
-                extraction_obj.save(update_fields=["file_hash"])
+                extraction_obj.save(update_fields=["file_hash", "metadata"])
                 PDCTransformHandler.task.delay(pk)
 
-            prev_extraction_obj = extraction_obj
+            prev_success_extraction_obj = extraction_obj
             prev_hash = current_hash
+            last_extraction_obj = extraction_obj
 
     @staticmethod
     @app.task(
