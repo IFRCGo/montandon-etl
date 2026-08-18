@@ -32,8 +32,8 @@ class CharterExtractionMetadataType(str, Enum):
     AREA = "AREA"
     VAPS_CATALOG = "VAPS_CATALOG"
     VAPS = "VAPS"
-    ACQUISITIONS = "ACQUISITIONS"  # Legacy container type; kept for backward compat
-    ACQUISITION = "ACQUISITION"
+    CALIBRATED_DATASETS = "CALIBRATED_DATASETS"  # Legacy container type; kept for backward compat
+    CALIBRATED_DATASET = "CALIBRATED_DATASET"
 
 
 class CharterExtractionMetadata(pydantic.BaseModel):
@@ -57,13 +57,13 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
        three sets of child tasks in parallel:
          - AREA tasks    — one per area linked in the activation JSON
          - VAPS tasks    — one per VAP folder found under .../vaps/
-         - ACQUISITION tasks — one per acquisition folder found under
-                               .../calls/call-{id}/acquisitions/
+         - CALIBRATED_DATASET tasks — one per calibrated dataset folder found under
+                               .../calls/call-{id}/calibratedDatasets/
 
        All child tasks are grouped into a Celery chord so that the transform
        fires exactly once when every child completes.
 
-    3. AREA / VAPS / ACQUISITION — each fetches its own JSON file from S3
+    3. AREA / VAPS / CALIBRATED_DATASET — each fetches its own JSON file from S3
        and stores it. No further fan-out.
 
     Deduplication (two layers)
@@ -258,14 +258,14 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             for vap_id in vap_ids
         ]
 
-    def _make_acquisition_tasks(self, call_ids: list[int], activation_id: int) -> list:
+    def _make_calibrated_dataset_tasks(self, call_ids: list[int], activation_id: int) -> list:
         tasks = []
         for call_id in call_ids:
             try:
-                acq_ids = self._list_s3_prefixes(f"calls/call-{call_id}/acquisitions/")
+                dataset_ids = self._list_s3_prefixes(f"calls/call-{call_id}/calibratedDatasets/")
             except (BotoCoreError, ClientError):
                 logger.warning(
-                    "Failed to list acquisitions from S3 for call %s, skipping",
+                    "Failed to list calibrated datasets from S3 for call %s, skipping",
                     call_id,
                     extra=log_extra({"source": self.source_enum}),
                     exc_info=True,
@@ -274,13 +274,13 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             tasks.extend(
                 self._make_task(
                     CharterExtractionMetadata(
-                        url=self._s3_uri("calls", f"call-{call_id}", "acquisitions", acq_id, f"{acq_id}.json"),
-                        type=CharterExtractionMetadataType.ACQUISITION,
+                        url=self._s3_uri("calls", f"call-{call_id}", "calibratedDatasets", dataset_id, f"{dataset_id}.json"),
+                        type=CharterExtractionMetadataType.CALIBRATED_DATASET,
                         activation_id=activation_id,
                         call_id=call_id,
                     )
                 )
-                for acq_id in acq_ids
+                for dataset_id in dataset_ids
             )
         return tasks
 
@@ -363,30 +363,31 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
         all_tasks = (
             self._make_area_tasks(activation_data, activation_id)
             + self._make_vap_tasks(activation_id)
-            + self._make_acquisition_tasks(call_ids, activation_id)
+            + self._make_calibrated_dataset_tasks(call_ids, activation_id)
         )
         self._dispatch_transform(all_tasks, self.extraction_object.id)
 
-    def handle_type_acquisitions(self):
-        # Legacy ACQUISITIONS container type — new activations use ACQUISITION children
-        # directly under the activation; this path handles old DB records.
+    def handle_type_calibrated_datasets(self):
+        # Legacy CALIBRATED_DATASETS container type — new activations use
+        # CALIBRATED_DATASET children directly under the activation; this
+        # path handles old DB records.
         call_id = self.extraction_metadata.call_id
         activation_id = self.extraction_metadata.activation_id
         parent = self.extraction_object.parent
         if parent is None:
             logger.warning(
-                "ACQUISITIONS extraction has no parent, cannot trigger transform",
+                "CALIBRATED_DATASETS extraction has no parent, cannot trigger transform",
                 extra=log_extra({"source": self.source_enum}),
             )
             return
         if call_id is None or activation_id is None:
             logger.warning(
-                "ACQUISITIONS extraction %s is missing call_id or activation_id, skipping",
+                "CALIBRATED_DATASETS extraction %s is missing call_id or activation_id, skipping",
                 self.extraction_object.pk,
                 extra=log_extra({"source": self.source_enum}),
             )
             return
-        tasks = self._make_acquisition_tasks([call_id], activation_id)
+        tasks = self._make_calibrated_dataset_tasks([call_id], activation_id)
         self._dispatch_transform(tasks, parent.pk)
 
     # ------------------------------------------------------------------ #
@@ -409,13 +410,13 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             case (
                 CharterExtractionMetadataType.AREA
                 | CharterExtractionMetadataType.VAPS
-                | CharterExtractionMetadataType.ACQUISITION
+                | CharterExtractionMetadataType.CALIBRATED_DATASET
             ):
                 return self._fetch_s3_file(self.extraction_metadata.url)
             case CharterExtractionMetadataType.VAPS_CATALOG:
                 return None  # container record; no fetch needed
-            case CharterExtractionMetadataType.ACQUISITIONS:
-                return self.handle_type_acquisitions()
+            case CharterExtractionMetadataType.CALIBRATED_DATASETS:
+                return self.handle_type_calibrated_datasets()
             case _:
                 typing.assert_never(handler_type)
 
