@@ -19,101 +19,77 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
     transformer_class = CharterTransformer
     transformer_schema = CharterDataSource
 
+    @staticmethod
+    def _read_json(ext_obj: ExtractionData, label: str) -> dict | list | None:
+        if not ext_obj.resp_data:
+            return None
+        try:
+            with ext_obj.resp_data.open("rb") as f:
+                return json.load(f)
+        except Exception:
+            logger.warning("Failed to read %s extraction %s", label, ext_obj.id, exc_info=True)
+            return None
+
+    @staticmethod
+    def _normalize_vap(raw: dict | list) -> list[dict]:
+        if isinstance(raw, list):
+            return raw
+        features = raw.get("features")
+        return features if features is not None else [raw]
+
+    @classmethod
+    def _collect_children(cls, parent: ExtractionData, metadata_type: str):
+        return parent.child_extractions.filter(
+            status=ExtractionData.Status.SUCCESS,
+            metadata__type=metadata_type,
+        ).order_by("id")
+
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData, dir_uuid: str) -> CharterDataSource:
         with extraction_obj.resp_data.open("rb") as f:
             activation_data = json.load(f)
 
         areas_data: list[dict] = []
+        for area_ext in cls._collect_children(extraction_obj, "AREA"):
+            raw = cls._read_json(area_ext, "area")
+            if isinstance(raw, dict):
+                areas_data.append(raw)
+
         vaps_data: list[dict] = []
-        acquisitions_data: list[dict] = []
-
-        # Areas are always direct children of the activation.
-        for area_ext in extraction_obj.child_extractions.filter(
-            status=ExtractionData.Status.SUCCESS,
-            metadata__type="AREA",
-        ).order_by("id"):
-            if not area_ext.resp_data:
-                continue
-            try:
-                with area_ext.resp_data.open("rb") as f:
-                    area_data = json.load(f)
-                if isinstance(area_data, dict):
-                    areas_data.append(area_data)
-            except Exception:
-                logger.warning("Failed to read area extraction %s", area_ext.id, exc_info=True)
-
-        def _collect_vap(vaps_ext) -> None:
-            if not vaps_ext.resp_data:
-                return
-            try:
-                with vaps_ext.resp_data.open("rb") as f:
-                    vaps_raw = json.load(f)
-                if isinstance(vaps_raw, list):
-                    vaps_data.extend(vaps_raw)
-                elif isinstance(vaps_raw, dict):
-                    features = vaps_raw.get("features")
-                    if features is not None:
-                        vaps_data.extend(features)
-                    else:
-                        vaps_data.append(vaps_raw)
-            except Exception:
-                logger.warning("Failed to read vaps extraction %s", vaps_ext.id, exc_info=True)
-
-        # New structure: VAPS as direct children of the activation.
-        for vaps_ext in extraction_obj.child_extractions.filter(
-            status=ExtractionData.Status.SUCCESS,
-            metadata__type="VAPS",
-        ).order_by("id"):
-            _collect_vap(vaps_ext)
-
+        for vaps_ext in cls._collect_children(extraction_obj, "VAPS"):
+            raw = cls._read_json(vaps_ext, "vaps")
+            if raw is not None:
+                vaps_data.extend(cls._normalize_vap(raw))
         # Old structure (backward compat): VAPS nested under a VAPS_CATALOG container.
-        for vaps_catalog_ext in extraction_obj.child_extractions.filter(
-            status=ExtractionData.Status.SUCCESS,
-            metadata__type="VAPS_CATALOG",
-        ).order_by("id"):
-            for vaps_ext in vaps_catalog_ext.child_extractions.filter(
-                status=ExtractionData.Status.SUCCESS,
-                metadata__type="VAPS",
-            ).order_by("id"):
-                _collect_vap(vaps_ext)
+        for catalog_ext in cls._collect_children(extraction_obj, "VAPS_CATALOG"):
+            for vaps_ext in cls._collect_children(catalog_ext, "VAPS"):
+                raw = cls._read_json(vaps_ext, "vaps")
+                if raw is not None:
+                    vaps_data.extend(cls._normalize_vap(raw))
 
-        def _collect_acquisition(acq_ext) -> None:
-            if not acq_ext.resp_data:
-                return
-            try:
-                with acq_ext.resp_data.open("rb") as f:
-                    acq_data = json.load(f)
-                if not isinstance(acq_data, dict):
-                    return
-                if not acq_data.get("id"):
-                    logger.warning("Acquisition %s has no id, skipping", acq_ext.id)
-                    return
-                acquisitions_data.append(acq_data)
-            except Exception:
-                logger.warning("Failed to read acquisition extraction %s", acq_ext.id, exc_info=True)
-
-        # New structure: ACQUISITION as direct children of the activation.
-        for acq_ext in extraction_obj.child_extractions.filter(
-            status=ExtractionData.Status.SUCCESS,
-            metadata__type="ACQUISITION",
-        ).order_by("id"):
-            _collect_acquisition(acq_ext)
-
-        # Old structure (backward compat): ACQUISITION nested under an ACQUISITIONS container.
-        for acquisitions_ext in extraction_obj.child_extractions.filter(
-            status=ExtractionData.Status.SUCCESS,
-            metadata__type="ACQUISITIONS",
-        ).order_by("id"):
-            for acq_ext in acquisitions_ext.child_extractions.filter(
-                status=ExtractionData.Status.SUCCESS,
-                metadata__type="ACQUISITION",
-            ).order_by("id"):
-                _collect_acquisition(acq_ext)
+        calibrated_datasets_data: list[dict] = []
+        for dataset_ext in cls._collect_children(extraction_obj, "CALIBRATED_DATASET"):
+            raw = cls._read_json(dataset_ext, "calibrated dataset")
+            if not isinstance(raw, dict):
+                continue
+            if not raw.get("id"):
+                logger.warning("Calibrated dataset extraction %s has no id, skipping", dataset_ext.id)
+                continue
+            calibrated_datasets_data.append(raw)
+        # Old structure (backward compat): CALIBRATED_DATASET nested under a CALIBRATED_DATASETS container.
+        for datasets_ext in cls._collect_children(extraction_obj, "CALIBRATED_DATASETS"):
+            for dataset_ext in cls._collect_children(datasets_ext, "CALIBRATED_DATASET"):
+                raw = cls._read_json(dataset_ext, "calibrated dataset")
+                if not isinstance(raw, dict):
+                    continue
+                if not raw.get("id"):
+                    logger.warning("Calibrated dataset extraction %s has no id, skipping", dataset_ext.id)
+                    continue
+                calibrated_datasets_data.append(raw)
 
         activation_data["areas"] = areas_data
         activation_data["vaps"] = vaps_data
-        activation_data["calibrated_datasets"] = acquisitions_data
+        activation_data["calibrated_datasets"] = calibrated_datasets_data
 
         tmp_dir_path = Path("/tmp") / extraction_obj.get_source_display() / dir_uuid
         tmp_dir_path.mkdir(parents=True, exist_ok=True)
@@ -128,24 +104,25 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
         )
 
     @staticmethod
-    @app.task(queue=CeleryQueue.TRANSFORM)
-    def task(extraction_id: int) -> None:
-        activation_ext = ExtractionData.objects.get(id=extraction_id)
-
-        activation_unchanged = activation_ext.source_validation_status == ExtractionData.ValidationStatus.NO_CHANGE
-        has_changed_children = (
-            activation_ext.child_extractions.filter(
-                metadata__type__in=["AREA", "VAPS", "ACQUISITION"],
+    def _should_skip_transform(activation_ext: ExtractionData) -> bool:
+        if activation_ext.source_validation_status != ExtractionData.ValidationStatus.NO_CHANGE:
+            return False
+        return (
+            not activation_ext.child_extractions.filter(
+                metadata__type__in=["AREA", "VAPS", "CALIBRATED_DATASET"],
             )
             .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_CHANGE)
             .exists()
         )
 
-        if activation_unchanged and not has_changed_children:
+    @staticmethod
+    @app.task(queue=CeleryQueue.TRANSFORM)
+    def task(extraction_id: int) -> None:
+        activation_ext = ExtractionData.objects.get(id=extraction_id)
+        if DisasterCharterTransformHandler._should_skip_transform(activation_ext):
             logger.info(
-                "Skipping transform for activation extraction %s: all etags matched, no data changed",
+                "Skipping transform for activation extraction %s: no data changed",
                 extraction_id,
             )
             return
-
         DisasterCharterTransformHandler().handle_transformation(extraction_id, settings.CHARTER_TRANSFORMER_VERSION)
