@@ -40,6 +40,17 @@ def test_handle_extraction_various_desinventar_files(case):
 
     # Construct mock URL
     mock_url = f"{etl_config.DESINVENTAR_DATA_URL}/DesInventar/download/DI_export_{country_code}.zip"
+    geocoder_geometry_url = f"{etl_config.GEOCODER_URL}/country/geometry"
+
+    # Deterministic stand-in for the country-level geometry the real geocoding
+    # service would return, used as a fallback when a row has no admin-level geometry.
+    fallback_geometry = {
+        "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[-61.802, 11.986], [-61.611, 11.986], [-61.611, 12.232], [-61.802, 12.232], [-61.802, 11.986]]],
+        },
+        "bbox": [-61.802, 11.986, -61.611, 12.232],
+    }
 
     def custom_get(url, *args, **kwargs):
         if url == mock_url:
@@ -47,6 +58,10 @@ def test_handle_extraction_various_desinventar_files(case):
             mock_response.status_code = 200
             mock_response.content = zip_data
             mock_response.headers = {"Content-Type": "application/zip"}
+        elif url == geocoder_geometry_url:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = fallback_geometry
         else:
             # Simulate failure for other countries
             mock_response = MagicMock()
