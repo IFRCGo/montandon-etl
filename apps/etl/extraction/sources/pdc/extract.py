@@ -71,6 +71,7 @@ class PDCExtractionMetadata(pydantic.BaseModel):
     hazard: typing.Optional[PdcHazardInputMetadata] = None
     exposure_list: typing.Optional[PDCExposurelistMetadata] = None
     polygon: typing.Optional[PdcPolygonMetadata] = None
+    prev_page_obj_id: int | None = None
 
     @pydantic.model_validator(mode="after")
     def check_required_by_type(self) -> "PDCExtractionMetadata":
@@ -165,6 +166,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         hazard=data,
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
+                        prev_page_obj_id=self.extraction_object.id,
                     ),
                     queue_name=CeleryQueue.EXTRACTION,
                 )

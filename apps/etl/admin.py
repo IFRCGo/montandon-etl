@@ -79,6 +79,7 @@ class ExtractionDataAdmin(AdminReadOnlyMixin, DjangoQLSearchMixin, admin.ModelAd
         "id",
         linkify("trace"),
         linkify("parent"),
+        "revision_id",
         "source",
         "metadata",
         "status",
