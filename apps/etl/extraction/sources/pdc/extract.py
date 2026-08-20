@@ -36,6 +36,8 @@ class PdcExposureMetadata(pydantic.BaseModel):
     exposure_id: str | None = None
     hazard_uuid: str | None = None
     geojson_id: int | None = None
+    prev_obj_id: int | None = None
+    prev_obj_status: str | None = None
 
 
 class Pagination(pydantic.BaseModel):
@@ -52,6 +54,7 @@ class Restriction(pydantic.BaseModel):
 class PdcHazardInputMetadata(pydantic.BaseModel):
     pagination: Pagination
     restrictions: typing.List[typing.List[Restriction]]
+    prev_hazard_page_obj_id: int | None = None
 
 
 class PDCExposurelistMetadata(pydantic.BaseModel):
@@ -71,7 +74,6 @@ class PDCExtractionMetadata(pydantic.BaseModel):
     hazard: typing.Optional[PdcHazardInputMetadata] = None
     exposure_list: typing.Optional[PDCExposurelistMetadata] = None
     polygon: typing.Optional[PdcPolygonMetadata] = None
-    prev_page_obj_id: int | None = None
 
     @pydantic.model_validator(mode="after")
     def check_required_by_type(self) -> "PDCExtractionMetadata":
@@ -133,7 +135,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def handle_type_hazard(self, retrigger: bool, failed_int: int | None):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
-            data=json.dumps(self.extraction_metadata.hazard.model_dump()),  # type: ignore
+            data=json.dumps(self.extraction_metadata.hazard.model_dump(exclude={"prev_hazard_page_obj_id"})),  # type: ignore
             headers=self._get_request_headers(),
             method="post",
         )
@@ -152,21 +154,21 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             return
         response_data = json.loads(self.extraction_object.resp_data.read())
         if response_data and len(response_data) == 100:
-            next_page = self.extraction_metadata.hazard.pagination.page + 1
+            next_page = self.extraction_metadata.hazard.pagination.page + 1  # type: ignore[union-attr]
             next_page_extraction = self._find_existing_child(
                 metadata__type=PDCExtractionMetaDataType.HAZARD,
                 metadata__hazard__pagination__page=next_page,
             )
             if next_page_extraction is None:
-                data = self.extraction_metadata.hazard.model_copy(deep=True)
+                data = self.extraction_metadata.hazard.model_copy(deep=True)  # type: ignore[union-attr]
                 data.pagination.page = next_page
+                data.prev_hazard_page_obj_id = self.extraction_object.id
 
                 self.init_extraction(
                     metadata=PDCExtractionMetadata(
                         hazard=data,
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
-                        prev_page_obj_id=self.extraction_object.id,
                     ),
                     queue_name=CeleryQueue.EXTRACTION,
                 )
@@ -208,7 +210,9 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     add_to_queue=False,
                 )
 
-            geo_object.metadata["polygon"]["exposure_obj_id"] = exposure_extraction_obj.id
+            geo_metadata = PDCExtractionMetadata(**geo_object.metadata)
+            geo_metadata.polygon.exposure_obj_id = exposure_extraction_obj.id  # type: ignore[union-attr]
+            geo_object.metadata = geo_metadata.model_dump()
             geo_object.save()
 
             if geo_object.status != ExtractionData.Status.SUCCESS:
@@ -247,8 +251,8 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
                         exposure_detail=PdcExposureMetadata(
                             exposure_id=item,
-                            hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,
-                            geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,
+                            hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,  # type: ignore[union-attr]
+                            geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,  # type: ignore[union-attr]
                         ),
                     ),
                     parent_extraction=self.extraction_object,
@@ -297,6 +301,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
+    @staticmethod
     def retrigger(extraction_object):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == PDCExtractionMetaDataType.HAZARD:
@@ -360,8 +365,11 @@ class PDCExposureBatchTask:
             extraction_obj = fetcher.extraction_object
 
             if last_extraction_obj is not None:
-                extraction_obj.metadata["previous_obj_id"] = last_extraction_obj.id
-                extraction_obj.metadata["previous_obj_status"] = str(ExtractionData.Status(last_extraction_obj.status).label)
+                fetcher.extraction_metadata.exposure_detail.prev_obj_id = last_extraction_obj.id  # type: ignore[union-attr]
+                fetcher.extraction_metadata.exposure_detail.prev_obj_status = str(
+                    ExtractionData.Status(last_extraction_obj.status).label
+                )  # type: ignore[union-attr]
+                extraction_obj.metadata = fetcher.extraction_metadata.model_dump()
 
             extraction_obj.mark_as_started()
 
