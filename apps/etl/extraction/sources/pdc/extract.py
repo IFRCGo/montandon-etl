@@ -1,5 +1,7 @@
+import hashlib
 import json
 import logging
+import time
 import typing
 from enum import Enum
 
@@ -34,6 +36,8 @@ class PdcExposureMetadata(pydantic.BaseModel):
     exposure_id: str | None = None
     hazard_uuid: str | None = None
     geojson_id: int | None = None
+    prev_obj_id: int | None = None
+    prev_obj_status: str | None = None
 
 
 class Pagination(pydantic.BaseModel):
@@ -50,6 +54,7 @@ class Restriction(pydantic.BaseModel):
 class PdcHazardInputMetadata(pydantic.BaseModel):
     pagination: Pagination
     restrictions: typing.List[typing.List[Restriction]]
+    prev_hazard_page_obj_id: int | None = None
 
 
 class PDCExposurelistMetadata(pydantic.BaseModel):
@@ -130,7 +135,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     def handle_type_hazard(self, retrigger: bool, failed_int: int | None):
         extraction_status = self._extraction_fetch_url(
             self.extraction_metadata.url,
-            data=json.dumps(self.extraction_metadata.hazard.model_dump()),  # type: ignore
+            data=json.dumps(self.extraction_metadata.hazard.model_dump(exclude={"prev_hazard_page_obj_id"})),  # type: ignore
             headers=self._get_request_headers(),
             method="post",
         )
@@ -149,14 +154,15 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             return
         response_data = json.loads(self.extraction_object.resp_data.read())
         if response_data and len(response_data) == 100:
-            next_page = self.extraction_metadata.hazard.pagination.page + 1
+            next_page = self.extraction_metadata.hazard.pagination.page + 1  # type: ignore[union-attr]
             next_page_extraction = self._find_existing_child(
                 metadata__type=PDCExtractionMetaDataType.HAZARD,
                 metadata__hazard__pagination__page=next_page,
             )
             if next_page_extraction is None:
-                data = self.extraction_metadata.hazard.model_copy(deep=True)
+                data = self.extraction_metadata.hazard.model_copy(deep=True)  # type: ignore[union-attr]
                 data.pagination.page = next_page
+                data.prev_hazard_page_obj_id = self.extraction_object.id
 
                 self.init_extraction(
                     metadata=PDCExtractionMetadata(
@@ -164,7 +170,6 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
                     ),
-                    parent_extraction=self.extraction_object,
                     queue_name=CeleryQueue.EXTRACTION,
                 )
 
@@ -205,7 +210,9 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     add_to_queue=False,
                 )
 
-            geo_object.metadata["polygon"]["exposure_obj_id"] = exposure_extraction_obj.id
+            geo_metadata = PDCExtractionMetadata(**geo_object.metadata)
+            geo_metadata.polygon.exposure_obj_id = exposure_extraction_obj.id  # type: ignore[union-attr]
+            geo_object.metadata = geo_metadata.model_dump()
             geo_object.save()
 
             if geo_object.status != ExtractionData.Status.SUCCESS:
@@ -230,6 +237,8 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         if not response_data:
             raise NoDataException
 
+        all_pks: list[int] = []
+        has_pending = False
         for item in response_data:
             exposure_extraction_obj = self._find_existing_child(
                 metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
@@ -242,20 +251,26 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
                         exposure_detail=PdcExposureMetadata(
                             exposure_id=item,
-                            hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,
-                            geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,
+                            hazard_uuid=self.extraction_metadata.exposure_list.hazard_uuid,  # type: ignore[union-attr]
+                            geojson_id=self.extraction_metadata.exposure_list.geo_obj_id,  # type: ignore[union-attr]
                         ),
                     ),
                     parent_extraction=self.extraction_object,
                     add_to_queue=False,
                 )
-            elif exposure_extraction_obj.status == ExtractionData.Status.SUCCESS:
-                continue
+                has_pending = True
+            elif exposure_extraction_obj.status != ExtractionData.Status.SUCCESS:
+                has_pending = True
+            all_pks.append(exposure_extraction_obj.pk)
 
-            chord(
-                PDCExtractionV2.task.si(exposure_extraction_obj.pk),
-                PDCTransformHandler.task.si(exposure_extraction_obj.id),
-            ).apply_async()
+        if not has_pending:
+            return
+
+        batch_tasks = [
+            PDCExposureBatchTask.task.si(all_pks[i : i + PDCExposureBatchTask.BATCH_SIZE])
+            for i in range(0, len(all_pks), PDCExposureBatchTask.BATCH_SIZE)
+        ]
+        group(batch_tasks).apply_async()
 
     def handle_polygon(self):
         headers = dict(self._get_request_headers())
@@ -286,6 +301,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
+    @staticmethod
     def retrigger(extraction_object):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == PDCExtractionMetaDataType.HAZARD:
@@ -305,3 +321,119 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     )
     def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
         PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
+
+
+class PDCExposureBatchTask:
+    """
+    Processes a batch of EXPOSURE_DETAIL extractions sequentially.
+
+    Within each batch the impact data hash (excluding the timestamp field) is compared
+    between consecutive extractions.  When the hash is unchanged the extraction is marked
+    NO_CHANGE and the Transform step is skipped; otherwise Transform is queued as normal.
+    Batches run in parallel via Celery group, but items within a batch are sequential so
+    the comparison chain is maintained.
+    """
+
+    BATCH_SIZE = 100
+    BATCH_ITEM_MAX_RETRIES = 3
+
+    @staticmethod
+    def compute_exposure_detail_hash(resp_data: bytes) -> str:
+        data = json.loads(resp_data)
+        data.pop("timestamp", None)
+        return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+    def __init__(self, celery_task):
+        self.celery_task = celery_task
+
+    def handle(self, extraction_pks: list[int]):
+        prev_hash: str | None = None
+        prev_success_extraction_obj: ExtractionData | None = None
+        last_extraction_obj: ExtractionData | None = None
+
+        for pk in extraction_pks:
+            extraction_obj = ExtractionData.objects.get(pk=pk)
+
+            # Already processed on a previous run — restore its hash for comparison continuity.
+            if extraction_obj.status == ExtractionData.Status.SUCCESS:
+                prev_hash = extraction_obj.file_hash
+                prev_success_extraction_obj = extraction_obj
+                last_extraction_obj = extraction_obj
+                continue
+
+            fetcher = PDCExtractionV2(self.celery_task, pk)
+            extraction_obj = fetcher.extraction_object
+
+            if last_extraction_obj is not None:
+                fetcher.extraction_metadata.exposure_detail.prev_obj_id = last_extraction_obj.id  # type: ignore[union-attr]
+                fetcher.extraction_metadata.exposure_detail.prev_obj_status = str(
+                    ExtractionData.Status(last_extraction_obj.status).label
+                )  # type: ignore[union-attr]
+                extraction_obj.metadata = fetcher.extraction_metadata.model_dump()
+
+            extraction_obj.mark_as_started()
+
+            for attempt in range(PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1):
+                try:
+                    fetcher.handle_exposure_detail()
+                    break
+                except Exception:
+                    if attempt < PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES:
+                        delay = RetryableTask.exponential_backoff_with_jitter(attempt)
+                        logger.warning(
+                            "ExposureDetail %s: attempt %d/%d failed, retrying in %.1fs",
+                            pk,
+                            attempt + 1,
+                            PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1,
+                            delay,
+                            extra=log_extra({"source": ExtractionData.Source.PDC}),
+                        )
+                        time.sleep(delay)
+                    else:
+                        logger.exception(
+                            "ExposureDetail %s failed after %d attempts, preserving hash chain",
+                            pk,
+                            PDCExposureBatchTask.BATCH_ITEM_MAX_RETRIES + 1,
+                            extra=log_extra({"source": ExtractionData.Source.PDC}),
+                        )
+                        extraction_obj.mark_as_ended(ExtractionData.Status.FAILED, update_fields=["metadata"])
+            else:
+                # All retries exhausted — skip to next item, keep prev_hash/prev_extraction_obj
+                # intact so the next successful item still compares against the last known state.
+                last_extraction_obj = extraction_obj
+                continue
+
+            extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["metadata"])
+
+            if not extraction_obj.resp_data:
+                prev_hash = None
+                prev_success_extraction_obj = None
+                last_extraction_obj = extraction_obj
+                continue
+
+            with extraction_obj.resp_data.open("rb") as f:
+                current_hash = PDCExposureBatchTask.compute_exposure_detail_hash(f.read())
+
+            extraction_obj.file_hash = current_hash
+            if prev_hash is not None and current_hash == prev_hash:
+                extraction_obj.revision_id = prev_success_extraction_obj
+                extraction_obj.source_validation_status = ExtractionData.ValidationStatus.NO_CHANGE
+                extraction_obj.save(update_fields=["file_hash", "source_validation_status", "revision_id_id", "metadata"])
+                logger.info("ExposureDetail %s: data unchanged, skipping transform", pk)
+            else:
+                extraction_obj.save(update_fields=["file_hash", "metadata"])
+                PDCTransformHandler.task.delay(pk)
+
+            prev_success_extraction_obj = extraction_obj
+            prev_hash = current_hash
+            last_extraction_obj = extraction_obj
+
+    @staticmethod
+    @app.task(
+        bind=True,
+        base=RetryableTask,
+        queue=CeleryQueue.EXTRACTION,
+        name="apps.etl.extraction.sources.pdc.extract.PDCExposureBatchTask.task",
+    )
+    def task(celery_task, extraction_pks: list[int]):
+        PDCExposureBatchTask(celery_task).handle(extraction_pks)
