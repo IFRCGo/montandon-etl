@@ -120,8 +120,6 @@ jobs:
         run: |
           touch .env
           docker compose run --rm web bash -c 'wait-for-it db:5432 && ./manage.py check'
-          # Another wait for geocoding-service (Move this to wait-for-it using custom python script)
-          sleep 60
 
       - name: 🕮 Validate if there are no pending django migrations.
         env:
@@ -136,10 +134,7 @@ jobs:
         env:
           DOCKER_IMAGE_BACKEND: ${{ steps.prep.outputs.tagged_image }}
         run: |
-          docker compose up -d web geocoding-service 
-          # Wait for 60 seconds to ensure services are initialized
-          echo "Waiting for 60 seconds for services to initialize..."
-          sleep 60
+          docker compose up -d --wait web geocoding-service
           # Run the tests
           docker compose exec web pytest --cov-report term --cov=apps apps/etl/tests/sources/*.py
 
