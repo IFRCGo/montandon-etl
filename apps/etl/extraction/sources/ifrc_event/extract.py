@@ -79,6 +79,7 @@ class IFRCEventExtraction(BaseExtraction):
         if resp_data:
             # manage duplicate file content.
             hash_content = cls.hash_file_content(resp_data)
+            extraction_instance.file_hash = hash_content
             manage_duplicate_file_content(
                 source=extraction_instance.source,
                 hash_content=hash_content,
