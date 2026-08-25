@@ -18,8 +18,7 @@ def hash_file_content(content):
     return file_hash
 
 
-# FIXME: This is not correct. "revision_id" cannot be attached as such
-def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name):
+def manage_duplicate_file_content(source, hash_content, instance, response_data, file_name, extra_filters=None):
     """
     if duplicate file content exists then do not create a new file, but point the url to
     the previous file.
@@ -31,14 +30,18 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
         source=source,
         file_hash=hash_content,
         file_hash__isnull=False,
+        **(extra_filters or {}),
     )
     if instance.id:
         duplicate_extraction_qs = duplicate_extraction_qs.exclude(id=instance.id)
 
+    instance.file_hash = hash_content
+
     duplicate_extraction_obj = duplicate_extraction_qs.first()
     if duplicate_extraction_obj:
         instance.resp_data = duplicate_extraction_obj.resp_data
-        instance.revision_id = duplicate_extraction_obj.id
+        instance.revision_id = duplicate_extraction_obj
+        instance.source_validation_status = ExtractionData.ValidationStatus.NO_CHANGE
     else:
         instance.resp_data.save(file_name, ContentFile(response_data))
 
