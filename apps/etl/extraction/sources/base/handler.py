@@ -249,6 +249,10 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         self.extraction_metadata = self.extraction_metadata_class(**self.extraction_object.metadata)
 
     @classmethod
+    def _duplicate_extra_filters(cls, extraction_object: ExtractionData) -> dict | None:
+        return None
+
+    @classmethod
     def _extraction_store_data(
         cls,
         *,
@@ -278,6 +282,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 instance=extraction_object,
                 response_data=resp_data_content,
                 file_name=file_name,
+                extra_filters=cls._duplicate_extra_filters(extraction_object),
             )
         return extraction_object
 
