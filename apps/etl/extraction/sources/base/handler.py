@@ -401,13 +401,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             self.extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS)
             return
 
-        # Retry Exception
         retries = self.celery_task.request.retries
-
-        if retries >= self.MAX_RETRY_LIMIT:
-            logger.warning("Max retries reached for request error.")
-            self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
-            return
 
         if isinstance(exc, RateLimitError):
             if retries >= self.MAX_RATE_LIMIT_RETRY_LIMIT:
