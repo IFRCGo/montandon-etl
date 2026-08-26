@@ -11,16 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - CEMS as a new disaster data source with extraction and transformation support
 - Skip transform when extracted CEMS content is unchanged (`NO_CHANGE` status), avoiding redundant geocoding and duplicate `PyStacLoadData` rows
+- Disaster Charter as a new disaster data source with extraction support for hazard, event, response, and acquisitions data
 
 ### Changed
 
 - Refactored `manage_duplicate_file_content` extraction helper
+- Use S3 URLs for Disaster Charter hazard, event, and response extraction
+- Use calibrated dataset URL for Disaster Charter acquisitions data
 
 ### Fixed
 
 - CEMS file deduplication scoped by URL to avoid cross-source interference
 - CEMS pipeline retrigger support via `source_extraction_map` and `source_transform_map`
 - Rate limit handling in CEMS extraction
+- Disaster Charter acquisitions data extraction
+- Duplicate extraction prevention using S3 ETag comparison
 
 ## [1.0.0] - 2026-06-30
 
