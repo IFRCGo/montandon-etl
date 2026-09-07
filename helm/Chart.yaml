@@ -13,6 +13,6 @@ dependencies:
     repository: oci://ghcr.io/toggle-corp
   - name: geocoding-helm
     alias: geocoding
-    version: 0.0.1-main.632a89a
+    version: 0.0.1-main.8c43f51
     condition: geocoding.enabled
     repository: oci://ghcr.io/ifrcgo/geocoding-service
