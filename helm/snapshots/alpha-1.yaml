@@ -1737,7 +1737,7 @@ spec:
     spec:
       containers:  # TODO: Add Container Init
         - name: geocoding
-          image: "ghcr.io/ifrcgo/geocoding-service:main.632a89a"
+          image: "ghcr.io/ifrcgo/geocoding-service:main.8c43f51"
           imagePullPolicy: IfNotPresent
           command: ["uvicorn", "service:app", "--host=0.0.0.0", "--port=8002", "--workers=1"]
           ports:
