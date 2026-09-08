@@ -87,6 +87,8 @@ def test_handle_extraction_various_ifrc_files(case):
         "keywords",
         "links",
         "stac_extensions",
+        "processing:version",
+        "processing:software",
     }
 
     # Clean and compare

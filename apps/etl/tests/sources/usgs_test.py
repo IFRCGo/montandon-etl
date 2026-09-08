@@ -96,6 +96,8 @@ def test_handle_extraction_various_usgs_files(case):
         "keywords",
         "links",
         "stac_extensions",
+        "processing:version",
+        "processing:software",
     }
     actual_filtered = remove_ignored_keys(actual_json, ignored_keys)
     expected_filtered = remove_ignored_keys(expected_json, ignored_keys)

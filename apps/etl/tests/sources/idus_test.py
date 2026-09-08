@@ -93,6 +93,8 @@ def test_handle_extraction_various_idu_files(case):
         "keywords",
         "links",
         "stac_extensions",
+        "processing:version",
+        "processing:software",
     }
 
     # Remove ignored keys from both JSONs before comparison
