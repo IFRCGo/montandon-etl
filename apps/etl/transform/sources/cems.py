@@ -15,7 +15,7 @@ from main.configs import etl_config
 logger = logging.getLogger(__name__)
 
 
-class CopernicusTransformHandler(BaseTransformerHandler[CEMSTransformer, CEMSDataSource]):
+class CEMSTransformHandler(BaseTransformerHandler[CEMSTransformer, CEMSDataSource]):
     transformer_class = CEMSTransformer
     transformer_schema = CEMSDataSource
 
@@ -40,4 +40,4 @@ class CopernicusTransformHandler(BaseTransformerHandler[CEMSTransformer, CEMSDat
     @staticmethod
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id):
-        CopernicusTransformHandler().handle_transformation(extraction_id, settings.COPERNICUS_TRANSFORMER_VERSION)
+        CEMSTransformHandler().handle_transformation(extraction_id, settings.CEMS_TRANSFORMER_VERSION)

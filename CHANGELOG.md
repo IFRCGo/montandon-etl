@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Copernicus as a new disaster data source with extraction and transformation support
-- Skip transform when extracted Copernicus content is unchanged (`NO_CHANGE` status), avoiding redundant geocoding and duplicate `PyStacLoadData` rows
+- CEMS as a new disaster data source with extraction and transformation support
+- Skip transform when extracted CEMS content is unchanged (`NO_CHANGE` status), avoiding redundant geocoding and duplicate `PyStacLoadData` rows
 
 ### Changed
 
@@ -18,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Copernicus file deduplication scoped by URL to avoid cross-source interference
-- Copernicus pipeline retrigger support via `source_extraction_map` and `source_transform_map`
-- Rate limit handling in Copernicus extraction
+- CEMS file deduplication scoped by URL to avoid cross-source interference
+- CEMS pipeline retrigger support via `source_extraction_map` and `source_transform_map`
+- Rate limit handling in CEMS extraction
 
 ## [1.0.0] - 2026-06-30
 
