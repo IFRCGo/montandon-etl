@@ -123,6 +123,8 @@ def test_handle_gdacs_extraction_with_mocked_request(
         "keywords",
         "links",
         "stac_extensions",
+        "processing:version",
+        "processing:software",
     }
 
     actual_cleaned = remove_ignored_keys(actual_json, ignore_keys)

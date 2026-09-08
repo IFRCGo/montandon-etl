@@ -96,6 +96,8 @@ def test_handle_extraction_various_desinventar_files(case):
         "keywords",
         "links",
         "stac_extensions",
+        "processing:version",
+        "processing:software",
     }
 
     filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
