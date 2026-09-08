@@ -155,7 +155,7 @@ class ExtractionData(EtlResource):
         DREF = 12, _("IFRC DREF & EA")
         WFPADAM = 13, _("WFP-ADAM")
         DESINVENTAR = 14, _("DesInventar")
-        COPERNICUS = 16, _("Copernicus")
+        CEMS = 16, _("CEMS")
 
     # METADATA
     source = models.IntegerField(verbose_name=_("source"), choices=Source.choices, db_index=True)
