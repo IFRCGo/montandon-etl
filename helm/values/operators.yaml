@@ -19,6 +19,19 @@ app:
       value: http://monty-geocoder:80
 
   extraManifests:
+    # NOTE: Overrides values.yaml. Here the rabbitmq credentials are owned by
+    # the rabbitmq operator (see rabbitmq-cluster below) and not the app secret.
+    keda-trigger-auth: |
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-rabbitmq-conn
+      spec:
+        secretTargetRef:
+          - parameter: host
+            name: monty-rabbitmq-default-user
+            key: connection_string
+
     dragonflydb-cluster:
       apiVersion: dragonflydb.io/v1alpha1
       kind: Dragonfly

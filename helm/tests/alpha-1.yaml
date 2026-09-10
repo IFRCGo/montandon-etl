@@ -68,8 +68,6 @@ app:
   worker:
     enabled: true
     queues:
-      default:
-        replicaCount: 5
       usgs-extraction-01:
         enabled: false
         replicaCount: 1

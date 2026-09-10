@@ -50,7 +50,7 @@ app:
     queues:
       # NOTE: Make sure keys are lowercase
       default:
-        replicaCount: 5
+        # NOTE: replicas are owned by the KEDA ScaledObject (see values.yaml)
         resources:
           limits:
             memory: 1.5Gi
