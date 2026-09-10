@@ -81,7 +81,8 @@ app:
     AWS_S3_SECRET_ACCESS_KEY: "{{ required \".Values.minio.auth.rootPassword\" .Values.minio.auth.rootPassword }}"
     AWS_S3_REGION: "us-east-1"
     # Celery/Redis
-    CELERY_RABBITMQ_CONNECTION_STRING: "{{ printf \"amqp://%s:%s@%s:5672/\" (required \".Values.rabbitmq.auth.username\" .Values.rabbitmq.auth.username) (required \".Values.rabbitmq.auth.password\" .Values.rabbitmq.auth.password) (include \"common.names.fullname\" .Subcharts.rabbitmq) }}"
+    # NOTE: The rabbitmq host is fully qualified on purpose.
+    CELERY_RABBITMQ_CONNECTION_STRING: "{{ printf \"amqp://%s:%s@%s.%s.svc.cluster.local:5672/\" (required \".Values.rabbitmq.auth.username\" .Values.rabbitmq.auth.username) (required \".Values.rabbitmq.auth.password\" .Values.rabbitmq.auth.password) (include \"common.names.fullname\" .Subcharts.rabbitmq) $.Release.Namespace }}"
     CELERY_RABBITMQ_VHOST: "celery"
     CELERY_RESULT_BACKEND: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/0"
     CACHE_REDIS_URL: "redis://{{ printf \"%s-master\" (include \"common.names.fullname\" .Subcharts.redis) }}:6379/2"

@@ -295,7 +295,7 @@ stringData:
   AWS_S3_REGION: "us-east-1"
   AWS_S3_SECRET_ACCESS_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
   CACHE_REDIS_URL: "redis://montandon-etl-redis-master:6379/2"
-  CELERY_RABBITMQ_CONNECTION_STRING: "amqp://monty:XXXXX@montandon-etl-rabbitmq:5672/"
+  CELERY_RABBITMQ_CONNECTION_STRING: "amqp://monty:XXXXX@montandon-etl-rabbitmq.default.svc.cluster.local:5672/"
   CELERY_RABBITMQ_VHOST: "celery"
   CELERY_RESULT_BACKEND: "redis://montandon-etl-redis-master:6379/0"
   DB_HOST: "192.168.XX.YY"
@@ -1002,7 +1002,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1059,7 +1059,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1116,7 +1116,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1176,7 +1176,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1244,7 +1244,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1312,7 +1312,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1380,7 +1380,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1449,7 +1449,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1520,7 +1520,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1591,7 +1591,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1662,7 +1662,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2228,7 +2228,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2301,7 +2301,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2346,7 +2346,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
