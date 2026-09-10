@@ -12,6 +12,20 @@ app:
     CACHE_REDIS_URL:                   { value: redis://monty-dragonfly:6379/1 }
 
   extraManifests:
+    # NOTE: Sole definition of the TriggerAuthentication referenced by the
+    # ScaledObjects in values.yaml; credentials are owned by the rabbitmq
+    # operator (see rabbitmq-cluster below), not the app secret.
+    keda-trigger-auth: |
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-rabbitmq-conn
+      spec:
+        secretTargetRef:
+          - parameter: host
+            name: monty-rabbitmq-default-user
+            key: connection_string
+
     dragonflydb-cluster:
       apiVersion: dragonflydb.io/v1alpha1
       kind: Dragonfly
