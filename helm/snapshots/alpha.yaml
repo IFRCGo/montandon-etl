@@ -417,7 +417,6 @@ metadata:
     environment: ALPHA
     release: release-name
 spec:
-  replicas: 5
   revisionHistoryLimit: 1
   selector:
     matchLabels:
@@ -624,7 +623,6 @@ metadata:
     environment: ALPHA
     release: release-name
 spec:
-  replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
@@ -1249,3 +1247,131 @@ spec:
     requests:
       cpu: 100m
       memory: 2Gi
+
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-default
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-default
+spec:
+  cooldownPeriod: 30
+  maxReplicaCount: 8
+  minReplicaCount: 1
+  pollingInterval: 5
+  scaleTargetRef:
+    name: 'monty-etl-worker-default'
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-rabbitmq-conn
+    metadata:
+      mode: QueueLength
+      queueName: default
+      value: "500"
+      vhostName: celery
+    type: rabbitmq
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-extraction
+spec:
+  cooldownPeriod: 30
+  maxReplicaCount: 8
+  minReplicaCount: 1
+  pollingInterval: 5
+  scaleTargetRef:
+    name: 'monty-etl-worker-extraction'
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-rabbitmq-conn
+    metadata:
+      mode: QueueLength
+      queueName: extraction
+      value: "500"
+      vhostName: celery
+    type: rabbitmq
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-pdc-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-pdc-extraction
+spec:
+  cooldownPeriod: 30
+  maxReplicaCount: 8
+  minReplicaCount: 1
+  pollingInterval: 5
+  scaleTargetRef:
+    name: 'monty-etl-worker-pdc-extraction'
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-rabbitmq-conn
+    metadata:
+      mode: QueueLength
+      queueName: pdc-extraction
+      value: "500"
+      vhostName: celery
+    type: rabbitmq
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-transform
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-transform
+spec:
+  cooldownPeriod: 30
+  maxReplicaCount: 8
+  minReplicaCount: 1
+  pollingInterval: 5
+  scaleTargetRef:
+    name: 'monty-etl-worker-transform'
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-rabbitmq-conn
+    metadata:
+      mode: QueueLength
+      queueName: transform
+      value: "500"
+      vhostName: celery
+    type: rabbitmq
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-usgs-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-usgs-extraction
+spec:
+  cooldownPeriod: 30
+  maxReplicaCount: 8
+  minReplicaCount: 1
+  pollingInterval: 5
+  scaleTargetRef:
+    name: 'monty-etl-worker-usgs-extraction'
+  triggers:
+  - authenticationRef:
+      name: keda-trigger-auth-rabbitmq-conn
+    metadata:
+      mode: QueueLength
+      queueName: usgs-extraction
+      value: "500"
+      vhostName: celery
+    type: rabbitmq
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-trigger-auth
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-trigger-auth-rabbitmq-conn
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: monty-rabbitmq-default-user
+      key: connection_string
