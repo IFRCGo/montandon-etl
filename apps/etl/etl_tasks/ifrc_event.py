@@ -34,7 +34,7 @@ def ext_and_transform_ifrcevent_latest_data():
         last_fetched_date = next(
             filter(
                 None,
-                parse_qs(urlparse(ext_object.metadata["url"]).query).get("created_at__lte", []),
+                parse_qs(urlparse(ext_object.metadata["url"]).query).get("updated_at__lte", []),
             ),
             None,
         )
@@ -43,8 +43,8 @@ def ext_and_transform_ifrcevent_latest_data():
         start_date = etl_config.IFRC_EVENT_START_DATE
 
     params = IfrcEventExtractionInputMetadata(
-        created_at__gte=str(start_date),
-        created_at__lte=str(datetime.datetime.now(UTC).date()),
+        updated_at__gte=str(start_date),
+        updated_at__lte=str(datetime.datetime.now(UTC).date()),
         limit=50,
         offset=0,
         ordering="-id",
@@ -65,8 +65,8 @@ def ext_and_transform_ifrcevent_historical_data(
     end_date: date,
 ):
     params = IfrcEventExtractionInputMetadata(
-        created_at__gte=str(start_date),
-        created_at__lte=str(end_date),
+        updated_at__gte=str(start_date),
+        updated_at__lte=str(end_date),
         limit=500,
         offset=0,
         ordering="-id",

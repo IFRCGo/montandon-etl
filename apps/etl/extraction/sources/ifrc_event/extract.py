@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 class IfrcEventExtractionInputMetadata(pydantic.BaseModel):
-    created_at__gte: datetime.date | str | None
-    created_at__lte: datetime.date | str | None
+    updated_at__gte: datetime.date | str | None
+    updated_at__lte: datetime.date | str | None
     limit: int
     offset: int
     ordering: str
