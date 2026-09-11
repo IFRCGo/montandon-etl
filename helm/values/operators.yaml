@@ -1,22 +1,15 @@
+# Operator-managed infrastructure (Dragonfly cache + RabbitMQ broker) and the
+# env wiring that points the app at those in-cluster services.
+# Applied as an overlay (see ../tests.yaml) and at deploy time alongside the
+# environment values files.
 app:
+  # Dict form (keyed by env-var name); values are k8s env specs minus name.
   extraEnvVars:
     # Checkout the resources defined by extraManifests
-    # -- Rabbitmq
-    - name: CELERY_RABBITMQ_CONNECTION_STRING
-      valueFrom:
-        secretKeyRef:
-          name: monty-rabbitmq-default-user
-          key: connection_string
-    - name: CELERY_RABBITMQ_VHOST
-      value: celery
-    # -- Dragonfly
-    - name: CELERY_RESULT_BACKEND
-      value: redis://monty-dragonfly:6379/0
-    - name: CACHE_REDIS_URL
-      value: redis://monty-dragonfly:6379/1
-    # -- Geocoder (NOTE: Same as values.yaml)
-    - name: GEOCODER_URL
-      value: http://monty-geocoder:80
+    CELERY_RABBITMQ_CONNECTION_STRING: { valueFrom: { secretKeyRef: { name: monty-rabbitmq-default-user, key: connection_string } } }
+    CELERY_RABBITMQ_VHOST:             { value: celery }
+    CELERY_RESULT_BACKEND:             { value: redis://monty-dragonfly:6379/0 }
+    CACHE_REDIS_URL:                   { value: redis://monty-dragonfly:6379/1 }
 
   extraManifests:
     dragonflydb-cluster:
@@ -51,7 +44,7 @@ app:
       apiVersion: rabbitmq.com/v1beta1
       kind: RabbitmqCluster
       metadata:
-        name: monty-rabbitmq  # NOTE: This is used secret name
+        name: monty-rabbitmq  # NOTE: this is used as the secret name
       spec:
         image: rabbitmq:4.2.6-management
         replicas: 1  # Scaling down is not supported
