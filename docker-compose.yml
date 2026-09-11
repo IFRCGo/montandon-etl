@@ -12,7 +12,7 @@ x-server: &base_server_setup
   environment: &base_server_environments
       DJANGO_APP_ENVIRONMENT: ${DJANGO_APP_ENVIRONMENT:-development}
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?err}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-ci-test-insecure-django-secret-key}
       DB_NAME: ${DB_NAME:-postgres}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
@@ -25,7 +25,7 @@ x-server: &base_server_setup
       TEST_CACHE_REDIS_URL: ${TEST_CACHE_REDIS_URL:-redis://redis:6379/11}
       # Geocoder
       # FIXME: Add geocoder to docker compose and use that service here
-      GEOCODER_URL: ${GEOCODER_URL?error}
+      GEOCODER_URL: ${GEOCODER_URL:-http://geocoding-service:8001}
   extra_hosts:
       - "host.docker.internal:host-gateway"
   volumes:
