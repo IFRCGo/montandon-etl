@@ -295,7 +295,7 @@ stringData:
   AWS_S3_REGION: "us-east-1"
   AWS_S3_SECRET_ACCESS_KEY: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
   CACHE_REDIS_URL: "redis://montandon-etl-redis-master:6379/2"
-  CELERY_RABBITMQ_CONNECTION_STRING: "amqp://monty:XXXXX@montandon-etl-rabbitmq:5672/"
+  CELERY_RABBITMQ_CONNECTION_STRING: "amqp://monty:XXXXX@montandon-etl-rabbitmq.default.svc.cluster.local:5672/"
   CELERY_RABBITMQ_VHOST: "celery"
   CELERY_RESULT_BACKEND: "redis://montandon-etl-redis-master:6379/0"
   DB_HOST: "192.168.XX.YY"
@@ -1002,7 +1002,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1059,7 +1059,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1116,7 +1116,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1168,7 +1168,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 5
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1177,7 +1176,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1237,7 +1236,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1246,7 +1244,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1306,7 +1304,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1315,7 +1312,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1375,7 +1372,6 @@ metadata:
     environment: ALPHA-1
     release: release-name
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: monty-etl-1
@@ -1384,7 +1380,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1453,7 +1449,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1524,7 +1520,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1595,7 +1591,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -1666,7 +1662,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2232,7 +2228,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2305,7 +2301,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2350,7 +2346,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/secret: 2a6db52e4d73bfc077db57331e40cd5b93709a010cf45d519dfdf9d0dd8a2711
         checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
       labels:
         app: monty-etl-1
@@ -2435,6 +2431,115 @@ spec:
                 name: monty-etl-1-api
                 port:
                   number: 80
+
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-default
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-default
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-default
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: default
+        # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+        vhostName: celery
+        mode: QueueLength
+        value: "500"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-extraction
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-extraction
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: extraction
+        # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+        vhostName: celery
+        mode: QueueLength
+        value: "500"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-transform
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-transform
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-transform
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: transform
+        # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+        vhostName: celery
+        mode: QueueLength
+        value: "500"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-scaledobject-usgs-extraction
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: monty-autoscaler-usgs-extraction
+spec:
+  scaleTargetRef:
+    name: monty-etl-1-worker-usgs-extraction
+  minReplicaCount: 1
+  maxReplicaCount: 8
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+    - type: rabbitmq
+      metadata:
+        queueName: usgs-extraction
+        # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+        vhostName: celery
+        mode: QueueLength
+        value: "500"
+      authenticationRef:
+        name: keda-trigger-auth-rabbitmq-conn
+---
+# Source: montandon-etl-helm/charts/app/templates/extraManifests.yaml
+# Manifest: keda-trigger-auth
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-trigger-auth-rabbitmq-conn
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: monty-etl-1-secret
+      key: CELERY_RABBITMQ_CONNECTION_STRING
 ---
 # Source: montandon-etl-helm/charts/app/charts/minio/templates/provisioning-job.yaml
 apiVersion: batch/v1

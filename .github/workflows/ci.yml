@@ -150,6 +150,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@main
+        with:
+          submodules: true
 
       - name: Install Helm
         uses: azure/setup-helm@v5

@@ -132,23 +132,20 @@ app:
       - "1"
     queues:
       # NOTE: Make sure keys are lowercase
+      # NOTE: replicaCount is intentionally omitted. Replicas are owned by the
+      # KEDA ScaledObjects defined in `.app.extraManifests` below.
       default:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "25"]
       extraction:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
       transform:
         enabled: true
-        replicaCount: 2
         celeryArgs: ["-Q", "transform", "--concurrency", "2", "--max-tasks-per-child", "25"]
       # By source
-      # TODO: Is this used?
       usgs-extraction:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
 
   argoHook:
@@ -202,3 +199,111 @@ app:
     # -- Geocoder
     - name: GEOCODER_URL
       value: http://monty-geocoder:80
+
+  # -- KEDA autoscaling for the celery workers.
+  # NOTE: Requires KEDA (keda.sh) to be installed in the cluster.
+  extraManifests:
+    # NOTE: Overridden in values/operators.yaml, where the rabbitmq credentials
+    # are owned by the rabbitmq operator instead of the app secret.
+    keda-trigger-auth: |
+      apiVersion: keda.sh/v1alpha1
+      kind: TriggerAuthentication
+      metadata:
+        name: keda-trigger-auth-rabbitmq-conn
+      spec:
+        secretTargetRef:
+          - parameter: host
+            name: {{ include "django-app.secretname" . }}
+            key: CELERY_RABBITMQ_CONNECTION_STRING
+
+    keda-scaledobject-default: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-default
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-default
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: default
+              # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+              vhostName: celery
+              mode: QueueLength
+              value: "500"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
+
+    keda-scaledobject-extraction: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-extraction
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-extraction
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: extraction
+              # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+              vhostName: celery
+              mode: QueueLength
+              value: "500"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
+
+    keda-scaledobject-transform: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-transform
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-transform
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: transform
+              # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+              vhostName: celery
+              mode: QueueLength
+              value: "500"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
+
+    keda-scaledobject-usgs-extraction: |
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      metadata:
+        name: monty-autoscaler-usgs-extraction
+      spec:
+        scaleTargetRef:
+          name: {{ include "django-app.fullname" $ }}-worker-usgs-extraction
+        minReplicaCount: 1
+        maxReplicaCount: 8
+        pollingInterval: 5
+        cooldownPeriod: 30
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: usgs-extraction
+              # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
+              vhostName: celery
+              mode: QueueLength
+              value: "500"
+            authenticationRef:
+              name: keda-trigger-auth-rabbitmq-conn
