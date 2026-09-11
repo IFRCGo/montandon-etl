@@ -249,6 +249,10 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         self.extraction_metadata = self.extraction_metadata_class(**self.extraction_object.metadata)
 
     @classmethod
+    def _duplicate_extra_filters(cls, extraction_object: ExtractionData) -> dict | None:
+        return None
+
+    @classmethod
     def _extraction_store_data(
         cls,
         *,
@@ -278,6 +282,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 instance=extraction_object,
                 response_data=resp_data_content,
                 file_name=file_name,
+                extra_filters=cls._duplicate_extra_filters(extraction_object),
             )
         return extraction_object
 
@@ -396,13 +401,7 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
             self.extraction_object.mark_as_ended(ExtractionData.Status.SUCCESS)
             return
 
-        # Retry Exception
         retries = self.celery_task.request.retries
-
-        if retries >= self.MAX_RETRY_LIMIT:
-            logger.warning("Max retries reached for request error.")
-            self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
-            return
 
         if isinstance(exc, RateLimitError):
             if retries >= self.MAX_RATE_LIMIT_RETRY_LIMIT:

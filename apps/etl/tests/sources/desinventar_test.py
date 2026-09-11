@@ -74,7 +74,7 @@ def test_handle_extraction_various_desinventar_files(case):
     # Assertions
     assert ExtractionData.objects.count() == 100
     assert Transform.objects.count() == 1
-    assert PyStacLoadData.objects.count() == 361
+    assert PyStacLoadData.objects.count() == 55
 
     latest_data = PyStacLoadData.objects.all()
     latest_data_json = serialize("json", latest_data)

@@ -152,6 +152,16 @@ SCHEDULES: dict[str, CronJob] = {
             max_runtime=3 * 60,
         ),
     ),
+    "import_cems_data": CronJob(
+        task="apps.etl.etl_tasks.cems.ext_and_transform_cems_latest_data",
+        schedule=crontab(hour=8, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=5,
+            max_runtime=2 * 60,
+        ),
+    ),
     "trigger_pending_extraction": CronJob(
         task="apps.etl.tasks.trigger_pending_extraction",
         schedule=crontab(hour="6,11,16,23", minute=0),
