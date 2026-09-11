@@ -163,7 +163,7 @@ SCHEDULES: dict[str, CronJob] = {
         ),
     ),
     "import_charter_data": CronJob(
-        task="apps.etl.etl_tasks.disaster_charter.ext_and_transform_charter_latest_data",
+        task="apps.etl.etl_tasks.charter.ext_and_transform_charter_latest_data",
         schedule=crontab(hour=21, minute=0),
         options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
         sentry_config=CronJobSentryConfig(

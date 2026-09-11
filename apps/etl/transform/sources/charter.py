@@ -15,7 +15,7 @@ from main.configs import etl_config
 logger = logging.getLogger(__name__)
 
 
-class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer, CharterDataSource]):
+class CharterTransformHandler(BaseTransformerHandler[CharterTransformer, CharterDataSource]):
     transformer_class = CharterTransformer
     transformer_schema = CharterDataSource
 
@@ -119,10 +119,10 @@ class DisasterCharterTransformHandler(BaseTransformerHandler[CharterTransformer,
     @app.task(queue=CeleryQueue.TRANSFORM)
     def task(extraction_id: int) -> None:
         activation_ext = ExtractionData.objects.get(id=extraction_id)
-        if DisasterCharterTransformHandler._should_skip_transform(activation_ext):
+        if CharterTransformHandler._should_skip_transform(activation_ext):
             logger.info(
                 "Skipping transform for activation extraction %s: no data changed",
                 extraction_id,
             )
             return
-        DisasterCharterTransformHandler().handle_transformation(extraction_id, settings.CHARTER_TRANSFORMER_VERSION)
+        CharterTransformHandler().handle_transformation(extraction_id, settings.CHARTER_TRANSFORMER_VERSION)

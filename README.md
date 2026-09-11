@@ -68,6 +68,12 @@ docker-compose exec web python manage.py extract_gidd_data
 
 # Import from GFD
 docker-compose exec web python manage.py extract_gfd_data
+
+# Import from Disaster Charter (whole activations catalog)
+docker-compose exec web python manage.py extract_charter_data
+
+# Import specific Disaster Charter activations
+docker-compose exec web python manage.py extract_charter_data --activation-ids 1234 1235
 ```
 
 ### Using proxies

@@ -17,7 +17,7 @@ from pystac_monty.sources.charter import compute_file_hash
 from apps.etl.extraction.sources.base.handler import BaseExtractionV2
 from apps.etl.extraction.sources.base.utils import manage_duplicate_file_content
 from apps.etl.models import ExtractionData
-from apps.etl.transform.sources.disaster_charter import DisasterCharterTransformHandler
+from apps.etl.transform.sources.charter import CharterTransformHandler
 from main.celery import CeleryQueue, app
 from main.configs import etl_config
 from main.logging import log_extra
@@ -294,9 +294,9 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
 
     def _dispatch_transform(self, tasks: list, activation_extraction_id: int) -> None:
         if tasks:
-            chord(tasks, DisasterCharterTransformHandler.task.si(activation_extraction_id)).apply_async()
+            chord(tasks, CharterTransformHandler.task.si(activation_extraction_id)).apply_async()
         else:
-            DisasterCharterTransformHandler.task.apply_async(args=(activation_extraction_id,))
+            CharterTransformHandler.task.apply_async(args=(activation_extraction_id,))
 
     # ------------------------------------------------------------------ #
     # Type handlers                                                        #
@@ -312,6 +312,7 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
                 exc_info=True,
             )
             return
+
         for act_prefix in act_prefixes:
             match = re.search(r"act-(\d+)", act_prefix)
             if not match:
