@@ -1,6 +1,6 @@
 from celery import shared_task
 
-from apps.etl.extraction.sources.disaster_charter.extract import (
+from apps.etl.extraction.sources.charter.extract import (
     CharterExtraction,
     CharterExtractionMetadata,
     CharterExtractionMetadataType,
