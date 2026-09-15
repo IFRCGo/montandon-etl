@@ -24,8 +24,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: CommandParser):
         parser.add_argument("--batch-size", type=self.positive_int, default=5000, help="Number of rows to delete at once")
-        parser.add_argument("--retention-days", type=self.positive_int, default=30, help="In days")
-        parser.add_argument("--max-rows", type=self.positive_int, default=100_000, help="Total number of rows to delete")
+        parser.add_argument("--retention-days", type=self.positive_int, default=10, help="In days")
+        parser.add_argument("--max-rows", type=self.positive_int, default=300_000, help="Total number of rows to delete")
 
     def handle(self, *args, **options):
         batch_size = options["batch_size"]
