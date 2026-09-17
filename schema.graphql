@@ -261,6 +261,7 @@ enum PyStacLoadDataItemTypeEnum {
   EVENT
   HAZARD
   IMPACT
+  RESPONSE
 }
 
 enum PyStacLoadDataStatusEnum {
@@ -400,6 +401,7 @@ enum SourceTypeEnum {
   DREF
   WFPADAM
   DESINVENTAR
+  CEMS
 }
 
 type StatusCountExtraction {
