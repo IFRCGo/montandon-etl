@@ -283,3 +283,25 @@ def get_trace_id(parent_obj: ExtractionData | Transform | None) -> int | None:
 
     new_trace = EtlTrace.objects.create()
     return new_trace.pk
+
+
+class StatusSnapshot(models.Model):
+    class ResourceType(models.IntegerChoices):
+        EXTRACTION = 1, _("Extraction")
+        TRANSFORM = 2, _("Transform")
+        PYSTAC = 3, _("PyStac Load")
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    resource_type = models.IntegerField(verbose_name=_("resource type"), choices=ResourceType.choices)
+    source = models.IntegerField(verbose_name=_("source"), choices=ExtractionData.Source.choices)
+    status = models.IntegerField(verbose_name=_("status"))
+    count = models.IntegerField(verbose_name=_("count"))
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["resource_type", "source", "status", "created_at"]),
+        ]
+        verbose_name = "Status Snapshot"
+
+    def __str__(self):
+        return f"{self.get_resource_type_display()}/{self.source}/{self.status} @ {self.created_at}"
