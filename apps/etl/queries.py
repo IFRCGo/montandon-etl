@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List
 
 import strawberry
@@ -5,15 +6,18 @@ import strawberry_django
 from asgiref.sync import sync_to_async
 from django.db import connection
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncDate
+from django.utils import timezone
 from strawberry_django.pagination import OffsetPaginated
 from strawberry_django.permissions import IsAuthenticated
 
 from apps.etl.filters import ExtractionDataFilter, PystacDataFilter, TransformDataFilter
-from apps.etl.models import ExtractionData, PyStacLoadData, Status, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, Status, StatusSnapshot, Transform
 from apps.etl.orders import ExtractionOrder, PystacOrder, TransformOrder
 from apps.etl.types import (
     CountbytraceID,
+    DailyPystacStatusCount,
+    DailyStatusCount,
     ETLWithTraceID,
     ItemsbySource,
     ItemTypeSourceStatusSummary,
@@ -22,6 +26,7 @@ from apps.etl.types import (
     RawTransformdatatype,
     StatusCountExtraction,
     StatusCountTransform,
+    StatusSnapshotType,
     StatusSourceCountExtraction,
     StatusSourceCountPyStac,
     StatusSourceCountPystacByItem,
@@ -32,7 +37,7 @@ from apps.etl.types import (
 )
 from main.graphql.context import Info
 
-from .enums import TableNameEnum
+from .enums import StatusSnapshotResourceTypeEnum, TableNameEnum
 
 
 @strawberry.type
@@ -64,7 +69,7 @@ class Query:
     extractionoftraceid: ETLWithTraceID = strawberry_django.field(extensions=[IsAuthenticated()])
 
     @strawberry.field()
-    async def status_count_extraction(self, info: Info) -> list[StatusCountExtraction]:
+    async def status_count_extraction(self, info: Info) -> StatusCountExtraction:
         query_total_count = await sync_to_async(
             lambda: StatusCountExtraction.get_queryset(None, None, info).aggregate(
                 in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
@@ -75,15 +80,13 @@ class Query:
             )
         )()
 
-        return [
-            StatusCountExtraction(
-                in_progress_count=query_total_count["in_progress_count"],
-                success_count=query_total_count["success_count"],
-                failed_count=query_total_count["failed_count"],
-                pending_count=query_total_count["pending_count"],
-                on_retry_count=query_total_count["on_retry_count"],
-            )
-        ]
+        return StatusCountExtraction(
+            in_progress_count=query_total_count["in_progress_count"],
+            success_count=query_total_count["success_count"],
+            failed_count=query_total_count["failed_count"],
+            pending_count=query_total_count["pending_count"],
+            on_retry_count=query_total_count["on_retry_count"],
+        )
 
     @strawberry.field()
     async def status_source_counts_extraction(self, info: Info) -> list[StatusSourceCountExtraction]:
@@ -95,6 +98,7 @@ class Query:
                 success_count=Count("id", filter=Q(status=Status.SUCCESS)),
                 failed_count=Count("id", filter=Q(status=Status.FAILED)),
                 pending_count=Count("id", filter=Q(status=Status.PENDING)),
+                on_retry_count=Count("id", filter=Q(status=Status.ON_RETRY)),
             )
         )
         results = await sync_to_async(list)(query_countby_status_source)
@@ -106,6 +110,7 @@ class Query:
                 success_count=item["success_count"],
                 failed_count=item["failed_count"],
                 pending_count=item["pending_count"],
+                on_retry_count=item["on_retry_count"],
             )
             for item in results
         ]
@@ -175,7 +180,7 @@ class Query:
         ]
 
     @strawberry.field()
-    async def status_count_transform(self, info: Info) -> list[StatusCountTransform]:
+    async def status_count_transform(self, info: Info) -> StatusCountTransform:
         query_total_count = await sync_to_async(
             lambda: StatusCountTransform.get_queryset(None, None, info).aggregate(
                 in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
@@ -185,14 +190,12 @@ class Query:
             )
         )()
 
-        return [
-            StatusCountTransform(
-                in_progress_count=query_total_count["in_progress_count"],
-                success_count=query_total_count["success_count"],
-                failed_count=query_total_count["failed_count"],
-                pending_count=query_total_count["pending_count"],
-            )
-        ]
+        return StatusCountTransform(
+            in_progress_count=query_total_count["in_progress_count"],
+            success_count=query_total_count["success_count"],
+            failed_count=query_total_count["failed_count"],
+            pending_count=query_total_count["pending_count"],
+        )
 
     @strawberry.field()
     async def status_source_counts_transform(self, info: Info) -> list[StatusSourceCountTransform]:
@@ -260,21 +263,19 @@ class Query:
             async for item in result
         ]
 
-    @strawberry.field()
-    async def extraction_by_trace_id(self, info: Info, trace_id: int) -> list[ETLWithTraceID]:
+    @strawberry.field(extensions=[IsAuthenticated()])
+    async def extraction_by_trace_id(self, info: Info, trace_id: int) -> ETLWithTraceID:
         """
         Return ExtractionData, Transform, and PyStacLoadData objects that share a trace_id.
         """
-        extraction_data = await sync_to_async(ExtractionData.objects.filter)(trace_id=trace_id)
-        transforms = await sync_to_async(Transform.objects.filter)(trace_id=trace_id)
-        pystac_data = await sync_to_async(PyStacLoadData.objects.filter)(trace_id=trace_id)
-        return [
-            ETLWithTraceID(
-                extractions=extraction_data,
-                transforms=transforms,
-                pystacs=pystac_data,
-            )
-        ]
+        extraction_data = await sync_to_async(list)(ExtractionData.objects.filter(trace_id=trace_id))
+        transforms = await sync_to_async(list)(Transform.objects.filter(trace_id=trace_id))
+        pystac_data = await sync_to_async(list)(PyStacLoadData.objects.filter(trace_id=trace_id))
+        return ETLWithTraceID(
+            extractions=extraction_data,
+            transforms=transforms,
+            pystacs=pystac_data,
+        )
 
     @strawberry.field()
     async def status_source_counts_pystac(self, info: Info) -> list[StatusSourceCountPyStac]:
@@ -375,3 +376,57 @@ class Query:
 
         results = await run_query()
         return [TableSize(tablename=row[0], size=row[1]) for row in results]
+
+    @strawberry.field()
+    async def retried_extractions_count(self, info: Info, hours: int = 24) -> int:
+        since = timezone.now() - timedelta(hours=hours)
+        return await sync_to_async(ExtractionData.objects.filter(attempt_no__gt=0, created_at__gte=since).count)()
+
+    @strawberry.field()
+    async def extraction_trend(self, info: Info, days: int = 30) -> list[DailyStatusCount]:
+        since = timezone.now() - timedelta(days=days)
+        qs = (
+            ExtractionData.objects.filter(created_at__gte=since)
+            .annotate(date=TruncDate("created_at"))
+            .values("date", "status")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+        return [DailyStatusCount(date=str(item["date"]), status=item["status"], count=item["count"]) async for item in qs]
+
+    @strawberry.field()
+    async def transform_trend(self, info: Info, days: int = 30) -> list[DailyStatusCount]:
+        since = timezone.now() - timedelta(days=days)
+        qs = (
+            Transform.objects.filter(created_at__gte=since)
+            .annotate(date=TruncDate("created_at"))
+            .values("date", "status")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+        return [DailyStatusCount(date=str(item["date"]), status=item["status"], count=item["count"]) async for item in qs]
+
+    @strawberry.field()
+    async def pystac_trend(self, info: Info, days: int = 30) -> list[DailyPystacStatusCount]:
+        since = timezone.now() - timedelta(days=days)
+        qs = (
+            PyStacLoadData.objects.filter(created_at__gte=since)
+            .annotate(date=TruncDate("created_at"))
+            .values("date", "status")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+        return [
+            DailyPystacStatusCount(date=str(item["date"]), status=item["status"], count=item["count"]) async for item in qs
+        ]
+
+    @strawberry.field()
+    async def status_snapshot_trend(
+        self,
+        info: Info,
+        resource_type: StatusSnapshotResourceTypeEnum,
+        days: int = 30,
+    ) -> list[StatusSnapshotType]:
+        since = timezone.now() - timedelta(days=days)
+        qs = StatusSnapshot.objects.filter(resource_type=resource_type, created_at__gte=since).order_by("created_at")
+        return [item async for item in qs]

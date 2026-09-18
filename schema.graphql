@@ -54,6 +54,18 @@ type CountbytraceID {
 """A generic type to return error messages"""
 scalar CustomErrorType
 
+type DailyPystacStatusCount {
+  date: String!
+  status: PyStacLoadDataStatusEnum!
+  count: Int!
+}
+
+type DailyStatusCount {
+  date: String!
+  status: DataStatusTypeEnum!
+  count: Int!
+}
+
 enum DataStatusTypeEnum {
   PENDING
   IN_PROGRESS
@@ -299,19 +311,24 @@ type Query {
   pystac(pk: ID!): RawPystacdatatype! @isAuthenticated
   pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): RawPystacdatatypeOffsetPaginated! @isAuthenticated
   extractionoftraceid: ETLWithTraceID! @isAuthenticated
-  statusCountExtraction: [StatusCountExtraction!]!
+  statusCountExtraction: StatusCountExtraction!
   statusSourceCountsExtraction: [StatusSourceCountExtraction!]!
   validationStatusSourceCounts: [ValStatusSourceCount!]!
   countTraceId: [CountbytraceID!]!
-  statusCountTransform: [StatusCountTransform!]!
+  statusCountTransform: StatusCountTransform!
   statusSourceCountsTransform: [StatusSourceCountTransform!]!
   uniqueItemsCounts: [UniqueCounts!]!
   itemsCountsBySource: [ItemsbySource!]!
-  extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
+  extractionByTraceId(traceId: Int!): ETLWithTraceID! @isAuthenticated
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
   statusCountsBySourceForItemtype: [ItemTypeSourceStatusSummary!]!
   specificTableSizes: [TableSize!]!
+  retriedExtractionsCount(hours: Int! = 24): Int!
+  extractionTrend(days: Int! = 30): [DailyStatusCount!]!
+  transformTrend(days: Int! = 30): [DailyStatusCount!]!
+  pystacTrend(days: Int! = 30): [DailyPystacStatusCount!]!
+  statusSnapshotTrend(resourceType: StatusSnapshotResourceTypeEnum!, days: Int! = 30): [StatusSnapshotType!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -419,12 +436,27 @@ type StatusCountTransform {
   pendingCount: Int!
 }
 
+enum StatusSnapshotResourceTypeEnum {
+  EXTRACTION
+  TRANSFORM
+  PYSTAC
+}
+
+type StatusSnapshotType {
+  createdAt: DateTime!
+  resourceType: StatusSnapshotResourceTypeEnum!
+  source: SourceTypeEnum!
+  status: Int!
+  count: Int!
+}
+
 type StatusSourceCountExtraction {
   source: SourceTypeEnum!
   inProgressCount: Int!
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
+  onRetryCount: Int!
 }
 
 type StatusSourceCountPyStac {

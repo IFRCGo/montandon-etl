@@ -7,10 +7,12 @@ from apps.etl.enums import (
     DataStatusTypeEnum,
     ExtractionValidationTypeEnum,
     PyStacLoadDataItemTypeEnum,
+    PyStacLoadDataStatusEnum,
     SourceTypeEnum,
+    StatusSnapshotResourceTypeEnum,
     TableNameEnum,
 )
-from apps.etl.models import ExtractionData, PyStacLoadData, Transform
+from apps.etl.models import ExtractionData, PyStacLoadData, StatusSnapshot, Transform
 from main.graphql.context import Info
 from utils.common import get_queryset_for_model, sync_to_async
 
@@ -109,6 +111,7 @@ class StatusSourceCountExtraction(ExtractionDataQuerysetMixin):
     success_count: int
     failed_count: int
     pending_count: int
+    on_retry_count: int
 
 
 @strawberry.type
@@ -213,3 +216,26 @@ class PystacItembyItemType(PyStacDataQuerysetMixin):
 class TableSize:
     tablename: TableNameEnum
     size: str
+
+
+@strawberry.type
+class DailyStatusCount:
+    date: str
+    status: DataStatusTypeEnum
+    count: int
+
+
+@strawberry.type
+class DailyPystacStatusCount:
+    date: str
+    status: PyStacLoadDataStatusEnum
+    count: int
+
+
+@strawberry_django.type(StatusSnapshot)
+class StatusSnapshotType:
+    created_at: auto
+    resource_type: StatusSnapshotResourceTypeEnum
+    source: SourceTypeEnum
+    status: int
+    count: int

@@ -11,6 +11,7 @@ cache: DefaultClient = caches["default"]  # type: ignore[reportAssignmentType]
 class CeleryLock:
     class Key:
         LOAD_TO_STAC = "LOAD_TO_STAC"
+        SNAPSHOT_STATUS_COUNTS = "SNAPSHOT_STATUS_COUNTS"
 
     @staticmethod
     @contextmanager
