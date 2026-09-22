@@ -27,6 +27,8 @@ from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
+ERRORED_CALIBRATION_IDS: frozenset[int] = frozenset([986, 987, 989, 990, 991, 994])
+
 ERRORED_ACTIVATION_IDS: frozenset[int] = frozenset(
     [
         734,
@@ -518,6 +520,8 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
         ]
 
     def _make_calibrated_dataset_tasks(self, call_ids: list[int], activation_id: int) -> list:
+        if activation_id in ERRORED_CALIBRATION_IDS:
+            return []
         tasks = []
         for call_id in call_ids:
             try:
@@ -577,7 +581,7 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             if not match:
                 continue
             activation_id = int(match.group(1))
-            if activation_id in ERRORED_ACTIVATION_IDS:
+            if activation_id in ERRORED_ACTIVATION_IDS or activation_id in ERRORED_CALIBRATION_IDS:
                 continue
             self.init_extraction(
                 metadata=CharterExtractionMetadata(
