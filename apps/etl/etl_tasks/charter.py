@@ -2,6 +2,7 @@ from celery import shared_task
 
 from apps.etl.extraction.sources.charter.extract import (
     ERRORED_ACTIVATION_IDS,
+    ERRORED_CALIBRATION_IDS,
     CharterExtraction,
     CharterExtractionMetadata,
     CharterExtractionMetadataType,
@@ -26,6 +27,8 @@ def ext_and_transform_charter_latest_data():
 def ext_and_transform_charter_data_for_activations(activation_ids: list[int]):
     for activation_id in activation_ids:
         if activation_id in ERRORED_ACTIVATION_IDS:
+            continue
+        if activation_id in ERRORED_CALIBRATION_IDS:
             continue
         activation_url = f"s3://{etl_config.CHARTER_S3_BUCKET_NAME}/activations/act-{activation_id}/act-{activation_id}.json"
         CharterExtraction.init_extraction(
