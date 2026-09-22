@@ -1,3 +1,9 @@
+# Base values for the Montandon ETL chart (banjo-helm 0.4.1).
+# Deployment-specific values (hostnames, object-storage buckets/containers, secrets)
+# are NOT defined here — they are supplied per-environment at deploy time.
+# See main/settings.py for all available application options.
+
+# Geocoding service subchart (deployed alongside the app).
 # https://github.com/IFRCGo/geocoding-service/blob/main/helm/values.yaml
 geocoding:
   enabled: true
@@ -6,7 +12,7 @@ geocoding:
     # TODO: Why?
     tag: main.8c43f51
   server:
-    serviceName: monty-geocoder  # NOTE: This is used in app using extraEnvVars
+    serviceName: monty-geocoder  # NOTE: consumed by the app via extraEnvVars (GEOCODER_URL)
     resources:
       requests:
         cpu: "0.1"
@@ -22,6 +28,10 @@ geocoding:
 app:
   environment: PROD
   nameOverride: ifrcgo-monty-etl-helm
+  # Short resource-name prefix. Generated hook Job names are
+  # <fullname>-<hook>-<revision>-sync-<timestamp> and their pod-template label must
+  # stay within 63 bytes, which <release>-<nameOverride> exceeds.
+  fullnameOverride: monty-etl
 
   appTypeEnvName: "DJANGO_APP_TYPE"
 
@@ -31,174 +41,189 @@ app:
     tag: SET-BY-CICD-TAG
     imagePullPolicy: IfNotPresent
 
-  ingress:
-    enabled: true
-    className:
-    host:
-
-  minio:
-    enabled: false
-    disableWebUI: true
-    mode: standalone
-    fullnameOverride: montandon-etl-minio
-    global:
-      defaultStorageClass:
-    apiIngress:
-      enabled: true
-      ingressClassName:  # NOTE: Define me when used
-      hostname:  # NOTE: Define me when used
-      annotations:
-        nginx.ingress.kubernetes.io/proxy-body-size: "500m"
-    auth:
-      forceNewKeys: True
-      rootUser: monty-etl
-      rootPassword:  # NOTE: Define me when used
-    resources:
-      requests:
-        cpu: "0.1"
-        memory: 128Mi
-      limits:
-        cpu: "4"
-        memory: 256Mi
-    persistence:
-      enabled: true
-      size: 1Gi
-    defaultBuckets: montandon-etl-data,montandon-etl-static  # XXX: Don't change this
-    provisioning:
-      enabled: true
-      resourcesPreset: "nano"
-      cleanupAfterFinished:
-        enabled: true
-      extraCommands:
-        - "mc anonymous set download provisioning/montandon-etl-static"
-        - "mc anonymous set download provisioning/montandon-etl-data"
-
-  redis:
-    enabled: false
-    fullnameOverride: montandon-etl-redis
-  rabbitmq:
-    enabled: false
-    fullnameOverride: montandon-etl-rabbitmq
+  # NOTE: DB is supplied externally; cache (Dragonfly) and broker (RabbitMQ) are
+  # operator-managed. The matching extraManifests/extraEnvVars live in
+  # ./values/operators.yaml (applied at deploy time and in the snapshot matrix).
 
   api:
     enabled: true
-    replicaCount: 1
     containerPort: 80
     command: ["/code/scripts/run_web.sh"]
+    ingress:
+      enabled: true
+      className:
+      host:
+    probes:
+      # HealthProbeMiddleware serves /healthz/live/ and /healthz/ready/.
+      # Chart defaults (liveness /healthz/live/, readiness+startup /healthz/ready/) apply.
+      enabled: true
     resources:
       requests:
         cpu: "0.1"
         memory: 1Gi
       limits:
-        cpu: "4"
         memory: 2Gi
 
   worker:
     enabled: true
-    beat:
-      command: ["celery", "-A", "main", "beat", "-l", "INFO"]
+    queueDefaults:
+      commandPrefix:
+        - "celery"
+        - "-A"
+        - "main"
+        - "worker"
+        - "-l"
+        - "INFO"
+        - "--prefetch-multiplier"
+        - "1"
+      # banjo-celery-probe heartbeat wiring (writer via setup_worker_heartbeat,
+      # reader via banjo-celery-probe) on a RAM emptyDir.
+      extraEnv:
+        BANJO_CELERY_HEARTBEAT_FILE: /var/run/celery/worker_heartbeat
+      volumes:
+        celery-heartbeat: {emptyDir: {medium: Memory, sizeLimit: 1Mi}}
+      volumeMounts:
+        celery-heartbeat: {mountPath: /var/run/celery}
+      probes:
+        enabled: true
+        liveness:
+          exec: {command: [banjo-celery-probe]}
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 6
+        startup:
+          exec: {command: [banjo-celery-probe]}
+          periodSeconds: 5
+          failureThreshold: 30
       resources:
         requests:
           cpu: "0.1"
-          memory: 0.2Gi
+          memory: 1Gi
         limits:
-          cpu: "1"
-          memory: 0.5Gi
-    flower:
-      enabled: true
-      command: ["celery", "-A", "main", "flower", "--port=8000"]
-      resources:
-        requests:
-          cpu: "0.1"
-          memory: 0.5Gi
-        limits:
-          cpu: "1"
-          memory: 0.5Gi
-    queueDefaultResources:
-      requests:
-        cpu: "0.1"
-        memory: 1Gi
-      limits:
-        cpu: "4"
-        memory: 2Gi
-    queueCommandPrefix:
-      - "celery"
-      - "-A"
-      - "main"
-      - "worker"
-      - "-l"
-      - "INFO"
-      - "--prefetch-multiplier"
-      - "1"
+          memory: 2Gi
     queues:
       # NOTE: Make sure keys are lowercase
       default:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "default", "--concurrency", "5", "--max-tasks-per-child", "25"]
       extraction:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
       transform:
         enabled: true
-        replicaCount: 2
         celeryArgs: ["-Q", "transform", "--concurrency", "2", "--max-tasks-per-child", "25"]
-      # By source
-      # TODO: Is this used?
       usgs-extraction:
         enabled: true
-        replicaCount: 1
         celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
+    addons:
+      beat:
+        enabled: true
+        # HeartbeatDatabaseScheduler uses django-celery-beat's DatabaseScheduler
+        # (jobs sourced from the DB, matching CELERY_BEAT_SCHEDULER in settings)
+        # while touching the beat heartbeat file each tick for banjo-celery-probe
+        # liveness.
+        command:
+          - "celery"
+          - "-A"
+          - "main"
+          - "beat"
+          - "-l"
+          - "INFO"
+          - "--scheduler=banjo_utils.celery_health.database.HeartbeatDatabaseScheduler"
+        strategy: {type: Recreate}
+        extraEnv:
+          BANJO_CELERY_HEARTBEAT_FILE: /var/run/celery/beat_heartbeat
+        volumes:
+          celery-heartbeat: {emptyDir: {medium: Memory, sizeLimit: 1Mi}}
+        volumeMounts:
+          celery-heartbeat: {mountPath: /var/run/celery}
+        probes:
+          enabled: true
+          liveness:
+            # DatabaseScheduler polls every ~5s, so a tighter --max-age is fine
+            exec: {command: [banjo-celery-probe, --max-age, "60"]}
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: 256Mi
+          limits:
+            memory: 512Mi
+      flower:
+        enabled: true
+        command: ["celery", "-A", "main", "flower", "--port=8000"]
+        service:
+          enabled: true
+          port: 80
+          targetPort: 8000
+        resources:
+          requests:
+            cpu: "0.1"
+            memory: 0.5Gi
+          limits:
+            memory: 0.5Gi
 
-  argoHook:
+  hooks:
     enabled: true
-    resources:
-      requests:
-        cpu: "0.1"
-        memory: 1Gi
-      limits:
-        cpu: "4"
-        memory: 2Gi
-    hooks:
-      # NOTE: Make sure keys are lowercase
-      db-migrate:
-        enabled: true
-        hook: PostSync
-        preserveHistory: true
-        command: ["./manage.py", "migrate"]
-      collect-static:
-        enabled: true
-        hook: PostSync
-        command: ["./manage.py", "collectstatic", "--noinput"]
+    defaults:
+      resources:
+        requests:
+          cpu: "0.1"
+          memory: 1Gi
+        limits:
+          cpu: "4"
+          memory: 2Gi
+    jobs:
+      # NOTE: Make sure keys are lowercase.
+      # db-migrate and collect-static inherit the chart defaults verbatim
+      # (Sync hook @ wave 20, `manage.py migrate` / `collectstatic --noinput`).
+      # Only wait-for-resources overrides the default (bare) command.
+      wait-for-resources:
+        command: ["./manage.py", "wait_for_resources", "--db", "--cache", "--celery-broker"]
 
+  cronjobs:
+    enabled: false
+
+  # NOTE: Check main/settings.py for all available options.
   env:
     APP_RELEASE: "{{ $.Values.image.tag }}"
     DJANGO_APP_ENVIRONMENT: "{{ $.Values.environment }}"
     DJANGO_DEBUG: "false"
     DJANGO_TIME_ZONE: UTC
-    # App Domain
     DJANGO_ALLOWED_HOSTS: "*"
-    # Azure configs
-    AZURE_STORAGE_ENABLE: "false"
-    # ETL app config
-    EOAPI_STAC_API_INTERNAL: "{{ required \".app.secrets.EOAPI_STAC_API_INTERNAL\" nil }}"
-    EOAPI_STAC_API_PUBLIC: "{{ required \".app.secrets.EOAPI_STAC_API_PUBLIC\" nil }}"
-
-  secrets:
-    DJANGO_SECRET_KEY: "{{ required \".app.secrets.DJANGO_SECRET_KEY\" nil }}"
+    # Object storage: default to Azure blob storage so no environment silently
+    # falls back to the (ephemeral) pod filesystem. The account/container names
+    # and credentials are deployment-specific and supplied per-environment.
+    AZURE_STORAGE_ENABLE: "true"
+    AZURE_STORAGE_MANAGED_IDENTITY: "true"
+    # AZURE_STORAGE_ACCOUNT_NAME:      # supplied per-environment
+    # AZURE_STORAGE_MEDIA_CONTAINER:   # supplied per-environment
+    # AZURE_STORAGE_STATIC_CONTAINER:  # supplied per-environment
+    # Alternative S3-compatible backend (set AWS_S3_BUCKET_ENABLE and the bucket
+    # names per-environment instead of Azure):
+    # AWS_S3_BUCKET_ENABLE: "true"
+    # AWS_S3_MEDIA_BUCKET_NAME:        # supplied per-environment
+    # AWS_S3_STATIC_BUCKET_NAME:       # supplied per-environment
+    # ETL / eoapi endpoints are deployment-specific:
+    # EOAPI_STAC_API_INTERNAL:         # supplied per-environment
+    # EOAPI_STAC_API_PUBLIC:           # supplied per-environment
+    TRANSFORM_SUCCESS_RATE: "80"
     # Sentry
-    SENTRY_DSN: "{{ required \".app.secrets.SENTRY_DSN\" nil }}"
-    # ETL sources config
-    EMDAT_AUTHORIZATION_KEY: "{{ required \".app.secrets.EMDAT_AUTHORIZATION_KEY\" nil }}"
-    GFD_CREDENTIAL: "{{ required \".app.secrets.GFD_CREDENTIAL\" nil }}"
-    GFD_SERVICE_ACCOUNT: "{{ required \".app.secrets.GFD_SERVICE_ACCOUNT\" nil }}"
-    IDMC_CLIENT_ID: "{{ required \".app.secrets.IDMC_CLIENT_ID\" nil }}"
-    PDC_ARCGIS_USERNAME: "{{ required \".app.secrets.PDC_ARCGIS_USERNAME\" nil }}"
-    PDC_ARCGIS_PASSWORD: "{{ required \".app.secrets.PDC_ARCGIS_PASSWORD\" nil }}"
-    PDC_SENTRY_AUTHORIZATION_KEY: "{{ required \".app.secrets.PDC_SENTRY_AUTHORIZATION_KEY\" nil }}"
+    SENTRY_TRACES_SAMPLE_RATE: "0.2"
+    SENTRY_PROFILE_SAMPLE_RATE: "0.2"
+    SENTRY_MONITOR_CELERY_BEAT_TASKS: "true"
 
+  # NOTE: Secrets (DJANGO_SECRET_KEY, DB_*, SENTRY_DSN, ETL source keys, object
+  # storage credentials) are supplied per-environment at deploy time
+  # (external secret / secret store CSI). Check main/settings.py for options.
+  secrets: {}
+
+  # Dict form (keyed by env-var name); values are k8s env specs minus name.
   extraEnvVars:
-    # -- Geocoder
-    - name: GEOCODER_URL
-      value: http://monty-geocoder:80
+    # Geocoding subchart service (see the geocoding block above).
+    GEOCODER_URL: {value: "http://monty-geocoder:80"}
+
+  # NOTE: Operator-managed infra (Dragonfly cache, RabbitMQ broker) and the
+  # matching extraEnvVars/extraManifests live in ./values/operators.yaml.
