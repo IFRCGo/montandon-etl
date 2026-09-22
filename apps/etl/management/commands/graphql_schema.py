@@ -18,6 +18,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         file = options["out"]
-        file.write(print_schema(schema))
+        # Trailing newline: print_schema omits it, but end-of-file-fixer adds one to the
+        # committed schema, which would make the CI schema comparison always differ.
+        file.write(print_schema(schema) + "\n")
         file.close()
         self.stdout.write(self.style.SUCCESS(f"{file.name} file generated"))

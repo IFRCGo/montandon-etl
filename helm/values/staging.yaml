@@ -4,7 +4,7 @@ app:
     queues:
       # NOTE: Make sure keys are lowercase
       extraction:
-        replicaCount: 2
+        # NOTE: replicas are owned by the KEDA ScaledObject (see values.yaml)
         resources:
           requests:
             memory: 1.5Gi

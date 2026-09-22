@@ -1,39 +1,36 @@
+# Azure (IFRC GO) deployment overlay: workload-identity service account +
+# secret-store CSI wiring. Real client/tenant/keyvault ids and container names
+# are deployment-specific and supplied per-environment at deploy time.
 geocoding:
+  server:
     persistence:
       # TODO: If not provided don't include storageClassName in the manifest
       storageClassName: default
 
 app:
-  fullnameOverride: monty-etl
-
   podLabels:
     azure.workload.identity/use: 'true'
 
-  ingress:
-    enabled: true
-    className: nginx
-    tls:
+  api:
+    ingress:
       enabled: true
+      # className comes from values/traefik.yaml, layered after this overlay.
+      tls:
+        enabled: true
 
   env:
     DJANGO_DEBUG: "false"
     DJANGO_TIME_ZONE: UTC
     DJANGO_ALLOWED_HOSTS: "*"
-    # Azure configs
-    # AZURE_STORAGE_ENABLE: XXX: go-deploy
-    # AZURE_STORAGE_ACCOUNT_NAME: XXX: go-deploy
-    # AZURE_STORAGE_MEDIA_CONTAINER: XXX: go-deploy
-    # AZURE_STORAGE_STATIC_CONTAINER: XXX: go-deploy
-    # ETL Load config
-    # EOAPI_STAC_API_INTERNAL: XXX: go-deploy
-    # EOAPI_STAC_API_PUBLIC: XXX: go-deploy
+    # Azure storage account/containers are supplied per-environment.
+    # ETL eoapi endpoints are supplied per-environment.
 
   serviceAccountName: "service-token-reader"
   serviceAccount:
     create: true
     automountServiceAccountToken: true
     # annotations:
-    #   azure.workload.identity/client-id: # XXX: go-deploy
+    #   azure.workload.identity/client-id:  # supplied per-environment
     labels:
       azure.workload.identity/use: "true"
 
@@ -42,9 +39,9 @@ app:
     provider: azure
     parameters:
       usePodIdentity: "false"
-      # clientID: # XXX: go-deploy
-      # keyvaultName: # XXX: go-deploy
-      # tenantId: # XXX: go-deploy
+      # clientID:      # supplied per-environment
+      # keyvaultName:  # supplied per-environment
+      # tenantId:      # supplied per-environment
     secretsKeyMap:
       # DB
       DB_HOST: DB-HOST
