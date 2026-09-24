@@ -295,7 +295,7 @@ def get_gdacs_url(
     return url
 
 
-def deep_dive(session, hazard, start_date, end_date, NUM, indent):
+def deep_dive(session, hazard, start_date, end_date, NUM, indent, skip_detail_duplicates: bool = False):
     iter_date = start_date
     iteration = 1
 
@@ -349,6 +349,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                                     ),
                                                     url=URL,
                                                     type=GdacsExtractionMetadataType.QUERY,
+                                                    skip_detail_duplicates=skip_detail_duplicates,
                                                 ),
                                                 queue_name=CeleryQueue.EXTRACTION,
                                             )
@@ -383,6 +384,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                                         ),
                                         url=URL,
                                         type=GdacsExtractionMetadataType.QUERY,
+                                        skip_detail_duplicates=skip_detail_duplicates,
                                     ),
                                     queue_name=CeleryQueue.EXTRACTION,
                                 )
@@ -406,7 +408,15 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                             "yellow",
                         )
                     )
-                    total_items += deep_dive(session, hazard, iter_date, session_end_date, NEW_NUM, indent + "  ")
+                    total_items += deep_dive(
+                        session,
+                        hazard,
+                        iter_date,
+                        session_end_date,
+                        NEW_NUM,
+                        indent + "  ",
+                        skip_detail_duplicates=skip_detail_duplicates,
+                    )
             else:
                 print(
                     colored(f"{indent}Good: {iter_date} to {session_end_date} for {hazard} and got {items} items", "green")
@@ -422,6 +432,7 @@ def deep_dive(session, hazard, start_date, end_date, NUM, indent):
                         ),
                         url=URL,
                         type=GdacsExtractionMetadataType.QUERY,
+                        skip_detail_duplicates=skip_detail_duplicates,
                     ),
                     queue_name=CeleryQueue.EXTRACTION,
                 )

@@ -94,6 +94,8 @@ class GdacsExtractionMetadata(pydantic.BaseModel):
     type: GdacsExtractionMetadataType
     event_params: typing.Optional[GdacsEventExtractionParamsMetadata] = None
     impact_source: typing.Optional[str] = None
+    # NOTE: When True, skip events whose detail extraction already exists
+    skip_detail_duplicates: bool = False
 
 
 class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
@@ -102,6 +104,14 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
     source_enum = ExtractionData.Source.GDACS
     extraction_metadata_class = GdacsExtractionMetadata
+
+    @classmethod
+    def _detail_extraction_exists(cls, event_id: int) -> bool:
+        return ExtractionData.objects.filter(
+            source=cls.source_enum,
+            metadata__type=GdacsExtractionMetadataType.DETAIL.value,
+            metadata__event_params__eventid=event_id,
+        ).exists()
 
     def handle_type_query(self):
         extraction_status = self._extraction_fetch_url(
@@ -127,14 +137,26 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
         # FIXME: We might need to write a simple validator here
         features_list = response_data["features"]
 
+        skip_detail_duplicates = self.extraction_metadata.skip_detail_duplicates
         for feature_item in features_list:
             event_id = feature_item["properties"]["eventid"]
             event_detail_url = f"{etl_config.GDACS_URL}/gdacsapi/api/events/geteventdata"
             eventtype = self.extraction_object.metadata.get("params").get("eventlist")
+
+            # NOTE: The same event can be returned by multiple queries (date range/alert level/country);
+            # skip ones already extracted when skip_detail_duplicates is enabled.
+            if skip_detail_duplicates and self._detail_extraction_exists(event_id):
+                logger.info(
+                    "Skipping already extracted event detail",
+                    extra=log_extra({"source": self.source_enum, "event_id": event_id}),
+                )
+                continue
+
             metadata = GdacsExtractionMetadata(
                 event_params=GdacsEventExtractionParamsMetadata(eventtype=eventtype, eventid=event_id, episodeid=None),
                 url=event_detail_url,
                 type=GdacsExtractionMetadataType.DETAIL,
+                skip_detail_duplicates=skip_detail_duplicates,
             )
             self.init_extraction(
                 metadata=metadata,

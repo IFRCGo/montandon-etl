@@ -57,8 +57,10 @@ def ext_and_transform_gdacs_latest_data():
 
 
 @shared_task
-def ext_and_transform_gdacs_historical_data(start_date: datetime.datetime, end_date: datetime.datetime):
+def ext_and_transform_gdacs_historical_data(
+    start_date: datetime.datetime, end_date: datetime.datetime, skip_detail_duplicates: bool = False
+):
     from apps.etl.etl_tasks.segment_gdacs import deep_dive
 
     for hazard, size in HAZARDS:
-        deep_dive(session, hazard, start_date, end_date, size, "")
+        deep_dive(session, hazard, start_date, end_date, size, "", skip_detail_duplicates=skip_detail_duplicates)
