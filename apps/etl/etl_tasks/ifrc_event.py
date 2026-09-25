@@ -45,7 +45,7 @@ def ext_and_transform_ifrcevent_latest_data():
     params = IfrcEventExtractionInputMetadata(
         updated_at__gte=str(start_date),
         updated_at__lte=str(datetime.datetime.now(UTC).date()),
-        limit=50,
+        limit=1,
         offset=0,
         ordering="-id",
         format="json",
@@ -67,7 +67,7 @@ def ext_and_transform_ifrcevent_historical_data(
     params = IfrcEventExtractionInputMetadata(
         updated_at__gte=str(start_date),
         updated_at__lte=str(end_date),
-        limit=500,
+        limit=1,
         offset=0,
         ordering="-id",
         format="json",
