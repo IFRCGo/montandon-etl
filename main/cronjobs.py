@@ -162,6 +162,16 @@ SCHEDULES: dict[str, CronJob] = {
             max_runtime=2 * 60,
         ),
     ),
+    "import_charter_data": CronJob(
+        task="apps.etl.etl_tasks.charter.ext_and_transform_charter_latest_data",
+        schedule=crontab(hour=21, minute=0),
+        options=CronJobOption(expire_seconds=TimeConstants.SECONDS_IN_A_DAY),
+        sentry_config=CronJobSentryConfig(
+            failure_issue_threshold=2,
+            checkin_margin=10,
+            max_runtime=5 * 60,
+        ),
+    ),
     "trigger_pending_extraction": CronJob(
         task="apps.etl.tasks.trigger_pending_extraction",
         schedule=crontab(hour="6,11,16,23", minute=0),
