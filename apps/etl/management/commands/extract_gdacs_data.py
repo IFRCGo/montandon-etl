@@ -44,7 +44,7 @@ class Command(BaseCommand):
             else ""
         )
         confirm_message = (
-            f"Are you sure? This will trigger IFRC import\nFROM:\t{start_date}\nTO:\t{end_date}{note}\nPlease confirm"
+            f"Are you sure? This will trigger GDACS import\nFROM:\t{start_date}\nTO:\t{end_date}{note}\nPlease confirm"
         )
         if not self.confirm(confirm_message):
             self.stderr.write(self.style.ERROR("Skipped...."))
