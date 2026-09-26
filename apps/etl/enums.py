@@ -1,6 +1,8 @@
+from enum import Enum
+
 import strawberry
 
-from apps.etl.models import ExtractionData, PyStacLoadData, Status
+from apps.etl.models import ExtractionData, PyStacLoadData, Status, StatusSnapshot
 from utils.strawberry.enums import get_enum_name_from_django_field
 
 DataStatusTypeEnum = strawberry.enum(Status, name="DataStatusTypeEnum")
@@ -10,6 +12,7 @@ ExtractionValidationTypeEnum = strawberry.enum(
 SourceTypeEnum = strawberry.enum(ExtractionData.Source, name="SourceTypeEnum")
 PyStacLoadDataStatusEnum = strawberry.enum(PyStacLoadData.Status, name="PyStacLoadDataStatusEnum")
 PyStacLoadDataItemTypeEnum = strawberry.enum(PyStacLoadData.ItemType, name="PyStacLoadDataItemTypeEnum")
+StatusSnapshotResourceTypeEnum = strawberry.enum(StatusSnapshot.ResourceType, name="StatusSnapshotResourceTypeEnum")
 
 
 enum_map = {
@@ -22,3 +25,9 @@ enum_map = {
         (PyStacLoadData.item_type, PyStacLoadDataItemTypeEnum),
     )
 }
+
+
+class TableNameEnum(Enum):
+    Transform = "etl_transform"
+    Extraction = "etl_extractiondata"
+    Load = "etl_pystacloaddata"
