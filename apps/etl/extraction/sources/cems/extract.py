@@ -114,6 +114,7 @@ class CEMSExtraction(BaseExtractionV2[CEMSExtractionMetadata]):
                 source=self.source_enum,
                 metadata__url=self.extraction_metadata.url,
             )
+            .only("id", "file_hash")
             .exclude(pk=self.extraction_object.pk)
             .first()
         )

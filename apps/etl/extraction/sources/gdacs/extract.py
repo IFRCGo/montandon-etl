@@ -166,7 +166,7 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
 
     def handle_type_detail(self, retrigger: bool, failed_int: int | None = None):
         if failed_int is not None:
-            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            failed_obj = ExtractionData.objects.filter(id=failed_int).only("id", "metadata").first()
             if failed_obj.metadata.get("type") == GdacsExtractionMetadataType.DETAIL:
                 ...
             elif failed_obj.metadata.get("type") == GdacsExtractionMetadataType.EPISODE:

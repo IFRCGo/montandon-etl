@@ -127,7 +127,7 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
 
     def handle_type_detail(self, retrigger: bool, failed_int: int | None):
         if failed_int:
-            failed_obj = ExtractionData.objects.filter(id=failed_int).first()
+            failed_obj = ExtractionData.objects.filter(id=failed_int).only("id", "metadata").first()
             if failed_obj.metadata.get("type") == USGSExtractionMetadataType.DETAIL:
                 ...
             elif failed_obj.metadata.get("type") == USGSExtractionMetadataType.LOSSE:
