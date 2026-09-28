@@ -26,6 +26,7 @@ def extract_and_transform_pdc_latest_data():
             metadata__type=PDCExtractionMetaDataType.HAZARD,
             metadata__hazard__pagination__page=1,
         )
+        .only("id", "metadata")
         .order_by("-created_at")
         .first()
     )

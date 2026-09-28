@@ -89,7 +89,10 @@ query monty(
 @shared_task
 def ext_and_transform_emdat_latest_data(**kwargs):
     exist_extraction_object = (
-        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT).order_by("-created_at").first()
+        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT)
+        .only("id", "status", "metadata")
+        .order_by("-created_at")
+        .first()
     )
 
     from_date_year = datetime.now().year

@@ -24,6 +24,7 @@ def ext_and_transform_ifrcevent_latest_data():
             # FIXME: Why do we add filter that resp_data__isnull
             resp_data__isnull=False,
         )
+        .only("id", "metadata", "created_at")
         .order_by("-created_at")
         .first()
     )
