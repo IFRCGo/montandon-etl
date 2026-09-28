@@ -30,6 +30,7 @@ class CeleryQueue:
 
     # Specific
     USGS_EXTRACTION = "usgs-extraction"
+    PDC_EXTRACTION = "pdc-extraction"
 
 
 app.conf.task_default_queue = CeleryQueue.DEFAULT

@@ -204,7 +204,7 @@ SCHEDULES: dict[str, CronJob] = {
                 max_runtime=2,
             ),
         )
-        for celery_queue_name in ["default", "extraction", "transform", "usgs-extraction"]
+        for celery_queue_name in ["default", "extraction", "transform", "usgs-extraction", "pdc-extraction"]
         # Note:
         # This list needs to be updated based on what we have
         # in the CeleryQueue in main/celery.py
