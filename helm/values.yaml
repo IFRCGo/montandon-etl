@@ -145,11 +145,14 @@ app:
         replicaCount: 2
         celeryArgs: ["-Q", "transform", "--concurrency", "2", "--max-tasks-per-child", "25"]
       # By source
-      # TODO: Is this used?
       usgs-extraction:
         enabled: true
         replicaCount: 1
         celeryArgs: ["-Q", "usgs-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
+      pdc-extraction:
+        enabled: true
+        replicaCount: 1
+        celeryArgs: ["-Q", "pdc-extraction", "--concurrency", "2", "--max-tasks-per-child", "25"]
 
   argoHook:
     enabled: true

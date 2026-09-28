@@ -1292,6 +1292,75 @@ spec:
               value: http://monty-geocoder:80
 ---
 # Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
+# Queue: pdc-extraction
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: monty-etl-1-worker-pdc-extraction
+  annotations:
+    reloader.stakater.com/auto: "true"
+  labels:
+    app: monty-etl-1
+    component: worker
+    queue: pdc-extraction
+    environment: ALPHA-1
+    release: release-name
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: monty-etl-1
+      component: worker
+      queue: pdc-extraction
+  template:
+    metadata:
+      annotations:
+        checksum/secret: 7b54fddcd01e3beef28134a942be508b545ccf08ba520e929de473e5cad27470
+        checksum/configmap: e4a75c3e25a6e47cb46a7776395d3e73d6f04c0cbc4297b08fd9fcf46fd208ed
+      labels:
+        app: monty-etl-1
+        component: worker
+        queue: pdc-extraction
+    spec:
+      containers:
+        - name: worker
+          command:
+            - celery
+            - -A
+            - main
+            - worker
+            - -l
+            - INFO
+            - --prefetch-multiplier
+            - "1"
+            - -Q
+            - pdc-extraction
+            - --concurrency
+            - "2"
+            - --max-tasks-per-child
+            - "25"
+          image: "SET-BY-CICD-IMAGE:SET-BY-CICD-TAG"
+          imagePullPolicy: IfNotPresent
+          # TODO: livenessProbe
+          resources:
+            limits:
+              cpu: "4"
+              memory: 2Gi
+            requests:
+              cpu: "0.1"
+              memory: 1Gi
+          envFrom:
+            - secretRef:
+                name: monty-etl-1-secret
+            - configMapRef:
+                name: monty-etl-1-env-name
+          env:
+            - name: DJANGO_APP_TYPE
+              value: "worker"
+            - name: GEOCODER_URL
+              value: http://monty-geocoder:80
+---
+# Source: montandon-etl-helm/charts/app/templates/worker/deployment.yaml
 # Queue: transform
 apiVersion: apps/v1
 kind: Deployment
