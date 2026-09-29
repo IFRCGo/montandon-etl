@@ -62,7 +62,7 @@ def extract_and_transform_pdc_latest_data():
                 url=data_url,
                 type=PDCExtractionMetaDataType.HAZARD,
             ),
-            queue_name=CeleryQueue.EXTRACTION,
+            queue_name=CeleryQueue.PDC_EXTRACTION,
         )
 
 
@@ -91,5 +91,5 @@ def extract_and_transform_historical_pdc_data(
                 url=url,
                 type=PDCExtractionMetaDataType.HAZARD,
             ),
-            queue_name=CeleryQueue.EXTRACTION,
+            queue_name=CeleryQueue.PDC_EXTRACTION,
         )

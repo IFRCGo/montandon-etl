@@ -116,7 +116,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
 
     source_enum = ExtractionData.Source.PDC
     extraction_metadata_class = PDCExtractionMetadata
-    DEFAULT_CELERY_QUEUE = CeleryQueue.EXTRACTION
+    DEFAULT_CELERY_QUEUE = CeleryQueue.PDC_EXTRACTION
 
     @classmethod
     def _get_request_headers(cls, headers: dict[str, typing.Any] | None = None) -> dict[str, str]:
@@ -170,7 +170,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                         url=self.extraction_metadata.url,
                         type=PDCExtractionMetaDataType.HAZARD,
                     ),
-                    queue_name=CeleryQueue.EXTRACTION,
+                    queue_name=CeleryQueue.PDC_EXTRACTION,
                 )
 
         geo_objects = []
@@ -216,9 +216,11 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             geo_object.save()
 
             if geo_object.status != ExtractionData.Status.SUCCESS:
-                geo_objects.append(PDCExtractionV2.task.s(geo_object.pk))
+                geo_objects.append(PDCExtractionV2.task.s(geo_object.pk).set(queue=self.celery_queue))
             if exposure_extraction_obj.status != ExtractionData.Status.SUCCESS:
-                hazard_extraction_objects.append(PDCExtractionV2.task.si(exposure_extraction_obj.pk))
+                hazard_extraction_objects.append(
+                    PDCExtractionV2.task.si(exposure_extraction_obj.pk).set(queue=self.celery_queue)
+                )
 
         if hazard_extraction_objects:
             chord(geo_objects)(group(hazard_extraction_objects))
@@ -317,7 +319,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
     @app.task(
         bind=True,
         base=RetryableTask,
-        queue=CeleryQueue.EXTRACTION,
+        queue=CeleryQueue.PDC_EXTRACTION,
     )
     def task(celery_task, extraction_id, retrigger: bool = False, failed_int: int | None = None):
         PDCExtractionV2(celery_task, extraction_id).handle(retrigger=retrigger, failed_int=failed_int)
@@ -432,7 +434,7 @@ class PDCExposureBatchTask:
     @app.task(
         bind=True,
         base=RetryableTask,
-        queue=CeleryQueue.EXTRACTION,
+        queue=CeleryQueue.PDC_EXTRACTION,
         name="apps.etl.extraction.sources.pdc.extract.PDCExposureBatchTask.task",
     )
     def task(celery_task, extraction_pks: list[int]):
