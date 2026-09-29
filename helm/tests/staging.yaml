@@ -1,29 +1,51 @@
+# Dummy values injected by cluster operators / CICD at deploy time.
+# Only present so that the environment values files can be rendered standalone
+# for snapshot testing (see ../tests.yaml). Not real deployment values.
 app:
-  ingress:
-    host: montandon-etl-stage.monty.org
-    tls:
-      secretName: montandon-helm-secret-cert
+  image:
+    name: local.example.com/ifrcgo/montandon-etl
+    tag: develop.xxxxxxxx
 
-  # Environment variables
+  api:
+    ingress:
+      host: montandon-etl.example.com
+      tls:
+        secretName: montandon-etl-tls
+
   env:
-    # Azure configs
-    AZURE_STORAGE_ENABLE: "true"
-    AZURE_CLIENT_ID: XXXXCLIENT-IDXXXX
-    AZURE_TENANT_ID: XXXXTENANT-IDXXXX
-    AZURE_STORAGE_MEDIA_CONTAINER: montandon-etl-staging-media-container
-    AZURE_STORAGE_STATIC_CONTAINER: montandon-etl-staging-static-container
-    AZURE_STORAGE_ACCOUNT_NAME: montystagingXYZ
-    AZURE_STORAGE_MANAGED_IDENTITY: "true"
-    # ETL Load config
-    EOAPI_STAC_API_INTERNAL: "https://montandon-eoapi-stage.monty.org/stac"
-    EOAPI_STAC_API_PUBLIC: "https://montandon-eoapi-stage.monty.org/stac"
+    # Object storage (Azure, default backend)
+    AZURE_STORAGE_ACCOUNT_NAME: dummyaccount
+    AZURE_STORAGE_MEDIA_CONTAINER: dummy-media
+    AZURE_STORAGE_STATIC_CONTAINER: dummy-static
+    # ETL eoapi endpoints
+    EOAPI_STAC_API_INTERNAL: https://eoapi.example.com/stac
+    EOAPI_STAC_API_PUBLIC: https://eoapi.example.com/stac
 
+  secrets:
+    DJANGO_SECRET_KEY: dummy-secret-key
+    # Database
+    DB_NAME: dummy
+    DB_USER: dummy
+    DB_PASSWORD: dummy
+    DB_HOST: dummy
+    DB_PORT: "5432"
+    # Sentry
+    SENTRY_DSN: https://dummy@sentry.example.com/1
+    # ETL sources
+    EMDAT_AUTHORIZATION_KEY: dummy-key
+    GFD_CREDENTIAL: dummy-gfd-cred
+    GFD_SERVICE_ACCOUNT: dummy-gfd-service-account
+    IDMC_CLIENT_ID: dummy-client-id
+    PDC_ARCGIS_USERNAME: dummy-username
+    PDC_ARCGIS_PASSWORD: dummy-password
+    PDC_SENTRY_AUTHORIZATION_KEY: dummy-key
+
+  # Secret-store CSI dummies so the go-deploy (Azure) overlay renders standalone.
   serviceAccount:
     annotations:
-      azure.workload.identity/client-id : "XXXXCLIENT-IDXXXX"
-
+      azure.workload.identity/client-id: "00000000-0000-0000-0000-000000000000"
   secretsStoreCsiDriver:
     parameters:
-      clientID: "XXXXCLIENT-IDXXXX"
-      keyvaultName: "montandon-etl-staging-kv"
-      tenantId: "XXXXTENANT-IDXXXX"
+      clientID: "00000000-0000-0000-0000-000000000000"
+      keyvaultName: "dummy-kv"
+      tenantId: "00000000-0000-0000-0000-000000000000"
