@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CEMS as a new disaster data source with extraction and transformation support
 - Skip transform when extracted CEMS content is unchanged (`NO_CHANGE` status), avoiding redundant geocoding and duplicate `PyStacLoadData` rows
 - Disaster Charter as a new disaster data source with extraction support for hazard, event, response, and acquisitions data
-- Management command to trigger the Disaster Charter ETL, for the whole catalog or specific activation ids
+- Management command to trigger the Disaster Charter ETL for the full catalog
 
 ### Changed
 
@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use S3 URLs for Disaster Charter hazard, event, and response extraction
 - Use calibrated dataset URL for Disaster Charter acquisitions data
 - Renamed `disaster_charter` module convention to `charter` across files, imports, and class names (`DisasterCharterTransformHandler` → `CharterTransformHandler`)
+
+### Removed
+
+- `ext_and_transform_charter_data_for_activations` task and the `--activation-ids` management command option
 
 ### Fixed
 
