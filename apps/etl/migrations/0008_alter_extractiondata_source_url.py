@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('etl', '0006_alter_extractiondata_source'),
+        ('etl', '0007_extractiondata_etl_extract_source_2792f8_idx'),
     ]
 
     operations = [
@@ -14,5 +14,10 @@ class Migration(migrations.Migration):
             model_name='extractiondata',
             name='source',
             field=models.IntegerField(choices=[(1, 'GDACS'), (2, 'PDC'), (3, 'Glide'), (4, 'NOAA-IBTrACS'), (5, 'EM-DAT'), (6, 'IDMC-GIDD'), (7, 'IDMC-IDU'), (8, 'USGS Shakesmaps'), (9, 'Global Flood Database'), (10, 'DFO'), (11, 'STORM'), (12, 'IFRC DREF & EA'), (13, 'WFP-ADAM'), (14, 'DesInventar'), (15, 'DisasterCharter'), (16, 'CEMS')], db_index=True, verbose_name='source'),
+        ),
+        migrations.AlterField(
+            model_name='extractiondata',
+            name='url',
+            field=models.URLField(blank=True, max_length=2048, verbose_name='url'),
         ),
     ]
