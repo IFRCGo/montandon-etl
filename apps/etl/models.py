@@ -201,6 +201,9 @@ class ExtractionData(EtlResource):
 
     class Meta(EtlResource.Meta):
         verbose_name = "Extraction"
+        indexes = [
+            models.Index(fields=["source", "file_hash"]),
+        ]
 
     # TODO: We do not need to store URL but we need to store data that can be used to retrigger the data.
 

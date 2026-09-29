@@ -78,6 +78,7 @@ def ext_and_transform_glide_latest_data():
             status=ExtractionData.Status.SUCCESS,
             resp_data__isnull=False,
         )
+        .only("id", "created_at")
         .order_by("-created_at")
         .first()
     )

@@ -31,7 +31,7 @@ def manage_duplicate_file_content(source, hash_content, instance, response_data,
         file_hash=hash_content,
         file_hash__isnull=False,
         **(extra_filters or {}),
-    )
+    ).only("id", "resp_data")
     if instance.id:
         duplicate_extraction_qs = duplicate_extraction_qs.exclude(id=instance.id)
 
