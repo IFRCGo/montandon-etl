@@ -12,10 +12,15 @@ directive @isAuthenticated repeatable on FIELD_DEFINITION
 
 type AppEnumCollection {
   ExtractionDataSource: [AppEnumCollectionExtractionDataSource!]!
-  ExtractionDataStatus: [AppEnumCollectionExtractionDataStatus!]!
+  DataStatusTypeEnum: [AppEnumCollectionDataStatusTypeEnum!]!
   ExtractionDataSourceValidationStatus: [AppEnumCollectionExtractionDataSourceValidationStatus!]!
   PyStacLoadDataStatus: [AppEnumCollectionPyStacLoadDataStatus!]!
   PyStacLoadDataItemType: [AppEnumCollectionPyStacLoadDataItemType!]!
+}
+
+type AppEnumCollectionDataStatusTypeEnum {
+  key: DataStatusTypeEnum!
+  label: String!
 }
 
 type AppEnumCollectionExtractionDataSource {
@@ -25,11 +30,6 @@ type AppEnumCollectionExtractionDataSource {
 
 type AppEnumCollectionExtractionDataSourceValidationStatus {
   key: ExtractionDataValidationStatusTypeEnum!
-  label: String!
-}
-
-type AppEnumCollectionExtractionDataStatus {
-  key: DataStatusTypeEnum!
   label: String!
 }
 
@@ -53,6 +53,18 @@ type CountbytraceID {
 
 """A generic type to return error messages"""
 scalar CustomErrorType
+
+type DailyPystacStatusCount {
+  date: String!
+  status: PyStacLoadDataStatusEnum!
+  count: Int!
+}
+
+type DailyStatusCount {
+  date: String!
+  status: DataStatusTypeEnum!
+  count: Int!
+}
 
 enum DataStatusTypeEnum {
   PENDING
@@ -109,13 +121,6 @@ input DatetimeDatetimeFilterLookup {
 input DatetimeRangeLookup {
   start: DateTime = null
   end: DateTime = null
-}
-
-type DjangoFileType {
-  name: String!
-  path: String!
-  size: Int!
-  url: String!
 }
 
 type DjangoModelType {
@@ -202,6 +207,15 @@ input IntRangeLookup {
   end: Int = null
 }
 
+type ItemTypeSourceStatusSummary {
+  source: SourceTypeEnum!
+  successCount: Int!
+  failedCount: Int!
+  pendingCount: Int!
+  itemType: PyStacLoadDataItemTypeEnum!
+  total: Int!
+}
+
 type ItemsbySource {
   source: SourceTypeEnum!
   eventItems: Int!
@@ -217,8 +231,8 @@ scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads
 type Mutation {
   login(username: String!, password: String!): UserMeType!
   logout: Boolean!
-  retriggerPipeline(data: PipelineRetriggerInput!): StrMutationResponseType!
-  retriggerTransform(data: TransformRetriggerInput!): StrMutationResponseType!
+  retriggerPipeline(data: PipelineRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
+  retriggerTransform(data: TransformRetriggerInput!): PipelineRetriggerTypeMutationResponseType!
 }
 
 type OffsetPaginationInfo {
@@ -244,10 +258,22 @@ input PipelineRetriggerInput {
   traceIds: [ID!]!
 }
 
+type PipelineRetriggerType {
+  taskId: ID!
+  status: String!
+}
+
+type PipelineRetriggerTypeMutationResponseType {
+  ok: Boolean!
+  errors: CustomErrorType
+  result: PipelineRetriggerType
+}
+
 enum PyStacLoadDataItemTypeEnum {
   EVENT
   HAZARD
   IMPACT
+  RESPONSE
 }
 
 enum PyStacLoadDataStatusEnum {
@@ -258,7 +284,7 @@ enum PyStacLoadDataStatusEnum {
 
 input PystacDataFilter {
   createdAt: DatetimeDatetimeFilterLookup
-  status: DataStatusTypeEnum
+  status: PyStacLoadDataStatusEnum
   traceId: IDBaseFilterLookup
   itemType: PyStacLoadDataItemTypeEnum
   AND: PystacDataFilter
@@ -285,17 +311,24 @@ type Query {
   pystac(pk: ID!): RawPystacdatatype! @isAuthenticated
   pystacs(pagination: OffsetPaginationInput, filters: PystacDataFilter, order: PystacOrder): RawPystacdatatypeOffsetPaginated! @isAuthenticated
   extractionoftraceid: ETLWithTraceID! @isAuthenticated
-  statusCountExtraction: [StatusCountExtraction!]!
+  statusCountExtraction: StatusCountExtraction!
   statusSourceCountsExtraction: [StatusSourceCountExtraction!]!
   validationStatusSourceCounts: [ValStatusSourceCount!]!
   countTraceId: [CountbytraceID!]!
-  statusCountTransform: [StatusCountTransform!]!
+  statusCountTransform: StatusCountTransform!
   statusSourceCountsTransform: [StatusSourceCountTransform!]!
   uniqueItemsCounts: [UniqueCounts!]!
   itemsCountsBySource: [ItemsbySource!]!
-  extractionByTraceId(traceId: Int!): [ETLWithTraceID!]!
+  extractionByTraceId(traceId: Int!): ETLWithTraceID! @isAuthenticated
   statusSourceCountsPystac: [StatusSourceCountPyStac!]!
   statusSourceCountsPystacByItem: [StatusSourceCountPystacByItem!]!
+  statusCountsBySourceForItemtype: [ItemTypeSourceStatusSummary!]!
+  specificTableSizes: [TableSize!]!
+  retriedExtractionsCount(hours: Int! = 24): Int!
+  extractionTrend(days: Int! = 30): [DailyStatusCount!]!
+  transformTrend(days: Int! = 30): [DailyStatusCount!]!
+  pystacTrend(days: Int! = 30): [DailyPystacStatusCount!]!
+  statusSnapshotTrend(resourceType: StatusSnapshotResourceTypeEnum!, days: Int! = 30): [StatusSnapshotType!]!
   users(pagination: OffsetPaginationInput, filters: UserFilter, order: UserOrder): UserTypeOffsetPaginated! @isAuthenticated
   me: UserMeType
   enums: AppEnumCollection!
@@ -312,7 +345,6 @@ type RawExtractiondatatype {
   sourceValidationStatus: ExtractionDataValidationStatusTypeEnum!
   hazardType: String
   traceId: ID!
-  respData: DjangoFileType
   filesize: Float!
 }
 
@@ -336,8 +368,7 @@ type RawPystacdatatype {
   item: JSON!
   collectionId: String!
   transformId: ID!
-  itemPrimaryCountry: [String!]
-  source: SourceTypeEnum
+  source: SourceTypeEnum!
 }
 
 type RawPystacdatatypeOffsetPaginated {
@@ -387,6 +418,7 @@ enum SourceTypeEnum {
   DREF
   WFPADAM
   DESINVENTAR
+  CEMS
 }
 
 type StatusCountExtraction {
@@ -394,6 +426,7 @@ type StatusCountExtraction {
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
+  onRetryCount: Int!
 }
 
 type StatusCountTransform {
@@ -403,12 +436,27 @@ type StatusCountTransform {
   pendingCount: Int!
 }
 
+enum StatusSnapshotResourceTypeEnum {
+  EXTRACTION
+  TRANSFORM
+  PYSTAC
+}
+
+type StatusSnapshotType {
+  createdAt: DateTime!
+  resourceType: StatusSnapshotResourceTypeEnum!
+  source: SourceTypeEnum!
+  status: Int!
+  count: Int!
+}
+
 type StatusSourceCountExtraction {
   source: SourceTypeEnum!
   inProgressCount: Int!
   successCount: Int!
   failedCount: Int!
   pendingCount: Int!
+  onRetryCount: Int!
 }
 
 type StatusSourceCountPyStac {
@@ -482,10 +530,15 @@ input StrFilterLookup {
   iRegex: String
 }
 
-type StrMutationResponseType {
-  ok: Boolean!
-  errors: CustomErrorType
-  result: String
+enum TableNameEnum {
+  Transform
+  Extraction
+  Load
+}
+
+type TableSize {
+  tablename: TableNameEnum!
+  size: String!
 }
 
 input TransformDataFilter {

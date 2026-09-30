@@ -45,6 +45,7 @@ x-worker: &base_worker_setup
 services:
   db:
     image: postgis/postgis:15-3.5-alpine
+    shm_size: '256mb'
     environment:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
