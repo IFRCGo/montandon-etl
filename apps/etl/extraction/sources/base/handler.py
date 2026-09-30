@@ -267,14 +267,10 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         file_name = f"{extraction_object.source}-{uuid.uuid4().hex[:8]}.{file_extension}"
         resp_data_content = response.content
 
-        # save the additional response data after the data is fetched from api.
         extraction_object.resp_data_type = content_type or response.headers.get("Content-Type", "")
-        # FIXME: Is this required
-        extraction_object.save()
 
-        # Validate the non empty response data.
+        # manage_duplicate_file_content always calls save() at the end, so no intermediate save needed.
         if resp_data_content:
-            # manage duplicate file content. FIXME: Does this work
             hash_content = hash_file_content(resp_data_content)
             manage_duplicate_file_content(
                 source=extraction_object.source,
@@ -284,6 +280,8 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
                 file_name=file_name,
                 extra_filters=cls._duplicate_extra_filters(extraction_object),
             )
+        else:
+            extraction_object.save(update_fields=["resp_data_type"])
         return extraction_object
 
     def _extraction_fetch_graphql(self, url: str, payload: dict, headers: Optional[dict] = None, timeout: int = 30) -> bool:
