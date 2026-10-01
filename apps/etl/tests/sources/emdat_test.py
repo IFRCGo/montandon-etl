@@ -1,3 +1,4 @@
+import copy
 import json
 from unittest.mock import MagicMock, patch
 
@@ -12,7 +13,7 @@ from pystac_monty.sources.common import MontyDataTransformer
 from apps.etl.etl_tasks.emdat import ext_and_transform_emdat_latest_data
 from apps.etl.models import ExtractionData, PyStacLoadData, Transform
 from apps.etl.tests.common.base_settings_test import TEST_CACHES
-from apps.etl.utils import remove_ignored_keys
+from apps.etl.utils import get_cluster_codes, remove_ignored_keys
 from main.configs import etl_config
 
 # Set base_collection_url
@@ -50,10 +51,16 @@ def test_handle_extraction_various_emdat_files(case):
 
     def custom_get(url, *args, **kwargs):
         if url == source_url:
+            # Filter the data based on the requested classification keys
+            classif_keys = kwargs["json"]["variables"]["classif"]
+            response_data = copy.deepcopy(mock_data)
+            response_data["data"]["public_emdat"]["data"] = [
+                record for record in mock_data["data"]["public_emdat"]["data"] if record["classif_key"] in classif_keys
+            ]
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.return_value = mock_data
-            mock_response.content = json.dumps(mock_data).encode("utf-8")
+            mock_response.json.return_value = response_data
+            mock_response.content = json.dumps(response_data).encode("utf-8")
             mock_response.headers = {"Content-Type": "application/json"}
             return mock_response
         return original_get(url, *args, **kwargs)
@@ -63,8 +70,9 @@ def test_handle_extraction_various_emdat_files(case):
         ext_and_transform_emdat_latest_data()
 
     # Assertions
-    assert ExtractionData.objects.count() == 1
-    assert Transform.objects.count() == 1
+    # Single extraction for each classification key, transformed only for the keys having data
+    assert ExtractionData.objects.count() == len(get_cluster_codes())
+    assert Transform.objects.count() == 2
     assert PyStacLoadData.objects.count() == 28
 
     # Path for expected output
@@ -96,7 +104,11 @@ def test_handle_extraction_various_emdat_files(case):
         "processing:software",
     }
 
-    filtered_actual = remove_ignored_keys(actual_json, ignored_keys)
-    filtered_expected = remove_ignored_keys(expected_json, ignored_keys)
+    # NOTE: Items are loaded from multiple extractions (one per classification key), so the order differs
+    def sort_items(items):
+        return sorted(items, key=lambda item: item["fields"]["item_id"])
+
+    filtered_actual = sort_items(remove_ignored_keys(actual_json, ignored_keys))
+    filtered_expected = sort_items(remove_ignored_keys(expected_json, ignored_keys))
 
     assert filtered_actual == filtered_expected, f"Differences found when comparing to fixed file {fixed_filename}."
