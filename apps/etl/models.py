@@ -204,6 +204,9 @@ class ExtractionData(EtlResource):
         verbose_name = "Extraction"
         indexes = [
             models.Index(fields=["source", "file_hash"]),
+            models.Index(fields=["source", "status"]),
+            models.Index(fields=["source_validation_status"]),
+            models.Index(fields=["parent", "status"]),
         ]
 
     # TODO: We do not need to store URL but we need to store data that can be used to retrigger the data.

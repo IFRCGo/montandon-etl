@@ -360,8 +360,8 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             aws_secret_access_key=etl_config.CHARTER_S3_SECRET_ACCESS_KEY,
         )
 
-    def _list_s3_prefixes(self, prefix: str) -> list[str]:
-        """Return the last path component for each immediate sub-prefix under *prefix*.
+    def _iter_s3_prefixes(self, prefix: str) -> typing.Iterator[str]:
+        """Yield the last path component for each immediate sub-prefix under *prefix*, one page at a time.
 
         Raises BotoCoreError / ClientError on S3 failure — callers are responsible
         for catching and deciding whether to skip or abort.
@@ -372,12 +372,18 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             Prefix=prefix,
             Delimiter="/",
         )
-        return [
-            tail
-            for page in pages
-            for entry in page.get("CommonPrefixes", [])
-            if (tail := entry.get("Prefix", "").rstrip("/").split("/")[-1])
-        ]
+        for page in pages:
+            for entry in page.get("CommonPrefixes", []):
+                if tail := entry.get("Prefix", "").rstrip("/").split("/")[-1]:
+                    yield tail
+
+    def _list_s3_prefixes(self, prefix: str) -> list[str]:
+        """Return the last path component for each immediate sub-prefix under *prefix*.
+
+        Raises BotoCoreError / ClientError on S3 failure — callers are responsible
+        for catching and deciding whether to skip or abort.
+        """
+        return list(self._iter_s3_prefixes(prefix))
 
     # ------------------------------------------------------------------ #
     # S3 fetch                                                             #
@@ -567,30 +573,27 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
 
     def handle_type_catalog(self):
         try:
-            act_prefixes = self._list_s3_prefixes("activations/")
+            for act_prefix in self._iter_s3_prefixes("activations/"):
+                match = re.search(r"act-(\d+)", act_prefix)
+                if not match:
+                    continue
+                activation_id = int(match.group(1))
+                if activation_id in ERRORED_ACTIVATION_IDS or activation_id in ERRORED_CALIBRATION_IDS:
+                    continue
+                self.init_extraction(
+                    metadata=CharterExtractionMetadata(
+                        url=self._s3_uri("activations", f"act-{activation_id}", f"act-{activation_id}.json"),
+                        type=CharterExtractionMetadataType.ACTIVATION,
+                        activation_id=activation_id,
+                    ),
+                    parent_extraction=None,
+                    queue_name=CeleryQueue.EXTRACTION,
+                )
         except (BotoCoreError, ClientError):
             logger.warning(
                 "Failed to list activations from S3",
                 extra=log_extra({"source": self.source_enum}),
                 exc_info=True,
-            )
-            return
-
-        for act_prefix in act_prefixes:
-            match = re.search(r"act-(\d+)", act_prefix)
-            if not match:
-                continue
-            activation_id = int(match.group(1))
-            if activation_id in ERRORED_ACTIVATION_IDS or activation_id in ERRORED_CALIBRATION_IDS:
-                continue
-            self.init_extraction(
-                metadata=CharterExtractionMetadata(
-                    url=self._s3_uri("activations", f"act-{activation_id}", f"act-{activation_id}.json"),
-                    type=CharterExtractionMetadataType.ACTIVATION,
-                    activation_id=activation_id,
-                ),
-                parent_extraction=None,
-                queue_name=CeleryQueue.EXTRACTION,
             )
 
     def handle_type_activation(self):
