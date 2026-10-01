@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from celery import shared_task
+from django.db.models.fields.json import KT
 
 from apps.etl.extraction.sources.emdat.extract import (
     EmdatExtraction,
@@ -86,28 +87,15 @@ query monty(
 """
 
 
-@shared_task
-def ext_and_transform_emdat_latest_data(**kwargs):
-    exist_extraction_object = (
-        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT)
-        .only("id", "status", "metadata")
-        .order_by("-created_at")
-        .first()
-    )
-
-    from_date_year = datetime.now().year
-    if exist_extraction_object:
-        if not exist_extraction_object.status == ExtractionData.Status.SUCCESS:
-            from_date_year = exist_extraction_object.metadata["params"]["from_"]
-
-    EmdatExtraction.init_extraction(
+def _init_emdat_extraction(classif_key: str, from_: int, to: int, include_hist: bool | None):
+    return EmdatExtraction.init_extraction(
         metadata=EmdatExtractionMetadata(
             params=EmdatExtractionParamsMetadata(
                 limit=-1,
-                from_=from_date_year,
-                to=datetime.now().year,
-                include_hist=None,
-                classif=get_cluster_codes(),
+                from_=from_,
+                to=to,
+                include_hist=include_hist,
+                classif=[classif_key],
             ),
             url=f"{etl_config.EMDAT_URL}/v1",
             type=EmdatExtractionMetadataType.QUERY,
@@ -116,20 +104,43 @@ def ext_and_transform_emdat_latest_data(**kwargs):
     )
 
 
+def _get_latest_extraction_by_classif_key() -> dict[str, ExtractionData]:
+    """
+    Latest extraction for each classification key (extractions are created for single classif key)
+    """
+    latest_extractions = (
+        ExtractionData.objects.filter(source=ExtractionData.Source.EMDAT)
+        .annotate(classif_param=KT("metadata__params__classif"))
+        .order_by("classif_param", "-created_at")
+        .distinct("classif_param")
+        .only("id", "status", "metadata")
+    )
+    return {
+        extraction.metadata["params"]["classif"][0]: extraction
+        for extraction in latest_extractions
+        if len(extraction.metadata.get("params", {}).get("classif") or []) == 1
+    }
+
+
+@shared_task
+def ext_and_transform_emdat_latest_data(**kwargs):
+    current_year = datetime.now().year
+    latest_extraction_by_classif_key = _get_latest_extraction_by_classif_key()
+
+    for classif_key in get_cluster_codes():
+        from_date_year = current_year
+        # Re-extract from the previous failed extraction's year
+        if (
+            exist_extraction_object := latest_extraction_by_classif_key.get(classif_key)
+        ) and exist_extraction_object.status != ExtractionData.Status.SUCCESS:
+            from_date_year = exist_extraction_object.metadata["params"]["from_"]
+
+        _init_emdat_extraction(classif_key, from_=from_date_year, to=current_year, include_hist=None)
+
+
 @shared_task
 def ext_and_transform_emdat_historical_data(start_date, end_date, **kwargs):
-    for i in range(start_date, end_date + 1):
-        EmdatExtraction.init_extraction(
-            metadata=EmdatExtractionMetadata(
-                params=EmdatExtractionParamsMetadata(
-                    limit=-1,
-                    from_=i,
-                    to=i,
-                    include_hist=True,
-                    classif=get_cluster_codes(),
-                ),
-                url=f"{etl_config.EMDAT_URL}/v1",
-                type=EmdatExtractionMetadataType.QUERY,
-            ),
-            queue_name=CeleryQueue.EXTRACTION,
-        )
+    classif_keys = get_cluster_codes()
+    for year in range(start_date, end_date + 1):
+        for classif_key in classif_keys:
+            _init_emdat_extraction(classif_key, from_=year, to=year, include_hist=True)
