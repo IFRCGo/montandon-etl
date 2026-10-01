@@ -7,6 +7,7 @@ from typing import Any, Callable, Optional
 
 import pydantic
 import requests
+from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.functional import cached_property
 
@@ -253,6 +254,14 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         return None
 
     @classmethod
+    def _compute_file_hash(cls, content: bytes) -> str | None:
+        """
+        Hash used for duplicate detection. Override to ignore volatile fields (eg: timestamps).
+        Return None if the content has no data, duplicate detection is skipped for such content.
+        """
+        return hash_file_content(content)
+
+    @classmethod
     def _extraction_store_data(
         cls,
         *,
@@ -275,7 +284,11 @@ class BaseExtractionV2(typing.Generic[ExtractionMetadataTypeVar]):
         # Validate the non empty response data.
         if resp_data_content:
             # manage duplicate file content. FIXME: Does this work
-            hash_content = hash_file_content(resp_data_content)
+            hash_content = cls._compute_file_hash(resp_data_content)
+            if hash_content is None:
+                extraction_object.source_validation_status = ExtractionData.ValidationStatus.NO_DATA
+                extraction_object.resp_data.save(file_name, ContentFile(resp_data_content))
+                return extraction_object
             manage_duplicate_file_content(
                 source=extraction_object.source,
                 hash_content=hash_content,
