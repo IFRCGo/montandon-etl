@@ -30,13 +30,6 @@ class CharterTransformHandler(BaseTransformerHandler[CharterTransformer, Charter
             logger.warning("Failed to read %s extraction %s", label, ext_obj.id, exc_info=True)
             return None
 
-    @staticmethod
-    def _normalize_vap(raw: dict | list) -> list[dict]:
-        if isinstance(raw, list):
-            return raw
-        features = raw.get("features")
-        return features if features is not None else [raw]
-
     @classmethod
     def _collect_children(cls, parent: ExtractionData, metadata_type: str):
         return parent.child_extractions.filter(
@@ -46,29 +39,33 @@ class CharterTransformHandler(BaseTransformerHandler[CharterTransformer, Charter
 
     @classmethod
     def get_schema_data(cls, extraction_obj: ExtractionData, dir_uuid: str) -> CharterDataSource:
+        from apps.etl.extraction.sources.charter.extract import CharterExtractionMetadataType
+
         with extraction_obj.resp_data.open("rb") as f:
             activation_data = json.load(f)
 
+        T = CharterExtractionMetadataType
+
         areas_data: list[dict] = []
-        for area_ext in cls._collect_children(extraction_obj, "AREA"):
+        for area_ext in cls._collect_children(extraction_obj, T.AREA):
             raw = cls._read_json(area_ext, "area")
             if isinstance(raw, dict):
                 areas_data.append(raw)
 
         vaps_data: list[dict] = []
-        for vaps_ext in cls._collect_children(extraction_obj, "VAPS"):
+        for vaps_ext in cls._collect_children(extraction_obj, T.VAPS):
             raw = cls._read_json(vaps_ext, "vaps")
-            if raw is not None:
-                vaps_data.extend(cls._normalize_vap(raw))
+            if isinstance(raw, dict):
+                vaps_data.append(raw)
         # Old structure (backward compat): VAPS nested under a VAPS_CATALOG container.
-        for catalog_ext in cls._collect_children(extraction_obj, "VAPS_CATALOG"):
-            for vaps_ext in cls._collect_children(catalog_ext, "VAPS"):
+        for catalog_ext in cls._collect_children(extraction_obj, T.VAPS_CATALOG):
+            for vaps_ext in cls._collect_children(catalog_ext, T.VAPS):
                 raw = cls._read_json(vaps_ext, "vaps")
-                if raw is not None:
-                    vaps_data.extend(cls._normalize_vap(raw))
+                if isinstance(raw, dict):
+                    vaps_data.append(raw)
 
         calibrated_datasets_data: list[dict] = []
-        for dataset_ext in cls._collect_children(extraction_obj, "CALIBRATED_DATASET"):
+        for dataset_ext in cls._collect_children(extraction_obj, T.CALIBRATED_DATASET):
             raw = cls._read_json(dataset_ext, "calibrated dataset")
             if not isinstance(raw, dict):
                 continue
@@ -77,8 +74,8 @@ class CharterTransformHandler(BaseTransformerHandler[CharterTransformer, Charter
                 continue
             calibrated_datasets_data.append(raw)
         # Old structure (backward compat): CALIBRATED_DATASET nested under a CALIBRATED_DATASETS container.
-        for datasets_ext in cls._collect_children(extraction_obj, "CALIBRATED_DATASETS"):
-            for dataset_ext in cls._collect_children(datasets_ext, "CALIBRATED_DATASET"):
+        for datasets_ext in cls._collect_children(extraction_obj, T.CALIBRATED_DATASETS):
+            for dataset_ext in cls._collect_children(datasets_ext, T.CALIBRATED_DATASET):
                 raw = cls._read_json(dataset_ext, "calibrated dataset")
                 if not isinstance(raw, dict):
                     continue
@@ -105,11 +102,14 @@ class CharterTransformHandler(BaseTransformerHandler[CharterTransformer, Charter
 
     @staticmethod
     def _should_skip_transform(activation_ext: ExtractionData) -> bool:
+        from apps.etl.extraction.sources.charter.extract import CharterExtractionMetadataType
+
         if activation_ext.source_validation_status != ExtractionData.ValidationStatus.NO_CHANGE:
             return False
+        T = CharterExtractionMetadataType
         return (
             not activation_ext.child_extractions.filter(
-                metadata__type__in=["AREA", "VAPS", "CALIBRATED_DATASET"],
+                metadata__type__in=[T.AREA, T.VAPS, T.CALIBRATED_DATASET],
             )
             .exclude(source_validation_status=ExtractionData.ValidationStatus.NO_CHANGE)
             .exists()
