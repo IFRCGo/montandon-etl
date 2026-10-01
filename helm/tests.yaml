@@ -1,11 +1,25 @@
+# Snapshot test matrix consumed by ./update-snapshots.sh (fugit).
+# Each key names a snapshot under ./snapshots/, rendered from values.yaml (base)
+# plus the listed values files, in order. Nothing is appended implicitly.
+#   - values/operators.yaml : operator-managed infra (Dragonfly, RabbitMQ)
+#   - values/go-deploy.yaml : Azure workload-identity + secret-store CSI overlay
+#   - values/traefik.yaml   : ingress class, layered after the environment overlay
+#   - tests/<key>           : dummy secrets/hosts/ids so fields render standalone
 tests:
-  alpha-1.yaml:
+  alpha.yaml:
+    - values/operators.yaml
     - values/alpha.yaml
+    - values/traefik.yaml
+    - tests/alpha.yaml
   staging.yaml:
     - values/operators.yaml
     - values/go-deploy.yaml
     - values/staging.yaml
+    - values/traefik.yaml
+    - tests/staging.yaml
   prod.yaml:
     - values/operators.yaml
     - values/go-deploy.yaml
     - values/prod.yaml
+    - values/traefik.yaml
+    - tests/prod.yaml
