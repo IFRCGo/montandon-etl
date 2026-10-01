@@ -130,7 +130,12 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         return default_headers
 
     def _find_existing_child(self, **metadata_filters) -> ExtractionData | None:
-        return ExtractionData.objects.filter(parent=self.extraction_object, **metadata_filters).order_by("-id").first()
+        return (
+            ExtractionData.objects.filter(parent=self.extraction_object, **metadata_filters)
+            .only("id", "status", "metadata")
+            .order_by("-id")
+            .first()
+        )
 
     def handle_type_hazard(self, retrigger: bool, failed_int: int | None):
         extraction_status = self._extraction_fetch_url(
@@ -173,13 +178,28 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     queue_name=CeleryQueue.PDC_EXTRACTION,
                 )
 
+        # Prefetch all polygon and exposure_list children in one query instead of 2 queries per item.
+        existing_polygons: dict[str, ExtractionData] = {}
+        existing_exposures: dict[str, ExtractionData] = {}
+        for child in ExtractionData.objects.filter(
+            parent=self.extraction_object,
+            metadata__type__in=[PDCExtractionMetaDataType.POLYGON, PDCExtractionMetaDataType.EXPOSURE_LIST],
+        ).only("id", "status", "metadata"):
+            child_type = child.metadata.get("type")
+            if child_type == PDCExtractionMetaDataType.POLYGON:
+                uuid_key = child.metadata.get("polygon", {}).get("hazard_uuid")
+                if uuid_key and uuid_key not in existing_polygons:
+                    existing_polygons[uuid_key] = child
+            elif child_type == PDCExtractionMetaDataType.EXPOSURE_LIST:
+                uuid_key = child.metadata.get("exposure_list", {}).get("hazard_uuid")
+                if uuid_key and uuid_key not in existing_exposures:
+                    existing_exposures[uuid_key] = child
+
         geo_objects = []
         hazard_extraction_objects = []
+        geo_objects_to_update: list[ExtractionData] = []
         for item in response_data:
-            geo_object = self._find_existing_child(
-                metadata__type=PDCExtractionMetaDataType.POLYGON,
-                metadata__polygon__hazard_uuid=item["uuid"],
-            )
+            geo_object = existing_polygons.get(item["uuid"])
             if geo_object is None:
                 geo_object = self.init_extraction(
                     metadata=PDCExtractionMetadata(
@@ -193,10 +213,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                     add_to_queue=False,
                 )
 
-            exposure_extraction_obj = self._find_existing_child(
-                metadata__type=PDCExtractionMetaDataType.EXPOSURE_LIST,
-                metadata__exposure_list__hazard_uuid=item["uuid"],
-            )
+            exposure_extraction_obj = existing_exposures.get(item["uuid"])
             if exposure_extraction_obj is None:
                 exposure_extraction_obj = self.init_extraction(
                     metadata=PDCExtractionMetadata(
@@ -213,7 +230,7 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             geo_metadata = PDCExtractionMetadata(**geo_object.metadata)
             geo_metadata.polygon.exposure_obj_id = exposure_extraction_obj.id  # type: ignore[union-attr]
             geo_object.metadata = geo_metadata.model_dump()
-            geo_object.save()
+            geo_objects_to_update.append(geo_object)
 
             if geo_object.status != ExtractionData.Status.SUCCESS:
                 geo_objects.append(PDCExtractionV2.task.s(geo_object.pk).set(queue=self.celery_queue))
@@ -221,6 +238,9 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                 hazard_extraction_objects.append(
                     PDCExtractionV2.task.si(exposure_extraction_obj.pk).set(queue=self.celery_queue)
                 )
+
+        if geo_objects_to_update:
+            ExtractionData.objects.bulk_update(geo_objects_to_update, ["metadata"])
 
         if hazard_extraction_objects:
             chord(geo_objects)(group(hazard_extraction_objects))
@@ -239,13 +259,20 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         if not response_data:
             raise NoDataException
 
+        # Prefetch all existing EXPOSURE_DETAIL children in one query instead of one per item.
+        existing_exposure_details: dict[str, ExtractionData] = {}
+        for child in ExtractionData.objects.filter(
+            parent=self.extraction_object,
+            metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
+        ).only("id", "status", "metadata"):
+            exp_id = child.metadata.get("exposure_detail", {}).get("exposure_id")
+            if exp_id and exp_id not in existing_exposure_details:
+                existing_exposure_details[exp_id] = child
+
         all_pks: list[int] = []
         has_pending = False
         for item in response_data:
-            exposure_extraction_obj = self._find_existing_child(
-                metadata__type=PDCExtractionMetaDataType.EXPOSURE_DETAIL,
-                metadata__exposure_detail__exposure_id=item,
-            )
+            exposure_extraction_obj = existing_exposure_details.get(item)
             if exposure_extraction_obj is None:
                 exposure_extraction_obj = self.init_extraction(
                     metadata=PDCExtractionMetadata(
@@ -349,12 +376,19 @@ class PDCExposureBatchTask:
         self.celery_task = celery_task
 
     def handle(self, extraction_pks: list[int]):
+        # Bulk-fetch all objects upfront to avoid N individual .get() calls.
+        all_extraction_objs = {
+            obj.pk: obj for obj in ExtractionData.objects.filter(pk__in=extraction_pks).only("id", "status", "file_hash")
+        }
+
         prev_hash: str | None = None
         prev_success_extraction_obj: ExtractionData | None = None
         last_extraction_obj: ExtractionData | None = None
 
         for pk in extraction_pks:
-            extraction_obj = ExtractionData.objects.get(pk=pk)
+            extraction_obj = all_extraction_objs.get(pk)
+            if extraction_obj is None:
+                continue
 
             # Already processed on a previous run — restore its hash for comparison continuity.
             if extraction_obj.status == ExtractionData.Status.SUCCESS:
