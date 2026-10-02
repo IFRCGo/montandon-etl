@@ -41,72 +41,57 @@ GLIDE_HAZARDS = [
 ]
 
 
+def _init_glide_extraction(hazard_type: HazardType, from_date: date, to_date: date):
+    GlideExtraction.init_extraction(
+        metadata=GlideExtractionMetadata(
+            url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
+            params=GlideExtractionParamsMetadata(
+                fromyear=from_date.year,
+                frommonth=from_date.month,
+                fromday=from_date.day,
+                toyear=to_date.year,
+                tomonth=to_date.month,
+                today=to_date.day,
+                events=hazard_type.value,
+            ),
+            type=GlideExtractionMetadataType.QUERY,
+        ),
+        queue_name=CeleryQueue.EXTRACTION,
+    )
+
+
 def _ext_and_transform_glide_historical_data(hazard_type: HazardType, start_date: date, end_date: date):
-    start_date = start_date
     to_date = end_date
 
     while start_date < to_date:
-        end_date = start_date.replace(year=start_date.year + 1) - timedelta(days=1)
-        if end_date > to_date:
-            end_date = to_date
+        # chunks a long date range into 1-year slices
+        chunk_end = start_date.replace(year=start_date.year + 1) - timedelta(days=1)
+        if chunk_end > to_date:
+            chunk_end = to_date
 
-        GlideExtraction.init_extraction(
-            metadata=GlideExtractionMetadata(
-                url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-                params=GlideExtractionParamsMetadata(
-                    fromyear=start_date.year,
-                    frommonth=start_date.month,
-                    fromday=start_date.day,
-                    toyear=end_date.year,
-                    tomonth=end_date.month,
-                    today=end_date.day,
-                    events=hazard_type.value,
-                ),
-                type=GlideExtractionMetadataType.QUERY,
-            ),
-            queue_name=CeleryQueue.EXTRACTION,
-        )
-
-        start_date = end_date + timedelta(days=1)
+        _init_glide_extraction(hazard_type, start_date, chunk_end)
+        start_date = chunk_end + timedelta(days=1)
 
 
 @shared_task
 def ext_and_transform_glide_latest_data():
-    ext_object = (
-        ExtractionData.objects.filter(
-            source=ExtractionData.Source.GLIDE,
-            status=ExtractionData.Status.SUCCESS,
-            resp_data__isnull=False,
-        )
-        .only("id", "created_at")
-        .order_by("-created_at")
-        .first()
-    )
-
-    if ext_object:
-        from_date = ext_object.created_at.date()
-    else:
-        from_date = etl_config.GLIDE_START_DATE
-
     to_date = datetime.today().date()
 
     for hazard_type in GLIDE_HAZARDS:
-        GlideExtraction.init_extraction(
-            metadata=GlideExtractionMetadata(
-                url=f"{etl_config.GLIDE_URL}/glide/jsonglideset.jsp",
-                params=GlideExtractionParamsMetadata(
-                    fromyear=from_date.year,
-                    frommonth=from_date.month,
-                    fromday=from_date.day,
-                    toyear=to_date.year,
-                    tomonth=to_date.month,
-                    today=to_date.day,
-                    events=hazard_type.value,
-                ),
-                type=GlideExtractionMetadataType.QUERY,
-            ),
-            queue_name=CeleryQueue.EXTRACTION,
+        ext_object = (
+            ExtractionData.objects.filter(
+                source=ExtractionData.Source.GLIDE,
+                status=ExtractionData.Status.SUCCESS,
+                metadata__params__events=hazard_type.value,
+                resp_data__isnull=False,
+            )
+            .only("id", "created_at")
+            .order_by("-created_at")
+            .first()
         )
+
+        from_date = ext_object.created_at.date() if ext_object else etl_config.GLIDE_START_DATE
+        _init_glide_extraction(hazard_type, from_date, to_date)
 
 
 @shared_task
