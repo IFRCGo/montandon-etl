@@ -1254,6 +1254,8 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
   name: monty-autoscaler-default
 spec:
   cooldownPeriod: 30
@@ -1268,7 +1270,7 @@ spec:
     metadata:
       mode: QueueLength
       queueName: default
-      value: "500"
+      value: "1000"
       vhostName: celery
     type: rabbitmq
 ---
@@ -1277,6 +1279,8 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
   name: monty-autoscaler-extraction
 spec:
   cooldownPeriod: 30
@@ -1291,7 +1295,7 @@ spec:
     metadata:
       mode: QueueLength
       queueName: extraction
-      value: "500"
+      value: "1000"
       vhostName: celery
     type: rabbitmq
 ---
@@ -1300,6 +1304,8 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
   name: monty-autoscaler-pdc-extraction
 spec:
   cooldownPeriod: 30
@@ -1314,7 +1320,7 @@ spec:
     metadata:
       mode: QueueLength
       queueName: pdc-extraction
-      value: "500"
+      value: "1000"
       vhostName: celery
     type: rabbitmq
 ---
@@ -1323,6 +1329,8 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
   name: monty-autoscaler-transform
 spec:
   cooldownPeriod: 30
@@ -1337,7 +1345,7 @@ spec:
     metadata:
       mode: QueueLength
       queueName: transform
-      value: "500"
+      value: "1000"
       vhostName: celery
     type: rabbitmq
 ---
@@ -1346,6 +1354,8 @@ spec:
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "40"
   name: monty-autoscaler-usgs-extraction
 spec:
   cooldownPeriod: 30
@@ -1360,7 +1370,7 @@ spec:
     metadata:
       mode: QueueLength
       queueName: usgs-extraction
-      value: "500"
+      value: "1000"
       vhostName: celery
     type: rabbitmq
 ---

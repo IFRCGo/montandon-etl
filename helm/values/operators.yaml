@@ -8,8 +8,8 @@ app:
     # Checkout the resources defined by extraManifests
     CELERY_RABBITMQ_CONNECTION_STRING: { valueFrom: { secretKeyRef: { name: monty-rabbitmq-default-user, key: connection_string } } }
     CELERY_RABBITMQ_VHOST:             { value: celery }
-    CELERY_RESULT_BACKEND:             { value: redis://monty-dragonfly:6379/0 }
-    CACHE_REDIS_URL:                   { value: redis://monty-dragonfly:6379/1 }
+    CELERY_RESULT_BACKEND:             { value: "redis://monty-dragonfly:6379/0" }
+    CACHE_REDIS_URL:                   { value: "redis://monty-dragonfly:6379/1" }
 
   extraManifests:
     # NOTE: Sole definition of the TriggerAuthentication referenced by the
