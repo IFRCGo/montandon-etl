@@ -239,13 +239,17 @@ app:
   # NOTE: The referenced TriggerAuthentication (keda-trigger-auth-rabbitmq-conn)
   # is defined in ./values/operators.yaml, which owns the rabbitmq credentials.
   extraManifests:
-    # Map form (not a `|` string) so deploy overlays can deep-merge single fields,
-    # e.g. metadata.annotations for an Argo sync-wave, without restating the spec.
+    # Map form (not a `|` string) so deploy overlays can deep-merge single fields
+    # without restating the spec.
+    # NOTE: ScaledObjects use Argo sync-wave 40, after the worker Deployments
+    # they target (wave 30).
     keda-scaledobject-default:
       apiVersion: keda.sh/v1alpha1
       kind: ScaledObject
       metadata:
         name: monty-autoscaler-default
+        annotations:
+          argocd.argoproj.io/sync-wave: "40"
       spec:
         scaleTargetRef:
           name: '{{ include "banjo.fullname" $ }}-worker-default'
@@ -260,7 +264,7 @@ app:
               # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
               vhostName: celery
               mode: QueueLength
-              value: "500"
+              value: "1000"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -269,6 +273,8 @@ app:
       kind: ScaledObject
       metadata:
         name: monty-autoscaler-extraction
+        annotations:
+          argocd.argoproj.io/sync-wave: "40"
       spec:
         scaleTargetRef:
           name: '{{ include "banjo.fullname" $ }}-worker-extraction'
@@ -283,7 +289,7 @@ app:
               # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
               vhostName: celery
               mode: QueueLength
-              value: "500"
+              value: "1000"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -292,6 +298,8 @@ app:
       kind: ScaledObject
       metadata:
         name: monty-autoscaler-transform
+        annotations:
+          argocd.argoproj.io/sync-wave: "40"
       spec:
         scaleTargetRef:
           name: '{{ include "banjo.fullname" $ }}-worker-transform'
@@ -306,7 +314,7 @@ app:
               # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
               vhostName: celery
               mode: QueueLength
-              value: "500"
+              value: "1000"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -315,6 +323,8 @@ app:
       kind: ScaledObject
       metadata:
         name: monty-autoscaler-usgs-extraction
+        annotations:
+          argocd.argoproj.io/sync-wave: "40"
       spec:
         scaleTargetRef:
           name: '{{ include "banjo.fullname" $ }}-worker-usgs-extraction'
@@ -329,7 +339,7 @@ app:
               # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
               vhostName: celery
               mode: QueueLength
-              value: "500"
+              value: "1000"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
 
@@ -338,6 +348,8 @@ app:
       kind: ScaledObject
       metadata:
         name: monty-autoscaler-pdc-extraction
+        annotations:
+          argocd.argoproj.io/sync-wave: "40"
       spec:
         scaleTargetRef:
           name: '{{ include "banjo.fullname" $ }}-worker-pdc-extraction'
@@ -352,6 +364,6 @@ app:
               # NOTE: Keep in sync with CELERY_RABBITMQ_VHOST
               vhostName: celery
               mode: QueueLength
-              value: "500"
+              value: "1000"
             authenticationRef:
               name: keda-trigger-auth-rabbitmq-conn
