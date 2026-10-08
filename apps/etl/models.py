@@ -155,6 +155,7 @@ class ExtractionData(EtlResource):
         DREF = 12, _("IFRC DREF & EA")
         WFPADAM = 13, _("WFP-ADAM")
         DESINVENTAR = 14, _("DesInventar")
+        DISASTERCHARTER = 15, _("DisasterCharter")
         CEMS = 16, _("CEMS")
 
     # METADATA
@@ -194,7 +195,7 @@ class ExtractionData(EtlResource):
     # OBSOLETE
 
     resp_data_type = models.CharField(verbose_name=_("Response data type"), blank=True)
-    url = models.URLField(verbose_name=_("url"), blank=True)
+    url = models.URLField(max_length=2048, verbose_name=_("url"), blank=True)
     hazard_type = models.CharField(
         max_length=100, verbose_name=_("hazard type"), choices=HazardType.choices, blank=True, null=True
     )
@@ -203,6 +204,9 @@ class ExtractionData(EtlResource):
         verbose_name = "Extraction"
         indexes = [
             models.Index(fields=["source", "file_hash"]),
+            models.Index(fields=["source", "status"]),
+            models.Index(fields=["source_validation_status"]),
+            models.Index(fields=["parent", "status"]),
         ]
 
     # TODO: We do not need to store URL but we need to store data that can be used to retrigger the data.

@@ -51,6 +51,9 @@ ITEM_TYPE_COLLECTION_ID_MAP = {
     "cems-impacts": PyStacLoadData.ItemType.IMPACT,
     "cems-hazards": PyStacLoadData.ItemType.HAZARD,
     "cems-response": PyStacLoadData.ItemType.RESPONSE,
+    "charter-events": PyStacLoadData.ItemType.EVENT,
+    "charter-hazards": PyStacLoadData.ItemType.HAZARD,
+    "charter-response": PyStacLoadData.ItemType.RESPONSE,
 }
 
 
