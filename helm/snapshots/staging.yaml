@@ -1510,6 +1510,18 @@ spec:
     objects: |
       array:
         - |
+          objectName: CHARTER-S3-ACCESS-KEY-ID
+          objectType: secret
+        - |
+          objectName: CHARTER-S3-BUCKET-NAME
+          objectType: secret
+        - |
+          objectName: CHARTER-S3-ENDPOINT-URL
+          objectType: secret
+        - |
+          objectName: CHARTER-S3-SECRET-ACCESS-KEY
+          objectType: secret
+        - |
           objectName: DB-HOST
           objectType: secret
         - |
@@ -1555,6 +1567,14 @@ spec:
     - secretName: monty-etl-secret
       type: Opaque
       data:
+        - objectName: CHARTER-S3-ACCESS-KEY-ID
+          key: CHARTER_S3_ACCESS_KEY_ID
+        - objectName: CHARTER-S3-BUCKET-NAME
+          key: CHARTER_S3_BUCKET_NAME
+        - objectName: CHARTER-S3-ENDPOINT-URL
+          key: CHARTER_S3_ENDPOINT_URL
+        - objectName: CHARTER-S3-SECRET-ACCESS-KEY
+          key: CHARTER_S3_SECRET_ACCESS_KEY
         - objectName: DB-HOST
           key: DB_HOST
         - objectName: DB-NAME
