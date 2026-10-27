@@ -25,6 +25,14 @@ from utils.celery import RetryableTask
 
 logger = logging.getLogger(__name__)
 
+# S3 error codes that won't resolve on retry (e.g. archived storage class, missing key).
+PERMANENT_S3_ERROR_CODES: frozenset[str] = frozenset(["InvalidObjectState", "NoSuchKey", "AccessDenied"])
+
+
+class PermanentS3FetchError(Exception):
+    pass
+
+
 # Calibrated dataset fetch fails for these activation IDs — skipped until upstream fixes the data.
 ERRORED_CALIBRATION_IDS: frozenset[int] = frozenset([986, 987, 989, 990, 991, 994])
 
@@ -212,7 +220,6 @@ ERRORED_ACTIVATION_IDS: frozenset[int] = frozenset(
         912,
         913,
         914,
-        915,
         916,
         917,
         918,
@@ -264,7 +271,6 @@ ERRORED_ACTIVATION_IDS: frozenset[int] = frozenset(
         964,
         965,
         966,
-        967,
         968,
         969,
         970,
@@ -441,6 +447,8 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
             s3_response = self._s3_client.get_object(Bucket=bucket, Key=key)
             content = s3_response["Body"].read()
         except (ClientError, BotoCoreError) as exc:
+            if isinstance(exc, ClientError) and exc.response.get("Error", {}).get("Code") in PERMANENT_S3_ERROR_CODES:
+                raise PermanentS3FetchError(f"{s3_uri}: {exc}") from exc
             logger.error(
                 "Failed to fetch from S3: %s",
                 s3_uri,
@@ -662,6 +670,26 @@ class CharterExtraction(BaseExtractionV2[CharterExtractionMetadata]):
     # ------------------------------------------------------------------ #
     # Dispatch                                                             #
     # ------------------------------------------------------------------ #
+
+    def handle_extract_error(self, exc: Exception):
+        # Permanent S3 errors: fail without retry and without raising, so the chord transform still fires.
+        if isinstance(exc, PermanentS3FetchError):
+            logger.warning(
+                "Permanent S3 fetch error, marking as failed: %s",
+                exc,
+                extra=log_extra({"source": self.source_enum}),
+            )
+            self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+            return
+        # attempt_no can run ahead of request.retries when acks_late redelivers a task
+        if (
+            isinstance(exc, requests.exceptions.RequestException)
+            and self.extraction_object.attempt_no >= self.MAX_RETRY_LIMIT
+        ):
+            logger.warning("Max retries reached for request error.", extra=log_extra({"source": self.source_enum}))
+            self.extraction_object.mark_as_ended(ExtractionData.Status.FAILED)
+            return
+        return super().handle_extract_error(exc)
 
     def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
