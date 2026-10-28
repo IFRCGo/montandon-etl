@@ -304,16 +304,28 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
                 typing.assert_never(handler_type)
 
     @staticmethod
-    def retrigger(extraction_object):
+    def retrigger(extraction_object, expires: int | None = None):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == PDCExtractionMetaDataType.HAZARD:
-            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            PDCExtractionV2.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == PDCExtractionMetaDataType.POLYGON:
-            PDCExtractionV2.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+            PDCExtractionV2.task.apply_async(
+                args=(extraction_object.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
         if metadata_type == PDCExtractionMetaDataType.EXPOSURE_LIST:
-            PDCExtractionV2.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            PDCExtractionV2.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == PDCExtractionMetaDataType.EXPOSURE_DETAIL:
-            PDCExtractionV2.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+            PDCExtractionV2.task.apply_async(
+                args=(extraction_object.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
 
     @staticmethod
     @app.task(
