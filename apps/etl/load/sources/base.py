@@ -1,5 +1,6 @@
 import requests
 from celery.utils.log import get_task_logger
+from django.db.models import QuerySet
 
 from apps.etl.models import PyStacLoadData
 from apps.etl.transform.sources.handler import ITEM_TYPE_COLLECTION_ID_MAP
@@ -118,6 +119,24 @@ def send_post_request_to_stac_api(
         )
 
 
+def iter_pending_py_stac(qs: QuerySet[PyStacLoadData], *, limit: int, batch_size: int = 100):
+    """
+    Yield up to `limit` rows (oldest first) fetching `batch_size` rows per query using keyset pagination (id < last_id).
+    Keeps only one batch in memory and avoids server-side cursors (not supported with pgbouncer transaction pooling).
+    """
+    qs = qs.only("id", "collection_id", "item").order_by("id")
+    last_id = None
+    fetched = 0
+    while fetched < limit:
+        batch_qs = qs if last_id is None else qs.filter(id__gt=last_id)
+        batch = list(batch_qs[: min(batch_size, limit - fetched)])
+        if not batch:
+            break
+        yield from batch
+        fetched += len(batch)
+        last_id = batch[-1].id
+
+
 def load_data(
     limit: int = etl_config.EOAPI_SYNC_LIMIT,
     skip_collection_create: bool = False,
@@ -145,7 +164,7 @@ def load_data(
     )
 
     bulk_mgr = BulkUpdateManager(["status"], chunk_size=500)
-    for py_stac_obj in pending_py_stac_qs.all()[:limit]:
+    for py_stac_obj in iter_pending_py_stac(pending_py_stac_qs, limit=limit):
         try:
             # TODO: Send in bulk - https://stac-utils.github.io/stac-fastapi/api/stac_fastapi/extensions/third_party/
             send_post_request_to_stac_api(
