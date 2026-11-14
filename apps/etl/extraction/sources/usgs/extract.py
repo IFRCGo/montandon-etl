@@ -253,18 +253,30 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object):
+    def retrigger(extraction_object, expires: int | None = None):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == USGSExtractionMetadataType.QUERY:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            USGSExtraction.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == USGSExtractionMetadataType.DETAIL:
-            USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            USGSExtraction.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == USGSExtractionMetadataType.LOSSE:
-            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+            USGSExtraction.task.apply_async(
+                args=(extraction_object.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
         if metadata_type == USGSExtractionMetadataType.ALERTS:
-            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+            USGSExtraction.task.apply_async(
+                args=(extraction_object.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
         if metadata_type == USGSExtractionMetadataType.RESPONSE_EXCEEDED:
-            USGSExtraction.task.delay(extraction_object.id)
+            USGSExtraction.task.apply_async(args=(extraction_object.id,), expires=expires)
 
     @staticmethod
     @app.task(

@@ -316,16 +316,28 @@ class GdacsExtraction(BaseExtractionV2[GdacsExtractionMetadata]):
             case _:
                 typing.assert_never(handler_type)
 
-    def retrigger(extraction_object: ExtractionData):
+    def retrigger(extraction_object: ExtractionData, expires: int | None = None):
         metadata_type = extraction_object.metadata.get("type")
         if metadata_type == GdacsExtractionMetadataType.QUERY:
-            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            GdacsExtraction.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == GdacsExtractionMetadataType.DETAIL:
-            GdacsExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
+            GdacsExtraction.task.apply_async(
+                args=(extraction_object.id,), kwargs={"retrigger": True, "failed_int": extraction_object.id}, expires=expires
+            )
         if metadata_type == GdacsExtractionMetadataType.EPISODE:
-            GdacsExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
+            GdacsExtraction.task.apply_async(
+                args=(extraction_object.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
         if metadata_type in [GdacsExtractionMetadataType.GEOMETRY, GdacsExtractionMetadataType.IMPACT]:
-            GdacsExtraction.task.delay(extraction_object.parent.parent.id, retrigger=True, failed_int=extraction_object.id)
+            GdacsExtraction.task.apply_async(
+                args=(extraction_object.parent.parent.id,),
+                kwargs={"retrigger": True, "failed_int": extraction_object.id},
+                expires=expires,
+            )
 
     @staticmethod
     @app.task(

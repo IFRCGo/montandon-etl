@@ -9,10 +9,17 @@ from apps.etl.extraction.sources.pdc.extract import PDCExtractionV2
 from apps.etl.extraction.sources.usgs.extract import USGSExtraction
 from apps.etl.models import ExtractionData
 from apps.etl.mutations import source_extraction_map
-from main.cache import CeleryLock
+from main.cache import CeleryLock, cache
 from main.cronjobs import TimeConstants
 
 logger = logging.getLogger(__name__)
+
+PENDING_EXTRACTION_TRIGGER_LIMIT = 500
+PENDING_EXTRACTION_QUEUED_KEY_PREFIX = "PENDING_EXTRACTION_QUEUED:"
+# NOTE: Queued message expires with the redis key, so a message can't outlive the key and be queued twice
+PENDING_EXTRACTION_MESSAGE_EXPIRE = 3 * TimeConstants.SECONDS_IN_A_DAY
+# Key is set before the message is queued, so keep it slightly longer than the message
+PENDING_EXTRACTION_QUEUED_EXPIRE = PENDING_EXTRACTION_MESSAGE_EXPIRE + TimeConstants.SECONDS_IN_A_MINUTE
 
 
 @shared_task
@@ -34,16 +41,24 @@ def trigger_pending_extraction() -> None:
     two_weeks_ago = datetime.today() - timedelta(days=14)
     pending_extraction_objects = ExtractionData.objects.filter(
         status=ExtractionData.Status.PENDING, created_at__date__lte=two_weeks_ago
-    )[:500]
+    ).order_by("id")
 
-    for obj in pending_extraction_objects:
+    queued_count = 0
+    for obj in pending_extraction_objects.iterator():
+        if queued_count >= PENDING_EXTRACTION_TRIGGER_LIMIT:
+            break
         if obj.status == ExtractionData.Status.SUCCESS:
             continue
+        # NOTE: Status stays PENDING until a worker picks up the task, so skip if already queued in the broker
+        # cache.add fails if the key already exists
+        if not cache.add(f"{PENDING_EXTRACTION_QUEUED_KEY_PREFIX}{obj.id}", 1, PENDING_EXTRACTION_QUEUED_EXPIRE):
+            continue
+        queued_count += 1
         extraction_class = source_extraction_map[obj.source]
         if extraction_class in [GdacsExtraction, USGSExtraction, PDCExtractionV2]:  # nested extraction
-            extraction_class.retrigger(obj)
+            extraction_class.retrigger(obj, expires=PENDING_EXTRACTION_MESSAGE_EXPIRE)
         else:
-            extraction_class.task.delay(obj.id)
+            extraction_class.task.apply_async(args=(obj.id,), expires=PENDING_EXTRACTION_MESSAGE_EXPIRE)
 
 
 @shared_task
