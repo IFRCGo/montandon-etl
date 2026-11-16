@@ -69,7 +69,7 @@ def test_batch_task_skips_transform_for_unchanged_data_and_resets_after_failure(
     # item_1: baseline (A)        -> transform;   revision_id=None
     # item_2: same content (A=T1) -> NO_CHANGE;   revision_id=item_1
     # item_3: content changed (B) -> transform;   revision_id=None
-    # item_4: fetch fails (all retries) -> chain preserved (prev stays item_3)
+    # item_4: fetch fails (all retries) -> transform w/o exposure; chain preserved (prev stays item_3)
     # item_5: same content (B=T3) -> NO_CHANGE;   revision_id=item_3
     item_1 = _make_exposure_detail_extraction("1000")
     item_2 = _make_exposure_detail_extraction("2000")
@@ -129,7 +129,7 @@ def test_batch_task_skips_transform_for_unchanged_data_and_resets_after_failure(
     assert item_5.revision_id == item_3
 
     transformed_pks = {call.args[0] for call in mock_transform_delay.call_args_list}
-    assert transformed_pks == {item_1.pk, item_3.pk}
+    assert transformed_pks == {item_1.pk, item_3.pk, item_4.pk}
 
 
 @pytest.mark.django_db
@@ -195,3 +195,30 @@ def test_handle_exposure_list_skips_when_all_children_already_succeeded():
         PDCExtractionV2(MagicMock(), exp_list_extraction.pk).handle_exposure_list(retrigger=False, failed_int=None)
 
     mock_group.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_exposure_list_without_data_still_triggers_transform():
+    exp_list_extraction = PDCExtractionV2.init_extraction(
+        metadata=PDCExtractionMetadata(
+            url=f"https://sentry.pdc.org/hp_srv/services/hazard/{HAZARD_UUID}/exposure",
+            type=PDCExtractionMetaDataType.EXPOSURE_LIST,
+            exposure_list={
+                "hazard_uuid": HAZARD_UUID,
+                "hazard_id": 1,
+                "geo_obj_id": None,
+            },
+        ),
+        parent_extraction=None,
+        add_to_queue=False,
+    )
+
+    with (
+        patch("requests.get", return_value=_mock_response([])),
+        patch.object(PDCTransformHandler.task, "delay") as mock_transform_delay,
+    ):
+        PDCExtractionV2(MagicMock(), exp_list_extraction.pk).handle()
+
+    exp_list_extraction.refresh_from_db()
+    assert exp_list_extraction.status == ExtractionData.Status.SUCCESS
+    mock_transform_delay.assert_called_once_with(exp_list_extraction.pk)
