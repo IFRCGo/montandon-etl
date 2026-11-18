@@ -288,6 +288,18 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
         )
 
     @typing.override
+    def handle_extract_error(self, exc: Exception):
+        try:
+            return super().handle_extract_error(exc)
+        finally:
+            # Exposure list is not available (no data / failed): still transform using hazard data only.
+            if (
+                self.extraction_metadata.type == PDCExtractionMetaDataType.EXPOSURE_LIST
+                and self.extraction_object.status != ExtractionData.Status.ON_RETRY
+            ):
+                PDCTransformHandler.task.delay(self.extraction_object.pk)
+
+    @typing.override
     def handle_extract(self, retrigger: bool, failed_int: int | None = None):
         handler_type = self.extraction_metadata.type
         logger.info(f"Starting extraction<{self.extraction_object.pk}> with metadata: {self.extraction_metadata}")
@@ -402,12 +414,16 @@ class PDCExposureBatchTask:
             else:
                 # All retries exhausted — skip to next item, keep prev_hash/prev_extraction_obj
                 # intact so the next successful item still compares against the last known state.
+                # Exposure detail is unavailable; still transform using hazard data only.
+                PDCTransformHandler.task.delay(pk)
                 last_extraction_obj = extraction_obj
                 continue
 
             extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["metadata"])
 
             if not extraction_obj.resp_data:
+                # No exposure detail data; still transform using hazard data only.
+                PDCTransformHandler.task.delay(pk)
                 prev_hash = None
                 prev_success_extraction_obj = None
                 last_extraction_obj = extraction_obj

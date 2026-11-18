@@ -64,6 +64,8 @@ TransformerSchema = typing.TypeVar("TransformerSchema")
 class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSchema]):
     transformer_class: typing.Type[Transformer]
     transformer_schema: typing.Type[TransformerSchema]
+    # NOTE: Set to False for sources which can be transformed without extraction response data
+    requires_resp_data: bool = True
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -88,7 +90,7 @@ class BaseTransformerHandler(abc.ABC, typing.Generic[Transformer, TransformerSch
         logger.info("Transformation started")
         extraction_obj = ExtractionData.objects.get(id=extraction_id)
 
-        if not extraction_obj.resp_data:
+        if cls.requires_resp_data and not extraction_obj.resp_data:
             logger.info("Transformation ended because there is no data")
             return
         trace_id = get_trace_id(extraction_obj)
