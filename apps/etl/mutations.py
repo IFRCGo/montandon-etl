@@ -112,24 +112,41 @@ def run_transform_retrigger(transform_objects_ids: List[int]) -> None:
     )
     if failed_transform_objects.exists():
         failed_transform_objects.update(status=Transform.Status.PENDING)
-        for obj in failed_transform_objects:
+        pdc_exposure_list_ids = set()
+        for obj in failed_transform_objects.select_related("extraction"):
+            if obj.extraction.source == ExtractionData.Source.PDC:
+                # NOTE: PDC is transformed once per EXPOSURE_LIST (with all the snapshots)
+                pdc_exposure_list_ids.add(PDCTransformHandler.get_exposure_list_extraction(obj.extraction).pk)
+                continue
             transform_class = source_transform_map[obj.extraction.source]
             transform_class.task.delay(obj.extraction.id)
+        for exposure_list_id in pdc_exposure_list_ids:
+            PDCTransformHandler.task.delay(exposure_list_id)
 
 
 @shared_task
-def trigger_pdc_transform(trace_ids: List[int]):
-    """Collect the failed items from the Transform table"""
-    success_ext_detail_ids = ExtractionData.objects.filter(
-        metadata__type="EXPOSURE_DETAIL",
-        status=ExtractionData.Status.SUCCESS,
-        source=ExtractionData.Source.PDC,
-    ).values("id")
+def trigger_pdc_transform(trace_ids: List[int], exposure_list_ids: List[int] | None = None):
+    """
+    Transform the PDC hazards once per EXPOSURE_LIST extraction.
 
+    Includes the given EXPOSURE_LIST extractions (retriggered list/detail extractions) and the
+    ones with failed transforms. Failed transforms of EXPOSURE_DETAIL (older per-snapshot
+    transforms) are resolved to their parent EXPOSURE_LIST.
+    """
     failed_transform_objs = Transform.objects.filter(
-        extraction__id__in=success_ext_detail_ids, status=Transform.Status.FAILED, trace__id__in=trace_ids
-    )
-    run_transform_retrigger.delay(list(failed_transform_objs.values_list("id", flat=True)))
+        extraction__source=ExtractionData.Source.PDC,
+        extraction__metadata__type__in=[PDCExtractionMetaDataType.EXPOSURE_LIST, PDCExtractionMetaDataType.EXPOSURE_DETAIL],
+        status=Transform.Status.FAILED,
+        trace__id__in=trace_ids,
+    ).select_related("extraction")
+
+    list_ids = set(exposure_list_ids or [])
+    for transform_obj in failed_transform_objs:
+        list_ids.add(PDCTransformHandler.get_exposure_list_extraction(transform_obj.extraction).pk)
+
+    failed_transform_objs.update(status=Transform.Status.PENDING)
+    for list_id in list_ids:
+        PDCTransformHandler.task.delay(list_id)
 
 
 @shared_task
@@ -173,10 +190,17 @@ def run_pipeline_retrigger(extraction_objects_ids: List[int]) -> None:
         polygon_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_polygon_objects]
         list_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_list_objects]
         detail_tasks = [PDCExtractionV2.task.si(obj.id) for obj in pdc_detail_objects]
+        # NOTE: Retriggered exposure details are transformed (with all the snapshots) via their EXPOSURE_LIST
+        exposure_list_ids = list(set(pdc_detail_objects.values_list("parent_id", flat=True)))
 
         pdc_retrigger_workflow = chord(
             pdc_hazard_objects,
-            chain(group(polygon_tasks), group(list_tasks), group(detail_tasks), trigger_pdc_transform.si(trace_ids)),
+            chain(
+                group(polygon_tasks),
+                group(list_tasks),
+                group(detail_tasks),
+                trigger_pdc_transform.si(trace_ids, exposure_list_ids),
+            ),
         )
         pdc_retrigger_workflow.apply_async()
 
