@@ -23,7 +23,6 @@ class USGSExtractionMetadataType(str, Enum):
     QUERY = "QUERY"
     DETAIL = "DETAIL"
     LOSSE = "LOSSE"
-    ALERTS = "ALERTS"
     RESPONSE_EXCEEDED = "RESPONSE_EXCEEDED"
 
 
@@ -174,17 +173,6 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
                         add_to_queue=False,
                     )
                     losses_tasks.append(USGSExtraction.task.s(losses_extraction_obj.pk).set(queue=self.celery_queue))
-                if "json/alerts.json" in item["contents"]:
-                    url = item["contents"]["json/alerts.json"]["url"]
-                    alerts_extraction_obj = self.init_extraction(
-                        metadata=USGSExtractionMetadata(
-                            url=url,
-                            type=USGSExtractionMetadataType.ALERTS,
-                        ),
-                        parent_extraction=self.extraction_object,
-                        add_to_queue=False,
-                    )
-                    losses_tasks.append(USGSExtraction.task.s(alerts_extraction_obj.pk).set(queue=self.celery_queue))
 
         if losses_tasks:
             chord(
