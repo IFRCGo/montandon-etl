@@ -28,7 +28,6 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
         losses_data_qs = ExtractionData.objects.filter(parent=extraction_obj, status=ExtractionData.Status.SUCCESS)
 
         losses_data = []
-        alerts_data = []
         for losses_data_obj in losses_data_qs.all():
             if losses_data_obj.resp_data is None:
                 continue
@@ -36,16 +35,9 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
                 with losses_data_obj.resp_data.open() as file_data:
                     data = json.loads(file_data.read())
                     losses_data.append(data)
-            elif losses_data_obj.metadata["type"] == USGSExtractionMetadataType.ALERTS:
-                with losses_data_obj.resp_data.open() as file_data:
-                    data = json.loads(file_data.read())
-                    alerts_data.append(data)
 
         # Write losses_data (which is JSON) to a temp file in text mode
         losses_data_path = write_into_temp_file(json.dumps(losses_data).encode("utf-8"), tmp_dir_path)
-
-        # Write alerts data to a temp file
-        alerts_data_path = write_into_temp_file(json.dumps(alerts_data).encode("utf-8"), tmp_dir_path)
 
         # Read the main extraction object data (as bytes)
         with extraction_obj.resp_data.open() as file_data:
@@ -59,7 +51,6 @@ class USGSTransformHandler(BaseTransformerHandler[USGSTransformer, USGSDataSourc
                 source_url=extraction_obj.url,
                 event_data=File(path=data_path.name, data_type=DataType.FILE),
                 loss_data=File(path=losses_data_path.name, data_type=DataType.FILE),
-                alerts_data=File(path=alerts_data_path.name, data_type=DataType.FILE),
             ),
             eoapi_url=etl_config.EOAPI_STAC_API_PUBLIC,
         )
