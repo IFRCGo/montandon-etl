@@ -23,6 +23,8 @@ class USGSExtractionMetadataType(str, Enum):
     QUERY = "QUERY"
     DETAIL = "DETAIL"
     LOSSE = "LOSSE"
+    # NOTE: Legacy. PAGER alerts are no longer extracted, kept so existing rows still validate.
+    ALERTS = "ALERTS"
     RESPONSE_EXCEEDED = "RESPONSE_EXCEEDED"
 
 
@@ -235,7 +237,9 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
             case USGSExtractionMetadataType.LOSSE:
                 return self.handle_type_losse()
             case USGSExtractionMetadataType.ALERTS:
-                return self.handle_type_losse()
+                # NOTE: Legacy type, PAGER alerts are no longer extracted
+                logger.info(f"Skipping ALERTS extraction<{self.extraction_object.pk}>")
+                return
             case USGSExtractionMetadataType.RESPONSE_EXCEEDED:
                 return self.handle_response_exceeded()
             case _:
@@ -248,8 +252,6 @@ class USGSExtraction(BaseExtractionV2[USGSExtractionMetadata]):
         if metadata_type == USGSExtractionMetadataType.DETAIL:
             USGSExtraction.task.delay(extraction_object.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == USGSExtractionMetadataType.LOSSE:
-            USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
-        if metadata_type == USGSExtractionMetadataType.ALERTS:
             USGSExtraction.task.delay(extraction_object.parent.id, retrigger=True, failed_int=extraction_object.id)
         if metadata_type == USGSExtractionMetadataType.RESPONSE_EXCEEDED:
             USGSExtraction.task.delay(extraction_object.id)
