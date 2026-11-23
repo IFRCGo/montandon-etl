@@ -272,7 +272,10 @@ class PDCExtractionV2(BaseExtractionV2[PDCExtractionMetadata]):
             PDCExposureBatchTask.task.si(all_pks[i : i + PDCExposureBatchTask.BATCH_SIZE])
             for i in range(0, len(all_pks), PDCExposureBatchTask.BATCH_SIZE)
         ]
-        group(batch_tasks).apply_async()
+        # NOTE: Transform once per hazard after all the exposure details (snapshots) are extracted.
+        # Event and hazard items are created once with impact items for every changed snapshot.
+        transform_task = PDCTransformHandler.task.si(self.extraction_object.pk)
+        chord(batch_tasks)(transform_task.clone().on_error(transform_task))
 
     def handle_polygon(self):
         headers = dict(self._get_request_headers())
@@ -343,9 +346,10 @@ class PDCExposureBatchTask:
 
     Within each batch the impact data hash (excluding the timestamp field) is compared
     between consecutive extractions.  When the hash is unchanged the extraction is marked
-    NO_CHANGE and the Transform step is skipped; otherwise Transform is queued as normal.
-    Batches run in parallel via Celery group, but items within a batch are sequential so
-    the comparison chain is maintained.
+    NO_CHANGE and it is excluded from the Transform step.
+    Batches run in parallel via Celery chord, but items within a batch are sequential so
+    the comparison chain is maintained. Transform runs once on the EXPOSURE_LIST extraction
+    after all the batches are completed (see PDCExtractionV2.handle_exposure_list).
     """
 
     BATCH_SIZE = 100
@@ -414,16 +418,13 @@ class PDCExposureBatchTask:
             else:
                 # All retries exhausted — skip to next item, keep prev_hash/prev_extraction_obj
                 # intact so the next successful item still compares against the last known state.
-                # Exposure detail is unavailable; still transform using hazard data only.
-                PDCTransformHandler.task.delay(pk)
                 last_extraction_obj = extraction_obj
                 continue
 
             extraction_obj.mark_as_ended(ExtractionData.Status.SUCCESS, update_fields=["metadata"])
 
             if not extraction_obj.resp_data:
-                # No exposure detail data; still transform using hazard data only.
-                PDCTransformHandler.task.delay(pk)
+                # No exposure detail data; nothing to compare or transform for this snapshot.
                 prev_hash = None
                 prev_success_extraction_obj = None
                 last_extraction_obj = extraction_obj
@@ -440,7 +441,6 @@ class PDCExposureBatchTask:
                 logger.info("ExposureDetail %s: data unchanged, skipping transform", pk)
             else:
                 extraction_obj.save(update_fields=["file_hash", "metadata"])
-                PDCTransformHandler.task.delay(pk)
 
             prev_success_extraction_obj = extraction_obj
             prev_hash = current_hash
