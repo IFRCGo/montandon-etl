@@ -370,7 +370,7 @@ def test_transform_creates_event_and_hazard_once_for_all_snapshots():
     impact_ids = [row.item_id for row in rows[PyStacLoadData.ItemType.IMPACT]]
     assert len(impact_ids) == len(set(impact_ids))
     impact_timestamps = {item_id.split(f"{HAZARD_UUID}-")[1].split("-")[1] for item_id in impact_ids}
-    assert impact_timestamps == {"1751032300", "1751032100"}
+    assert impact_timestamps == {"1751032300000", "1751032100000"}
 
     # Event links to the impact items of all the changed snapshots
     event_item = rows[PyStacLoadData.ItemType.EVENT][0].item
