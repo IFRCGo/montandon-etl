@@ -1,6 +1,9 @@
+from typing import List
+
 import strawberry
 import strawberry_django
 from asgiref.sync import sync_to_async
+from django.db import connection
 from django.db.models import Count, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from strawberry_django.pagination import OffsetPaginated
@@ -13,6 +16,7 @@ from apps.etl.types import (
     CountbytraceID,
     ETLWithTraceID,
     ItemsbySource,
+    ItemTypeSourceStatusSummary,
     RawExtractiondatatype,
     RawPystacdatatype,
     RawTransformdatatype,
@@ -22,10 +26,13 @@ from apps.etl.types import (
     StatusSourceCountPyStac,
     StatusSourceCountPystacByItem,
     StatusSourceCountTransform,
+    TableSize,
     UniqueCounts,
     ValStatusSourceCount,
 )
 from main.graphql.context import Info
+
+from .enums import TableNameEnum
 
 
 @strawberry.type
@@ -188,8 +195,8 @@ class Query:
     @strawberry.field()
     async def status_source_counts_transform(self, info: Info) -> list[StatusSourceCountTransform]:
         query_countby_status_source = (
-            StatusSourceCountExtraction.get_queryset(None, None, info)
-            .values("source")  # group by source
+            StatusSourceCountTransform.get_queryset(None, None, info)
+            .values("extraction__source")  # group by source
             .annotate(
                 in_progress_count=Count("id", filter=Q(status=Status.IN_PROGRESS)),
                 success_count=Count("id", filter=Q(status=Status.SUCCESS)),
@@ -201,7 +208,7 @@ class Query:
 
         return [
             StatusSourceCountTransform(
-                source=item["source"],
+                source=item["extraction__source"],
                 in_progress_count=item["in_progress_count"],
                 success_count=item["success_count"],
                 failed_count=item["failed_count"],
@@ -314,3 +321,55 @@ class Query:
             )
             for item in results
         ]
+
+    @strawberry.field()
+    async def status_counts_by_source_for_itemtype(
+        self,
+        info: Info,
+    ) -> list[ItemTypeSourceStatusSummary]:
+        results = (
+            ItemTypeSourceStatusSummary.get_queryset(None, None, info)
+            .values("item_type", "transform_id__extraction__source")  # group by source
+            .annotate(
+                success_count=Count("id", filter=Q(status=PyStacLoadData.Status.SUCCESS)),
+                failed_count=Count("id", filter=Q(status=PyStacLoadData.Status.FAILED)),
+                pending_count=Count("id", filter=Q(status=PyStacLoadData.Status.PENDING)),
+                id=Count("id"),
+            )
+        )
+        return [
+            ItemTypeSourceStatusSummary(
+                source=event["transform_id__extraction__source"],
+                item_type=event["item_type"],
+                success_count=event["success_count"],
+                failed_count=event["failed_count"],
+                pending_count=event["pending_count"],
+                total=event["id"],
+            )
+            async for event in results
+        ]
+
+    @strawberry.field
+    async def specific_table_sizes(self, info) -> List[TableSize]:
+        # tables = ('etl_transform', 'etl_extractiondata', 'etl_pystacloaddata')
+        tables = [e.value for e in TableNameEnum]
+
+        placeholders = ",".join(["%s"] * len(tables))
+        sql = f"""
+            SELECT
+                tablename,
+                pg_size_pretty(pg_relation_size(tablename::regclass)) AS size
+            FROM pg_tables
+            WHERE schemaname = 'public'
+            AND tablename IN ({placeholders})
+            ORDER BY pg_relation_size(tablename::regclass) DESC;
+        """
+
+        @sync_to_async
+        def run_query():
+            with connection.cursor() as cursor:
+                cursor.execute(sql, tables)
+                return cursor.fetchall()
+
+        results = await run_query()
+        return [TableSize(tablename=row[0], size=row[1]) for row in results]
